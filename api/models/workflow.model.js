@@ -14,8 +14,6 @@ const schema = new mongoose.Schema(definition, {
     usePushEach: true
 });
 
-let model;
-
 schema.plugin(mongooseUtils.metadataPlugin());
 
 schema.pre('save', utils.counter.getIdGenerator('WF', 'workflow', null, null, 1000));
@@ -92,4 +90,4 @@ schema.post('save', function (doc) {
     }
 });
 
-model = authorDB.model('workflow', schema, 'workflow');
+authorDB.model('workflow', schema, 'workflow');

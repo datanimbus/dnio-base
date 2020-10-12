@@ -8,8 +8,6 @@ const schema = new mongoose.Schema(definition, {
     usePushEach: true
 });
 
-let model;
-
 schema.plugin(mongooseUtils.metadataPlugin());
 
-model = mongoose.model('fileTransfers', schema, `${config.serviceCollection}.fileTransfers`);
+mongoose.model('fileTransfers', schema, `${config.serviceCollection}.fileTransfers`);
