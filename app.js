@@ -107,6 +107,7 @@ const server = app.listen(PORT, (err) => {
         });
     } else {
         logger.error(err);
+        process.exit(0);
     }
 });
 
