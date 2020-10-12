@@ -10,6 +10,8 @@ const express = require('express');
 const bluebird = require('bluebird');
 const multer = require('multer');
 const bodyParser = require('body-parser');
+const log4js = require('log4js');
+const mongoose = require('mongoose');
 const cuti = require('@appveen/utils');
 const odpUtils = require('@appveen/odp-utils');
 
@@ -17,17 +19,25 @@ const config = require('./config');
 const queueMgmt = require('./queue');
 
 const LOGGER_NAME = undefined ? `[${config.appNamespace}]` + `[${config.hostname}]` : `[${config.serviceName}]`
+const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
 const PORT = config.servicePort;
+
+log4js.configure({
+    appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
+    categories: { default: { appenders: ['out'], level: LOG_LEVEL } }
+});
 
 const app = express();
 const upload = multer({ dest: path.join(process.cwd(), 'uploads') });
-const log4js = cuti.logger.getLogger;
 const fileValidator = cuti.fileValidator;
 const logger = log4js.getLogger(LOGGER_NAME);
 
 global.Promise = bluebird;
 global.serverStartTime = new Date();
 global.status = null;
+global.activeRequest = 0;
+global.loggerName = LOGGER_NAME;
+global.logger = logger;
 
 require('./db-factory');
 const init = require('./init');
@@ -44,7 +54,7 @@ let masking = [
 ];
 const logToQueue = odpUtils.logToQueue(`${config.app}.${config.serviceId}`, queueMgmt.client, 'dataService', `${config.app}.${config.serviceId}.logs`, masking, config.serviceId);
 
-app.use(bodyParser.json({ limit: '5mb' }));
+app.use(bodyParser.json({ limit: config.MaxJSONSize }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cuti.logMiddleware.getLogMiddleware(logger));
 app.use(upload.single('file'));
@@ -61,6 +71,20 @@ app.use(function (req, res, next) {
     });
     if (flag) next();
     else next(new Error('File not supported'));
+});
+
+app.use((req, res, next) => {
+    if (req.path.split('/').indexOf('health') == -1) {
+        logger.trace(req.path, req.headers);
+    }
+    global.activeRequest++;
+    res.on('close', function () {
+        global.activeRequest--;
+        if (req.path.split('/').indexOf('health') === -1) {
+            logger.trace(`============= REQUEST COMPLETED FOR ${req.path} =============`);
+        }
+    });
+    next();
 });
 
 app.use('/' + config.app + config.serviceEndpoint, require('./api/controllers'));
@@ -87,3 +111,42 @@ const server = app.listen(PORT, (err) => {
 });
 
 server.setTimeout(parseInt(timeOut) * 1000);
+
+process.on('SIGTERM', () => {
+    try {
+        // Handle Request for 15 sec then stop recieving
+        setTimeout(() => {
+            global.stopServer = true;
+        }, 15000);
+        logger.info('Process Kill Request Recieved');
+        // Stopping CRON Job;
+        global.job.cancel();
+        const intVal = setInterval(() => {
+            // Waiting For all pending requests to finish;
+            if (global.activeRequest === 0) {
+                // Closing Express Server;
+                server.close(() => {
+                    logger.info('Server Stopped.');
+                    if (mongoose.connection) {
+                        mongoose.connection.close(false, (err) => {
+                            if (err) {
+                                logger.error('MongoDB connection close', err);
+                            } else {
+                                logger.info('MongoDB connection closed.');
+                            }
+                            process.exit(0);
+                        });
+                    } else {
+                        process.exit(0);
+                    }
+                });
+                clearInterval(intVal);
+            } else {
+                logger.info('Waiting for request to complete, Active Requests:', global.activeRequest);
+            }
+        }, 2000);
+    } catch (e) {
+        logger.error('SIGTERM Handler', e);
+        process.exit(0);
+    }
+});
