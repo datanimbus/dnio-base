@@ -18,7 +18,7 @@ const odpUtils = require('@appveen/odp-utils');
 const config = require('./config');
 const queueMgmt = require('./queue');
 
-const LOGGER_NAME = undefined ? `[${config.appNamespace}]` + `[${config.hostname}]` : `[${config.serviceName}]`
+const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}]` + `[${config.hostname}]` : `[${config.serviceName}]`
 const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
 const PORT = config.servicePort;
 
