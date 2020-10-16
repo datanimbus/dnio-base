@@ -39,7 +39,7 @@ router.get('/doc', (req, res) => {
     });
 });
 
-router.get('/securedFields', (req, res) => {
+router.get('/utils/securedFields', (req, res) => {
     async function execute() {
         try {
             res.status(200).json(specialFields.secureFields);
@@ -58,7 +58,7 @@ router.get('/securedFields', (req, res) => {
     });
 });
 
-router.get('/bulkShow', (req, res) => {
+router.get('/utils/bulkShow', (req, res) => {
     async function execute() {
         try {
             const ids = req.query.id ? req.query.id.split(',') : [];
@@ -151,7 +151,7 @@ router.put('/bulkUpdate', (req, res) => {
     });
 });
 
-router.delete('/bulkDelete', (req, res) => {
+router.delete('/utils/bulkDelete', (req, res) => {
     async function execute() {
         const workflowModel = authorDB.model('workflow');
         try {
@@ -213,7 +213,7 @@ router.delete('/bulkDelete', (req, res) => {
 /**
  * @deprecated
  */
-router.get('/count', (req, res) => {
+router.get('/utils/count', (req, res) => {
     async function execute() {
         try {
             let filter = {};

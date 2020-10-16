@@ -38,7 +38,7 @@ let secureFields = specialFields.secureFields;
 let baseURL = `/${config.app}/${config.serviceId}`;
 let masking = [
     { url: `${baseURL}`, path: secureFields },
-    { url: `${baseURL}/simulate`, path: secureFields },
+    { url: `${baseURL}/utils/simulate`, path: secureFields },
     { url: `${baseURL}/{id}`, path: secureFields },
     { url: `${baseURL}/experienceHook`, path: secureFields }
 ];
