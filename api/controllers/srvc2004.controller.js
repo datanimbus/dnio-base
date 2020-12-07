@@ -17,7 +17,7 @@ const BATCH = 500;
 const logger = global.logger;
 const _ = require('lodash');
 const init = require("../../init");
-const odpNS = process.env.ODP_NAMESPACE
+const dataStackNS = process.env.DATA_STACK_NAMESPACE
 let XLSX = require('xlsx');
 let queueMgmt = require('../../queueManagement.js');
 var client = queueMgmt.client;
@@ -84,7 +84,7 @@ schema.index({"userId" : 1} , {unique: "userId field should be unique", sparse: 
                 inService.forEach(obj => {
                     if(process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT){
                         let split = obj.uri.split('/');
-                        obj.host=split[2].split("?")[0].toLowerCase() + "." + odpNS + "-"+split[1].toLowerCase().replace(/ /g, "");
+                        obj.host=split[2].split("?")[0].toLowerCase() + "." + dataStackNS + "-"+split[1].toLowerCase().replace(/ /g, "");
                         obj.port = 80;
                     }else{
                         obj.host = "localhost"
@@ -126,7 +126,7 @@ schema.index({"userId" : 1} , {unique: "userId field should be unique", sparse: 
                 let _service = { port: _o.port, uri: _o.uri.split("?")[0] + "/" + _oDoc._id }
                 if (process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT) {
                     _service.port = 80;
-                    _service.host = uriSplit[2].split("?")[0].toLowerCase() + "." + odpNS + "-" + uriSplit[1].toLowerCase().replace(/ /g, "");
+                    _service.host = uriSplit[2].split("?")[0].toLowerCase() + "." + dataStackNS + "-" + uriSplit[1].toLowerCase().replace(/ /g, "");
                 } else {
                     _service.host = "localhost";
                 }
@@ -1153,7 +1153,7 @@ function fetchExtData(id, serviceId, select, documentCache, serviceDetailCache, 
             let _service = { port: _sd.port, uri: "/" + _sd.app + _sd.api };
             if (process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT) {
                 _service.port = 80;
-                _service.host = _sd.api.substr(1).toLowerCase() + "." + odpNS + "-" + _sd.app.toLowerCase().replace(/ /g, "");
+                _service.host = _sd.api.substr(1).toLowerCase() + "." + dataStackNS + "-" + _sd.app.toLowerCase().replace(/ /g, "");
             } else {
                 _service.host = "localhost";
             }
@@ -1677,7 +1677,7 @@ function getExtIds(filter, service, req){
             let _service = {port: _sd.port, uri: "/"+_sd.app+_sd.api};
             if (process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT) {
                     _service.port = 80;
-                    _service.host = _sd.api.substr(1).toLowerCase() + "." + odpNS + "-" + _sd.app.toLowerCase().replace(/ /g, "");
+                    _service.host = _sd.api.substr(1).toLowerCase() + "." + dataStackNS + "-" + _sd.app.toLowerCase().replace(/ /g, "");
             } else {
                 _service.host = "localhost";
             }
@@ -1701,7 +1701,7 @@ function getIdList(filterArr, req){
             let _service = {port: _sd.port, uri: "/"+_sd.app+_sd.api};
             if (process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT) {
                     _service.port = 80;
-                    _service.host = _sd.api.substr(1).toLowerCase() + "." + odpNS + "-" + _sd.app.toLowerCase().replace(/ /g, "");
+                    _service.host = _sd.api.substr(1).toLowerCase() + "." + dataStackNS + "-" + _sd.app.toLowerCase().replace(/ /g, "");
             } else {
                 _service.host = "localhost";
             }

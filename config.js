@@ -14,27 +14,27 @@ e.logsDB = process.env.MONGO_LOGS_DBNAME || 'odpLogs';
 e.googleKey = process.env.GOOGLE_API_KEY || '';
 e.queueName = 'webHooks';
 e.NATSConfig = {
-	url: process.env.NATS_HOST || 'nats://127.0.0.1:4222',
-	user: process.env.NATS_USER || '',
-	pass: process.env.NATS_PASS || '',
-	maxReconnectAttempts: process.env.NATS_RECONN_ATTEMPTS || 500,
-	reconnectTimeWait: process.env.NATS_RECONN_TIMEWAIT || 500
+	url: process.env.MESSAGING_HOST || 'nats://127.0.0.1:4222',
+	user: process.env.MESSAGING_USER || '',
+	pass: process.env.MESSAGING_PASS || '',
+	maxReconnectAttempts: process.env.MESSAGING_RECONN_ATTEMPTS || 500,
+	reconnectTimeWait: process.env.MESSAGING_RECONN_TIMEWAIT_MILLI || 500
 };
 e.mongoOptions = {
 	reconnectTries: process.env.MONGO_RECONN_TRIES,
-	reconnectInterval: process.env.MONGO_RECONN_TIME,
+	reconnectInterval: process.env.MONGO_RECONN_TIME_MILLI,
 	useNewUrlParser: true
 };
 e.allowedExt = 'ppt,xls,csv,doc,jpg,png,apng,gif,webp,flif,cr2,orf,arw,dng,nef,rw2,raf,tif,bmp,jxr,psd,zip,tar,rar,gz,bz2,7z,dmg,mp4,mid,mkv,webm,mov,avi,mpg,mp2,mp3,m4a,oga,ogg,ogv,opus,flac,wav,spx,amr,pdf,epub,exe,swf,rtf,wasm,woff,woff2,eot,ttf,otf,ico,flv,ps,xz,sqlite,nes,crx,xpi,cab,deb,ar,rpm,Z,lz,msi,mxf,mts,blend,bpg,docx,pptx,xlsx,3gp,3g2,jp2,jpm,jpx,mj2,aif,qcp,odt,ods,odp,xml,mobi,heic,cur,ktx,ape,wv,wmv,wma,dcm,ics,glb,pcap,dsf,lnk,alias,voc,ac3,m4v,m4p,m4b,f4v,f4p,f4b,f4a,mie,asf,ogm,ogx,mpc'.split(',');
 
 e.hostname = process.env.HOSTNAME;
-e.namespace = process.env.ODP_NAMESPACE || 'appveen';
-e.app = process.env.ODP_APP || 'Adam';
-e.appNamespace = process.env.ODP_APP_NS;
+e.namespace = process.env.DATA_STACK_NAMESPACE || 'appveen';
+e.app = process.env.DATA_STACK_APP || 'Adam';
+e.appNamespace = process.env.DATA_STACK_APP_NS;
 e.servicePort = process.env.SERVICE_PORT;
 e.serviceId = process.env.SERVICE_ID;
 e.serviceName = process.env.SERVICE_NAME;
-e.serviceDB = process.env.ODP_NAMESPACE + '-' + process.env.ODP_APP;
+e.serviceDB = process.env.DATA_STACK_NAMESPACE + '-' + process.env.DATA_STACK_APP;
 e.serviceEndpoint = process.env.SERVICE_ENDPOINT;
 e.serviceCollection = process.env.SERVICE_COLLECTION;
 e.permanentDelete = process.env.PERMANENT_DELETE;

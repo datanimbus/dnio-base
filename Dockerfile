@@ -1,6 +1,6 @@
 ARG RELEASE=3.10
 ARG PORT=3000
-FROM odp:base.${RELEASE}
+FROM data.stack:base.${RELEASE}
 
 WORKDIR /app
 
