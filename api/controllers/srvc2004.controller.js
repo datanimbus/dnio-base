@@ -17,7 +17,7 @@ const BATCH = 500;
 const logger = global.logger;
 const _ = require('lodash');
 const init = require("../../init");
-const odpNS = process.env.ODP_NAMESPACE
+const dataStackNS = process.env.DATA_STACK_NAMESPACE
 let XLSX = require('xlsx');
 let queueMgmt = require('../../queueManagement.js');
 var client = queueMgmt.client;
@@ -84,7 +84,7 @@ schema.index({"userId" : 1} , {unique: "userId field should be unique", sparse: 
                 inService.forEach(obj => {
                     if(process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT){
                         let split = obj.uri.split('/');
-                        obj.host=split[2].split("?")[0].toLowerCase() + "." + odpNS + "-"+split[1].toLowerCase().replace(/ /g, "");
+                        obj.host=split[2].split("?")[0].toLowerCase() + "." + dataStackNS + "-"+split[1].toLowerCase().replace(/ /g, "");
                         obj.port = 80;
                     }else{
                         obj.host = "localhost"
@@ -126,7 +126,7 @@ schema.index({"userId" : 1} , {unique: "userId field should be unique", sparse: 
                 let _service = { port: _o.port, uri: _o.uri.split("?")[0] + "/" + _oDoc._id }
                 if (process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT) {
                     _service.port = 80;
-                    _service.host = uriSplit[2].split("?")[0].toLowerCase() + "." + odpNS + "-" + uriSplit[1].toLowerCase().replace(/ /g, "");
+                    _service.host = uriSplit[2].split("?")[0].toLowerCase() + "." + dataStackNS + "-" + uriSplit[1].toLowerCase().replace(/ /g, "");
                 } else {
                     _service.host = "localhost";
                 }
@@ -1153,7 +1153,7 @@ function fetchExtData(id, serviceId, select, documentCache, serviceDetailCache, 
             let _service = { port: _sd.port, uri: "/" + _sd.app + _sd.api };
             if (process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT) {
                 _service.port = 80;
-                _service.host = _sd.api.substr(1).toLowerCase() + "." + odpNS + "-" + _sd.app.toLowerCase().replace(/ /g, "");
+                _service.host = _sd.api.substr(1).toLowerCase() + "." + dataStackNS + "-" + _sd.app.toLowerCase().replace(/ /g, "");
             } else {
                 _service.host = "localhost";
             }
@@ -1677,7 +1677,7 @@ function getExtIds(filter, service, req){
             let _service = {port: _sd.port, uri: "/"+_sd.app+_sd.api};
             if (process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT) {
                     _service.port = 80;
-                    _service.host = _sd.api.substr(1).toLowerCase() + "." + odpNS + "-" + _sd.app.toLowerCase().replace(/ /g, "");
+                    _service.host = _sd.api.substr(1).toLowerCase() + "." + dataStackNS + "-" + _sd.app.toLowerCase().replace(/ /g, "");
             } else {
                 _service.host = "localhost";
             }
@@ -1701,7 +1701,7 @@ function getIdList(filterArr, req){
             let _service = {port: _sd.port, uri: "/"+_sd.app+_sd.api};
             if (process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT) {
                     _service.port = 80;
-                    _service.host = _sd.api.substr(1).toLowerCase() + "." + odpNS + "-" + _sd.app.toLowerCase().replace(/ /g, "");
+                    _service.host = _sd.api.substr(1).toLowerCase() + "." + dataStackNS + "-" + _sd.app.toLowerCase().replace(/ /g, "");
             } else {
                 _service.host = "localhost";
             }
@@ -1872,61 +1872,115 @@ function getRelationVF(key, value, VFArray) {
 
 function keyvalue(data, obj, keys, values,flag) {
 
-    for (let item in data) {
-        if (item == "_href") {
+    data.forEach(attribute => {
+        let item = attribute.key;
+        if(item == "_href")
             return;
-        }
         if (keys == undefined || values == undefined) {
             keys = ""; values = "";
         }
-
-        if (data[item] && data[item]["properties"] && data[item]["properties"]["relatedTo"]) {
+        if (attribute && attribute["properties"] && attribute["properties"]["relatedTo"]) {
             let newkeys = item + ".";
-            let newValues = data[item]["properties"]["name"] + ".";
-            let newObj = getRelationVF(newkeys, newValues, data[item]["properties"].relatedViewFields);
+            let newValues = attribute["properties"]["name"] + ".";
+            let newObj = getRelationVF(newkeys, newValues, attribute["properties"].relatedViewFields);
             Object.assign(obj, newObj);
         }
-        else if (data[item]["type"] == "Object" && data[item]["properties"]) {
+        else if (attribute["type"] == "Object" && attribute["properties"]) {
             keys = item + ".";
-            values = data[item]["properties"]["name"] + ".";
+            values = attribute["properties"]["name"] + ".";
 
-            keyvalue(data[item].definition, obj, keys, values,flag);
+            keyvalue(attribute.definition, obj, keys, values,flag);
             keys = "";
             values = "";
         }
   
-        else if (data[item]["type"] == "Array" && flag) {
-            if(data[item]["definition"] && data[item]["definition"]["_self"] && data[item]["definition"]["_self"]["type"] == "Object"){
+        else if (attribute["type"] == "Array" && flag) {
+            if(attribute["definition"] && attribute["definition"][0] && attribute["definition"][0]["type"] == "Object"){
                 keys += item+'.{index}.';
-                values += data[item]["properties"]["name"]+'.{index}.';
-                keyvalue(data[item]["definition"]["_self"]["definition"], obj, keys, values,flag);
+                values += attribute["properties"]["name"]+'.{index}.';
+                keyvalue(attribute["definition"][0]["definition"], obj, keys, values,flag);
                 keys = "";
                 values = "";
             }
             else{
                 keys += item+'.{index}';
-                values += data[item]["properties"]["name"]+'.{index}'
+                values += attribute["properties"]["name"]+'.{index}'
                 obj[keys] = values; 
                 keys = keys.replace(item+'.{index}', "");
-            values = values.replace(data[item]["properties"]["name"]+'.{index}', "");               
+            values = values.replace(attribute["properties"]["name"]+'.{index}', "");               
             }
             
         }
-        else if (data[item]["type"] == "Object") {
+        else if (attribute["type"] == "Object") {
             // do nothing
         }
-        else if (data[item]["properties"]) {
+        else if (attribute["properties"]) {
             keys += item;
-            values += data[item]["properties"]["name"]
+            values += attribute["properties"]["name"]
             obj[keys] = values;
             keys = keys.replace(item, "");
-            values = values.replace(data[item]["properties"]["name"], "");
+            values = values.replace(attribute["properties"]["name"], "");
         }
-        
-    }
+    });
     obj["_metadata.lastUpdated"] = "Last Updated";
     obj["_metadata.createdAt"] = "Created";
     return obj;
+
+    // for (let item in data) {
+    //     if (item == "_href") {
+    //         return;
+    //     }
+    //     if (keys == undefined || values == undefined) {
+    //         keys = ""; values = "";
+    //     }
+
+    //     if (data[item] && data[item]["properties"] && data[item]["properties"]["relatedTo"]) {
+    //         let newkeys = item + ".";
+    //         let newValues = data[item]["properties"]["name"] + ".";
+    //         let newObj = getRelationVF(newkeys, newValues, data[item]["properties"].relatedViewFields);
+    //         Object.assign(obj, newObj);
+    //     }
+    //     else if (data[item]["type"] == "Object" && data[item]["properties"]) {
+    //         keys = item + ".";
+    //         values = data[item]["properties"]["name"] + ".";
+
+    //         keyvalue(data[item].definition, obj, keys, values,flag);
+    //         keys = "";
+    //         values = "";
+    //     }
+  
+    //     else if (data[item]["type"] == "Array" && flag) {
+    //         if(data[item]["definition"] && data[item]["definition"]["_self"] && data[item]["definition"]["_self"]["type"] == "Object"){
+    //             keys += item+'.{index}.';
+    //             values += data[item]["properties"]["name"]+'.{index}.';
+    //             keyvalue(data[item]["definition"]["_self"]["definition"], obj, keys, values,flag);
+    //             keys = "";
+    //             values = "";
+    //         }
+    //         else{
+    //             keys += item+'.{index}';
+    //             values += data[item]["properties"]["name"]+'.{index}'
+    //             obj[keys] = values; 
+    //             keys = keys.replace(item+'.{index}', "");
+    //         values = values.replace(data[item]["properties"]["name"]+'.{index}', "");               
+    //         }
+            
+    //     }
+    //     else if (data[item]["type"] == "Object") {
+    //         // do nothing
+    //     }
+    //     else if (data[item]["properties"]) {
+    //         keys += item;
+    //         values += data[item]["properties"]["name"]
+    //         obj[keys] = values;
+    //         keys = keys.replace(item, "");
+    //         values = values.replace(data[item]["properties"]["name"], "");
+    //     }
+        
+    // }
+    // obj["_metadata.lastUpdated"] = "Last Updated";
+    // obj["_metadata.createdAt"] = "Created";
+    // return obj;
 }
 
 function expandedExport(req, res, expand) {
@@ -1948,13 +2002,12 @@ function expandedExport(req, res, expand) {
     select = select ? select.split(',') : [];
     let selectionObject = null;
     let intFilter = null;
-    let definitionJson;
     let obj = {};
     let obj2 = {};
     var resul = {};
-    definitionJson = helperUtil.getDefinition();
-    var cbc = keyvalue(definitionJson, obj,null,null,false);
-    var mapping = keyvalue(definitionJson, obj2,null,null,true);
+    let definitionArr = helperUtil.getDefinition();
+    var cbc = keyvalue(definitionArr, obj,null,null,false);
+    var mapping = keyvalue(definitionArr, obj2,null,null,true);
 
     let serviceDetailsObj = {};
 

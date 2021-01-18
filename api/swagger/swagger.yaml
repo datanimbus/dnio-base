@@ -88,7 +88,7 @@ paths:
           description: Bad parameters
         "500":
           description: Internal server error
-  /simulate:
+  /utils/simulate:
     x-swagger-router-controller: controller
     post:
       description: validate 'complex'
@@ -158,7 +158,7 @@ paths:
           description: Bad parameters
         "500":
           description: Internal server error
-  /bulkShow:
+  /utils/bulkShow:
     x-swagger-router-controller: controller
     get:
       description: Retrieve a list of 'complex'
@@ -187,7 +187,7 @@ paths:
           description: Bad parameters
         "500":
           description: Internal server error
-  /securedFields:
+  /utils/securedFields:
     x-swagger-router-controller: controller
     get:
       description: Retrieve a list of secured fields in 'complex'
@@ -243,7 +243,7 @@ paths:
           description: Bad parameters
         "500":
           description: Internal server error
-  /bulkDelete:
+  /utils/bulkDelete:
     x-swagger-router-controller: controller
     delete:
       description: Deletes a list of 'complex'
@@ -270,7 +270,7 @@ paths:
           description: List document ids not deleted
         "500":
           description: Internal server error
-  /count:
+  /utils/count:
     x-swagger-router-controller: controller
     get:
       description: returns count of 'complex'
@@ -675,7 +675,7 @@ paths:
           description: Bad parameters
         "500":
           description: Internal server error
-  /export:
+  /utils/export:
     x-swagger-router-controller: controller
     get:
       description: Retrieve a list of 'complex'

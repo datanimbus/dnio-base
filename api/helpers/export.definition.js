@@ -1,3 +1,4 @@
+// to check => usage before converting to array
 const definition = {
     _metadata: {
         type: {

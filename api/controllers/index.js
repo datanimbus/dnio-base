@@ -6,7 +6,7 @@ router.use('/utils/fileTransfers', require('./fileTransfers.controller'));
 router.use('/utils', require('./utils.controller'));
 router.use('/file', require('./file.controller'));
 router.use('/fileMapper', require('./fileMapper.controller'));
-router.use('/export', require('./export.controller'));
+router.use('/utils/export', require('./export.controller'));
 router.use('/health', require('./health.controller'));
 
 module.exports = router;
