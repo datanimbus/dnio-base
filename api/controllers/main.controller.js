@@ -422,24 +422,35 @@ router.put('/:id', (req, res) => {
     async function execute() {
         const workflowModel = authorDB.model('workflow');
         try {
+            const upsert = req.query.upsert || false;
             let payload = req.body;
             let status;
+            let isNewDoc = false;
             let doc = await model.findById(req.params.id);
-            if (!doc) {
+            if (!doc && !upsert) {
                 return res.status(404).json({
                     message: 'Document Not Found'
                 });
+            }
+            if (!doc && upsert) {
+                isNewDoc = true;
+                payload._id = req.params.id;
+                payload._metadata = {};
+                delete payload.__v;
+                doc = new model(payload);
             }
             if (doc._metadata.workflow) {
                 return res.status(400).json({
                     message: 'This Document is Locked because of a pending Workflow'
                 });
             }
-            delete payload._id;
-            doc._oldDoc = doc.toObject();
+            if (!isNewDoc) {
+                delete payload._id;
+                doc._oldDoc = doc.toObject();
+            }
             doc._req = req;
             if (workflowUtils.isWorkflowEnabled() && !workflowUtils.hasSkipReview(req)) {
-                const wfItem = workflowUtils.getWorkflowItem(req, 'PUT', doc._id, 'Submited', payload, doc._oldDoc);
+                const wfItem = workflowUtils.getWorkflowItem(req, isNewDoc ? 'POST' : 'PUT', doc._id, 'Submited', payload, isNewDoc ? null : doc._oldDoc);
                 const wfDoc = new workflowModel(wfItem);
                 wfDoc._req = req;
                 status = await wfDoc.save();

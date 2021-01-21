@@ -40,6 +40,7 @@ function metadataPlugin(options) {
             if (self.isNew) {
                 self._metadata.createdAt = new Date();
             }
+            self._wasNew = self.isNew;
             self._metadata.lastUpdated = new Date();
             self.markModified('_metadata');
             next();

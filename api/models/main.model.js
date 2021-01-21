@@ -16,8 +16,6 @@ const schema = new mongoose.Schema(definition, {
     usePushEach: true
 });
 
-let model;
-
 schema.plugin(mongooseUtils.metadataPlugin());
 schema.plugin(specialFields.mongooseUniquePlugin());
 
@@ -171,7 +169,7 @@ schema.post('save', function (doc) {
     }
 });
 
-model = mongoose.model(config.serviceId, schema, config.serviceCollection);
+mongoose.model(config.serviceId, schema, config.serviceCollection);
 
 function getDiff(a, b, oldData, newData) {
     if (a === null || b === null) {

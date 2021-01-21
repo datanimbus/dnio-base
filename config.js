@@ -38,6 +38,7 @@ e.serviceDB = process.env.DATA_STACK_NAMESPACE + '-' + process.env.DATA_STACK_AP
 e.serviceEndpoint = process.env.SERVICE_ENDPOINT;
 e.serviceCollection = process.env.SERVICE_COLLECTION;
 e.permanentDelete = process.env.PERMANENT_DELETE;
+e.MaxJSONSize = process.env.MAX_JSON_SIZE || '1mb';
 
 // ID Config ENV Varaiables
 e.ID_PADDING = process.env.ID_PADDING;
