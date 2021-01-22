@@ -1,13 +1,11 @@
 const mongoose = require('mongoose');
-const mongodb = require('mongodb');
-const cuti = require('@appveen/utils');
+const log4js = require('log4js');
 const NodeCache = require('node-cache');
 
 const config = require('./config');
 const models = require('./api/models');
 
-const LOGGER_NAME = undefined ? `[${config.appNamespace}]` + `[${config.hostname}]` : `[${config.serviceName}]`;
-const log4js = cuti.logger.getLogger;
+const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}]` + `[${config.hostname}]` : `[${config.serviceName}]`;
 const logger = log4js.getLogger(LOGGER_NAME);
 const dbName = config.serviceDB;
 
@@ -31,9 +29,9 @@ mongoose.connect(config.mongoUrl + '/' + dbName + '?authSource=admin', config.mo
         logger.error(err);
     } else {
         logger.info(`Connected to ${dbName} DB`);
-        global.gfsBucket = new mongodb.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}` });
-        global.gfsBucketExport = new mongodb.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.exportedFile` });
-        global.gfsBucketImport = new mongodb.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.fileImport` });
+        global.gfsBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}` });
+        global.gfsBucketExport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.exportedFile` });
+        global.gfsBucketImport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.fileImport` });
     }
 });
 

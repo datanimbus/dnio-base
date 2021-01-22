@@ -8,8 +8,6 @@ const schema = new mongoose.Schema(definition, {
     usePushEach: true
 });
 
-let model;
-
 schema.plugin(mongooseUtils.metadataPlugin());
 
-model = mongoose.model('fileMapper', schema, `${config.serviceCollection}.bulkCreate`);
+mongoose.model('fileMapper', schema, `${config.serviceCollection}.bulkCreate`);
