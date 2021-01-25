@@ -221,7 +221,7 @@ paths:
           description: Bad parameters
         "500":
           description: Internal server error
-  /experienceHook:
+  /utils/experienceHook:
     x-swagger-router-controller: controller
     post:
       description: triggers the hook with data
