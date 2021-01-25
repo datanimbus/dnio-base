@@ -50,7 +50,7 @@ let masking = [
     { url: `${baseURL}`, path: secureFields },
     { url: `${baseURL}/utils/simulate`, path: secureFields },
     { url: `${baseURL}/{id}`, path: secureFields },
-    { url: `${baseURL}/experienceHook`, path: secureFields }
+    { url: `${baseURL}/utils/experienceHook`, path: secureFields }
 ];
 const logToQueue = odpUtils.logToQueue(`${config.app}.${config.serviceId}`, queueMgmt.client, 'dataService', `${config.app}.${config.serviceId}.logs`, masking, config.serviceId);
 
