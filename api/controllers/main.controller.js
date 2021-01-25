@@ -13,6 +13,8 @@ const workflowUtils = require('../utils/workflow.utils');
 
 const logger = global.logger;
 const model = mongoose.model(config.serviceId);
+let softDeletedModel;
+if(!config.permanentDelete) softDeletedModel = mongoose.model(config.serviceId + '.deleted');
 const mathQueue = async.priorityQueue(processMathQueue);
 const client = queue.client;
 
@@ -180,11 +182,10 @@ router.delete('/utils/bulkDelete', (req, res) => {
                     return await doc.save();
                 } else {
                     if (!config.permanentDelete) {
-                        doc._metadata.deleted = true;
-                        return new Promise((resolve, reject) => { doc.save().then(resolve).catch(err => resolve(null)) });
-                    } else {
-                        return new Promise((resolve, reject) => { doc.remove().then(resolve).catch(err => resolve(null)) })
+                        let softDeletedDoc = softDeletedModel(doc);
+                        await softDeletedDoc.save();
                     }
+                    return new Promise((resolve, reject) => { doc.remove().then(resolve).catch(err => resolve(null)) })
                 }
             });
             const allResult = await Promise.all(promises);
@@ -235,7 +236,6 @@ router.get('/utils/count', (req, res) => {
                 });
             }
             if (filter) {
-                filter['_metadata.deleted'] = !config.permanentDelete;
                 filter = crudderUtils.parseFilter(filter);
             }
             if (errors && Object.keys(errors).length > 0) {
@@ -280,7 +280,6 @@ router.get('/', (req, res) => {
                 });
             }
             if (filter) {
-                filter['_metadata.deleted'] = !config.permanentDelete;
                 filter = crudderUtils.parseFilter(filter);
             }
             if (errors && Object.keys(errors).length > 0) {
@@ -503,11 +502,10 @@ router.delete('/:id', (req, res) => {
                 status = await doc.save();
             } else {
                 if (!config.permanentDelete) {
-                    doc._metadata.deleted = true;
-                    status = await doc.save();
-                } else {
-                    status = await doc.remove();
+                    let softDeletedDoc = softDeletedModel(doc);
+                    await softDeletedDoc.save();
                 }
+                status = await doc.remove();
             }
             logger.debug(status);
             res.status(200).json({
@@ -580,7 +578,7 @@ router.post('/hook', (req, res) => {
     });
 });
 
-router.post('/experienceHook', (req, res) => {
+router.post('/utils/experienceHook', (req, res) => {
     async function execute() {
         try {
             const name = req.query.name;
