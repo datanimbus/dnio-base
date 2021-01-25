@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const mongoose = require('mongoose');
+const client = require('../../queue').client;
 
 const init = require('../../init');
 
