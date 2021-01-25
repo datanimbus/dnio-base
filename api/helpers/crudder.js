@@ -76,7 +76,6 @@ e.index = function (req, model) {
 		}
 	}
 	filter = _.assign({}, filter);
-	filter['_metadata.deleted'] = !config.permanentDelete;
 	if (search) {
 		filter['$text'] = { '$search': search };
 	}
@@ -107,7 +106,6 @@ e.count = function (req, model) {
 		}
 	}
 	filter = _.assign({}, filter);
-	filter['_metadata.deleted'] = !config.permanentDelete;
 	var query = model.find(filter).count();
 	query.lean();
 	return query.exec();

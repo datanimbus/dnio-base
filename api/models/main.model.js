@@ -11,6 +11,8 @@ const specialFields = require('../utils/special-fields.utils');
 
 const client = queue.client;
 const logger = global.logger;
+let softDeletedModel;
+if(!config.permanentDelete) softDeletedModel = mongoose.model(config.serviceId + '.deleted');
 
 const schema = new mongoose.Schema(definition, {
     usePushEach: true
@@ -32,6 +34,23 @@ schema.pre('validate', async function (next) {
         }
     } catch (e) {
         next(e);
+    }
+});
+
+schema.pre('validate', async function (next) {
+    const self = this;
+    if(!config.permanentDelete && self.isnew && self._id) {
+        softDeletedModel.findById(self._id).then(doc => {
+            if(doc) 
+                next(new Error('ID ' + self._id + 'already exists in deleted records.'))
+            else
+                next();
+        }).catch(e => {
+            logger.error('Error in validating ID ', e);
+            next(e);
+        })
+    } else {
+        next();
     }
 });
 

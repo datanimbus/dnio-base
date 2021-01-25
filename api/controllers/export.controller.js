@@ -66,9 +66,6 @@ router.get('/', (req, res) => {
                     message: e
                 });
             }
-            if (filter) {
-                filter['_metadata.deleted'] = !config.permanentDelete;
-            }
             let select = '';
             let sort = '';
             if (req.query.select && req.query.select.trim()) {
