@@ -1,5 +1,6 @@
-const definition = require('../helpers/service.definition').definition;
+const mongoose = require('mongoose');
 const config = require('../../config');
+const definition = require('../helpers/service.definition').definition;
 
 const schema = new mongoose.Schema(definition, {
     usePushEach: true
