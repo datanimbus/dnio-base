@@ -12,13 +12,14 @@ const multer = require('multer');
 const bodyParser = require('body-parser');
 const log4js = require('log4js');
 const mongoose = require('mongoose');
-const cuti = require('@appveen/utils');
+const utils = require('@appveen/utils');
 const dataStackUtils = require('@appveen/data.stack-utils');
 
 const config = require('./config');
 const queueMgmt = require('./queue');
 
-const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}]` + `[${config.hostname}]` : `[${config.serviceName}]`
+let baseImageVersion = require('./package.json').version;
+const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} ${config.serviceVersion}]` : `[${config.serviceName} ${config.serviceVersion}]`
 const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
 const PORT = config.servicePort;
 
@@ -29,8 +30,10 @@ log4js.configure({
 
 const app = express();
 const upload = multer({ dest: path.join(process.cwd(), 'uploads') });
-const fileValidator = cuti.fileValidator;
+const fileValidator = utils.fileValidator;
 const logger = log4js.getLogger(LOGGER_NAME);
+logger.info(`Service version : ${config.serviceVersion}`)
+logger.info(`Base image version : ${baseImageVersion}`)
 
 global.Promise = bluebird;
 global.serverStartTime = new Date();
@@ -56,7 +59,7 @@ const logToQueue = dataStackUtils.logToQueue(`${config.app}.${config.serviceId}`
 
 app.use(bodyParser.json({ limit: config.MaxJSONSize }));
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cuti.logMiddleware.getLogMiddleware(logger));
+app.use(utils.logMiddleware.getLogMiddleware(logger));
 app.use(upload.single('file'));
 app.use(logToQueue);
 app.use(function (req, res, next) {

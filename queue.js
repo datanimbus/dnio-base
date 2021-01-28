@@ -1,10 +1,13 @@
 
-
-const clients = require('@appveen/odp-utils').natsStreaming;
 const config = require('./config');
 
-const clientId = config.isK8sEnv() ? process.env.HOSTNAME : (config.app + '-' + config.serviceCollection);
-const client = clients.init('odp-cluster', clientId, config.NATSConfig);
+const clientId = process.env.HOSTNAME : `${config.app}-${config.serviceCollection}`;
+
+var client = require('@appveen/data.stack-utils').streaming.init(
+	process.env.STREAMING_CHANNEL || 'datastack-cluster',
+	clientId,
+	config.streamingConfig
+);
 
 /**
  * 
@@ -14,10 +17,7 @@ function sendToQueue(data) {
     client.publish(config.queueName, JSON.stringify(data, null, 4));
 };
 
-
-
 module.exports = {
     client: client,
     sendToQueue: sendToQueue
 }
-

@@ -1,4 +1,4 @@
-const cuti = require('@appveen/utils');
+const utils = require('@appveen/utils');
 const request = require('request');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
@@ -37,7 +37,7 @@ function simulate(req, data, options) {
     let promise = Promise.resolve(data);
     let oldData;
     if (!data._id && options.generateId) {
-        promise = cuti.counter.generateId(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER).then(id => {
+        promise = utils.counter.generateId(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER).then(id => {
             data._id = id;
             return data;
         });
