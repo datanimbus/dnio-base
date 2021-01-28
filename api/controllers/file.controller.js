@@ -78,7 +78,7 @@ router.get('/download/:id', (req, res) => {
 router.post('/upload', (req, res) => {
     async function execute() {
         try {
-            const sampleFile = req.files.file;
+            const sampleFile = req.file.file;
             const filename = sampleFile.name;
             streamifier.createReadStream(sampleFile.data).
                 pipe(global.gfsBucket.openUploadStream(crypto.createHash('md5').update(uuid() + global.serverStartTime).digest('hex'), {

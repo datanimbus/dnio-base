@@ -45,7 +45,7 @@ const specialFields = require('./api/utils/special-fields.utils');
 
 let timeOut = process.env.API_REQUEST_TIMEOUT || 120;
 let secureFields = specialFields.secureFields;
-let baseURL = `/${config.app}/${config.serviceId}`;
+let baseURL = `/${config.app}/${config.serviceEndpoint}`;
 let masking = [
     { url: `${baseURL}`, path: secureFields },
     { url: `${baseURL}/utils/simulate`, path: secureFields },
