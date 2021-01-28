@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const odpUtils = require('@appveen/odp-utils');
+const dataStackUtils = require('@appveen/data.stack-utils');
 const utils = require('@appveen/utils');
 
 const queue = require('../../queue');
@@ -18,7 +18,7 @@ schema.plugin(mongooseUtils.metadataPlugin());
 
 schema.pre('save', utils.counter.getIdGenerator('WF', 'workflow', null, null, 1000));
 
-schema.pre('save', odpUtils.auditTrail.getAuditPreSaveHook('workflow'));
+schema.pre('save', dataStackUtils.auditTrail.getAuditPreSaveHook('workflow'));
 
 schema.pre('save', function (next) {
     let self = this;
@@ -68,7 +68,7 @@ schema.pre('save', function (next) {
     }
 });
 
-schema.post('save', odpUtils.auditTrail.getAuditPostSaveHook('workflow.audit', client, 'auditQueue'));
+schema.post('save', dataStackUtils.auditTrail.getAuditPostSaveHook('workflow.audit', client, 'auditQueue'));
 
 schema.post('save', function (doc) {
     logger.debug(this.oldStatus + ' ' + doc.status);

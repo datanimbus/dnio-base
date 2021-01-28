@@ -13,7 +13,7 @@ const bodyParser = require('body-parser');
 const log4js = require('log4js');
 const mongoose = require('mongoose');
 const cuti = require('@appveen/utils');
-const odpUtils = require('@appveen/odp-utils');
+const dataStackUtils = require('@appveen/data.stack-utils');
 
 const config = require('./config');
 const queueMgmt = require('./queue');
@@ -52,7 +52,7 @@ let masking = [
     { url: `${baseURL}/{id}`, path: secureFields },
     { url: `${baseURL}/utils/experienceHook`, path: secureFields }
 ];
-const logToQueue = odpUtils.logToQueue(`${config.app}.${config.serviceId}`, queueMgmt.client, 'dataService', `${config.app}.${config.serviceId}.logs`, masking, config.serviceId);
+const logToQueue = dataStackUtils.logToQueue(`${config.app}.${config.serviceId}`, queueMgmt.client, 'dataService', `${config.app}.${config.serviceId}.logs`, masking, config.serviceId);
 
 app.use(bodyParser.json({ limit: config.MaxJSONSize }));
 app.use(bodyParser.urlencoded({ extended: true }));
