@@ -234,7 +234,7 @@ async function getHooks() {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'TxnId': 'AUTO-FETCH',
+            'TxnId': `BASE_${Date.now()}`,
             'User': 'AUTO-FETCH'
         },
         qs: {
