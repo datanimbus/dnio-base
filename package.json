@@ -1,6 +1,6 @@
 {
     "name": "data-stack-base",
-    "version": "3.10.0",
+    "version": "1.0.0",
     "description": "",
     "main": "app.js",
     "scripts": {
@@ -11,8 +11,8 @@
     "author": "Jugnu Agrawal",
     "license": "ISC",
     "dependencies": {
-        "@appveen/odp-utils": "1.5.7",
-        "@appveen/utils": "1.2.2",
+        "@appveen/data.stack-utils": "^1.0.8",
+        "@appveen/utils": "^2.1.3",
         "bluebird": "^3.7.2",
         "express": "^4.17.1",
         "lodash": "^4.17.15",
