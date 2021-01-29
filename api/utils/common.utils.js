@@ -848,9 +848,9 @@ function getFormattedDate(dateObj, defaultTimeZone, supportedTimeZones) {
     if(dateObj.rawData && dateObj.tzInfo) {
         if(supportedTimeZones.length && !supportedTimeZones.includes(dateObj.tzInfo))
             throw new Error('Invalid timezone value ' + dateObj.tzInfo);
-        return formatDate(rawData, dateObj.tzInfo, false);
+        return formatDate(dateObj.rawData, dateObj.tzInfo, false);
     } else if (dateObj.rawData) {
-        return formatDate(rawData, defaultTimeZone, false);
+        return formatDate(dateObj.rawData, defaultTimeZone, false);
     } else if(dateObj.unix) {
         return formatDate(dateObj.unix, defaultTimeZone, true);
     } else {
@@ -865,7 +865,7 @@ function formatDate(rawData, tzInfo, isUnix) {
             rawData: rawData.toString(),
             tzData: dt.tz(tzInfo).format(),
             tzInfo: tzInfo,
-            utc: dt,
+            utc: dt.toISOString(),
             unix: isUnix ? rawData : Date.parse(rawData)
           }
     } catch(e) {
