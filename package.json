@@ -11,7 +11,7 @@
     "author": "Jugnu Agrawal",
     "license": "ISC",
     "dependencies": {
-        "@appveen/data.stack-utils": "^1.0.9",
+        "@appveen/data.stack-utils": "^1.0.10",
         "@appveen/utils": "^2.1.3",
         "async": "^3.2.0",
         "bluebird": "^3.7.2",
