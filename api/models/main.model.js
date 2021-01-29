@@ -22,7 +22,7 @@ schema.plugin(mongooseUtils.metadataPlugin());
 schema.plugin(specialFields.mongooseUniquePlugin());
 
 schema.pre('validate', async function (next) {
-    const newDoc = this.toObject();
+    const newDoc = this;
     const oldDoc = this._oldDoc;
     const req = this._req;
     try {
@@ -57,7 +57,7 @@ schema.pre('validate', async function (next) {
 schema.pre('save', utils.counter.getIdGenerator(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER));
 
 schema.pre('save', async function (next) {
-    const newDoc = this.toObject();
+    const newDoc = this;
     const oldDoc = this._oldDoc;
     const req = this._req;
     try {
@@ -70,7 +70,7 @@ schema.pre('save', async function (next) {
 });
 
 schema.pre('save', function (next) {
-    const newDoc = this.toObject();
+    const newDoc = this;
     const oldDoc = this._oldDoc;
     const req = this._req;
     const errors = specialFields.validateCreateOnly(req, newDoc, oldDoc);
@@ -82,7 +82,7 @@ schema.pre('save', function (next) {
 });
 
 schema.pre('save', async function (next) {
-    const newDoc = this.toObject();
+    const newDoc = this;
     const oldDoc = this._oldDoc;
     const req = this._req;
     try {
@@ -98,7 +98,7 @@ schema.pre('save', async function (next) {
 });
 
 schema.pre('save', async function (next) {
-    const newDoc = this.toObject();
+    const newDoc = this;
     const oldDoc = this._oldDoc;
     const req = this._req;
     try {
@@ -114,7 +114,7 @@ schema.pre('save', async function (next) {
 });
 
 schema.pre('save', async function (next) {
-    const newDoc = this.toObject();
+    const newDoc = this;
     const oldDoc = this._oldDoc;
     const req = this._req;
     try {
@@ -130,7 +130,7 @@ schema.pre('save', async function (next) {
 });
 
 schema.pre('save', async function (next) {
-    const newDoc = this.toObject();
+    const newDoc = this;
     const oldDoc = this._oldDoc;
     const req = this._req;
     try {
@@ -146,7 +146,7 @@ schema.pre('save', async function (next) {
 });
 
 schema.pre('save', async function (next) {
-    const newDoc = this.toObject();
+    const newDoc = this;
     const oldDoc = this._oldDoc;
     const req = this._req;
     try {

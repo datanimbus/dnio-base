@@ -846,13 +846,13 @@ e.decryptArrData = function (data, nestedKey) {
 function getFormattedDate(dateObj, defaultTimeZone, supportedTimeZones) {
     if(!dateObj) return;
     if(dateObj.rawData && dateObj.tzInfo) {
-        if(!supportedTimeZones.includes(dateObj.tzInfo))
+        if(supportedTimeZones.length && !supportedTimeZones.includes(dateObj.tzInfo))
             throw new Error('Invalid timezone value ' + dateObj.tzInfo);
         return formatDate(rawData, dateObj.tzInfo, false);
     } else if (dateObj.rawData) {
         return formatDate(rawData, defaultTimeZone, false);
     } else if(dateObj.unix) {
-        return formatDate(unix, defaultTimeZone, true);
+        return formatDate(dateObj.unix, defaultTimeZone, true);
     } else {
         throw new Error('Invalid date time value');
     }
