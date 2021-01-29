@@ -145,6 +145,22 @@ schema.pre('save', async function (next) {
     }
 });
 
+schema.pre('save', async function (next) {
+    const newDoc = this.toObject();
+    const oldDoc = this._oldDoc;
+    const req = this._req;
+    try {
+        const errors = await specialFields.validateDateFields(req, newDoc, oldDoc);
+        if (errors) {
+            next(errors);
+        } else {
+            next();
+        }
+    } catch (e) {
+        next(e);
+    }
+});
+
 
 schema.post('save', function (doc) {
     const req = doc._req;

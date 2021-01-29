@@ -14,6 +14,7 @@ const logger = global.logger;
 const client = queueMgmt.client;
 const serviceCache = global.serviceCache;
 const documentCache = global.documentCache;
+var moment = require('moment-timezone');
 const e = {};
 
 /**
@@ -842,6 +843,37 @@ e.decryptArrData = function (data, nestedKey) {
     return Promise.all(promises);
 }
 
+function getFormattedDate(dateObj, defaultTimeZone, supportedTimeZones) {
+    if(!dateObj) return;
+    if(dateObj.rawData && dateObj.tzInfo) {
+        if(!supportedTimeZones.includes(dateObj.tzInfo))
+            throw new Error('Invalid timezone value ' + dateObj.tzInfo);
+        return formatDate(rawData, dateObj.tzInfo, false);
+    } else if (dateObj.rawData) {
+        return formatDate(rawData, defaultTimeZone, false);
+    } else if(dateObj.unix) {
+        return formatDate(unix, defaultTimeZone, true);
+    } else {
+        throw new Error('Invalid date time value');
+    }
+}
+function formatDate(rawData, tzInfo, isUnix) {
+    parsedDate = new Date(rawData)
+    let dt = moment(parsedDate.toISOString())
+    try {
+        return  {
+            rawData: rawData.toString(),
+            tzData: dt.tz(tzInfo).format(),
+            tzInfo: tzInfo,
+            utc: dt,
+            unix: isUnix ? rawData : Date.parse(rawData)
+          }
+    } catch(e) {
+        throw new Error('Invalid date time value');
+    }
+}
+
+
 e.simulate = simulate;
 e.getDocumentIds = getDocumentIds;
 e.getServiceDoc = getServiceDoc;
@@ -850,5 +882,6 @@ e.decryptText = decryptText;
 e.getGeoDetails = getGeoDetails;
 e.informThroughSocket = informThroughSocket;
 e.isExpandAllowed = isExpandAllowed;
+e.getFormattedDate = getFormattedDate;
 
 module.exports = e;
