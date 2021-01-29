@@ -1,7 +1,7 @@
 
 const config = require('./config');
 
-const clientId = process.env.HOSTNAME : `${config.app}-${config.serviceCollection}`;
+const clientId = process.env.HOSTNAME || `${config.app}-${config.serviceCollection}`;
 
 var client = require('@appveen/data.stack-utils').streaming.init(
 	process.env.STREAMING_CHANNEL || 'datastack-cluster',
