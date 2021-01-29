@@ -763,7 +763,7 @@ function fixForField(field) {
     let updatedArr = [];
     return model.count(filter)
         .then((count) => {
-            logger.debug('Documents found to be fixed for secureText field ' + field + ' ' + count);
+        		if(count > 0) logger.info(`Secure text fix :: ${count} Documents found for ${field}`);
             let batchSize = 100;
             let totalBatches = count / batchSize;
             let arr = [];
@@ -771,6 +771,7 @@ function fixForField(field) {
                 arr.push(i);
             }
             return arr.reduce((_p, curr) => {
+            		logger.info(`Secure text fix :: batch :: ${JSON.stringify(curr)}`)
                 return _p
                     .then(() => {
                         return getData(filter, curr, batchSize);
@@ -782,8 +783,7 @@ function fixForField(field) {
 }
 
 e.fixSecureText = function () {
-    logger.debug('Fixing Secure Text');
-    logger.debug('Fields found ' + secureFields);
+    if (secureFields.join() != "" ) logger.info(`Fixing Secure Text. Fields - ${secureFields}`);
     return secureFields.reduce((acc, curr) => {
         return acc.then(() => {
             return fixForField(curr);

@@ -9,12 +9,13 @@ const logger = global.logger;
 const client = queueMgmt.client;
 
 async function getRoles() {
+	logger.trace(`Get roles`);
     var options = {
         url: config.baseUrlUSR + '/role/' + config.serviceId,
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'TxnId': `BASE_${Date.now()}`,
+            'TxnId': `${process.env.SERVICE_ID}_${Date.now()}`,
             'User': 'AUTO-FETCH'
         },
         json: true
@@ -22,17 +23,15 @@ async function getRoles() {
     try {
         const res = await httpClient.httpRequest(options);
         if (res.statusCode !== 200) {
-            logger.error('roles.utils>getRoles', 'User service returned', res.statusCode);
-            logger.debug(JSON.stringify(res.body));
-            return;
+          logger.error(`Get roles :: ${JSON.stringify(res.body)}`);
+          return
         }
         const role = res.body;
         setRoles(role);
         processRolesQueue();
     } catch (err) {
-        logger.error('roles.utils>getRoles', err);
+        logger.error(`Get roles :: ${err.message}`);
     }
-
 }
 
 /**
@@ -57,11 +56,11 @@ function processRolesQueue() {
                 logger.debug(`Message from queue :: ${config.serviceId}-role :: ${JSON.stringify(bodyObj)}`);
                 setRoles(bodyObj);
             } catch (err) {
-                logger.error('roles.utils>processRolesQueue', err);
+                logger.error(`Processing roles queue :: ${err.message}`);
             }
         });
     } catch (err) {
-        logger.error('roles.utils>processRolesQueue', err);
+        logger.error(`Processing roles queue :: ${err.message}`);
     }
 }
 

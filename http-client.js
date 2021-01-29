@@ -1,4 +1,4 @@
-const request = require('request');
+const request = require('request-promise');
 
 /**
  * @typedef {Object} QueryParams
@@ -34,16 +34,9 @@ function httpRequest(options) {
         options.method = 'GET';
     }
     options.json = true;
+    options["resolveWithFullResponse"] = true;
 
-    return new Promise((resolve, reject) => {
-        request(options, function (err, res, body) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(res);
-            }
-        });
-    })
+    return request(options)
 }
 
 module.exports.httpRequest = httpRequest;

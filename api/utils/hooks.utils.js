@@ -229,12 +229,13 @@ function callExperienceHook(req, res) {
 
 
 async function getHooks() {
+		logger.trace(`Get hooks`);
     var options = {
         url: config.baseUrlSM + '/service/' + config.serviceId,
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'TxnId': `BASE_${Date.now()}`,
+            'TxnId': `${process.env.SERVICE_ID}_${Date.now()}`,
             'User': 'AUTO-FETCH'
         },
         qs: {
@@ -245,15 +246,14 @@ async function getHooks() {
     try {
         const res = await httpClient.httpRequest(options);
         if (res.statusCode !== 200) {
-            logger.error('hooks.utils>getHooks', 'Service Manager returned', res.statusCode);
-            logger.debug(JSON.stringify(res.body));
+            logger.error(`Get hooks :: ${JSON.stringify(res.body)}`);
             return;
         }
         const hooks = res.body;
         setHooks(hooks);
         processHooksQueue();
     } catch (err) {
-        logger.error('hooks.utils>getHooks', err);
+        logger.error(`Get hooks :: ${err.message}`);
     }
 }
 
@@ -276,7 +276,7 @@ function createExperienceHooksList(data) {
     let wizard = data.wizard;
     if (wizard) {
         hooks = [].concat.apply([], wizard.map(_d => _d.actions));
-        logger.debug(hooks);
+        logger.trace(`${JSON.stringify(hooks)}`);
     }
     return hooks;
 }
@@ -293,11 +293,11 @@ function processHooksQueue() {
                 logger.debug(`Message from queue :: ${config.serviceId}-hooks :: ${JSON.stringify(bodyObj)}`);
                 setHooks(bodyObj);
             } catch (err) {
-                logger.error('hooks.utils>processHooksQueue', err);
+                logger.error(`Processing hooks queue :: ${err.message}`);
             }
         });
     } catch (err) {
-        logger.error('hooks.utils>processHooksQueue', err);
+        logger.error(`Processing hooks queue :: ${err.message}`);
     }
 }
 
