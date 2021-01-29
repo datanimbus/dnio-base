@@ -13,7 +13,7 @@ e.mongoLogUrl = process.env.MONGO_LOGS_URL || 'mongodb://localhost';
 e.logsDB = process.env.MONGO_LOGS_DBNAME || 'odpLogs';
 e.googleKey = process.env.GOOGLE_API_KEY || '';
 e.queueName = 'webHooks';
-e.streamingConfig: {
+e.streamingConfig = {
 	url: process.env.STREAMING_HOST || 'nats://127.0.0.1:4222',
 	user: process.env.STREAMING_USER || '',
 	pass: process.env.STREAMING_PASS || '',
