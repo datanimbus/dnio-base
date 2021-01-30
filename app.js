@@ -93,8 +93,8 @@ app.use((req, res, next) => {
     global.activeRequest++;
     res.on('close', function () {
         global.activeRequest--;
-        if (req.path.split('/').indexOf('health') === -1) {
-            logger.trace(`[${req.get('TxnId')}] Request completed for ${req.path}`);
+        if (req.path.split('/').indexOf('live') == -1 && req.path.split('/').indexOf('ready') == -1) {
+            logger.debug(`[${req.get('TxnId')}] Request completed for ${req.path}`);
         }
     });
     next();
