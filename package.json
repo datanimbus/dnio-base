@@ -25,6 +25,7 @@
         "node-zip": "^1.1.1",
         "request": "^2.83.2",
         "request-promise": "^4.2.6",
+        "shorthash": "0.0.2",
         "streamifier": "^0.1.1",
         "swagger-parser": "^9.0.1",
         "uuid": "^7.0.3",
