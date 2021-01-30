@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const mongoose = require('mongoose');
+
 const config = require('../../config');
 const httpClient = require('../../http-client');
 
@@ -8,27 +10,20 @@ const logger = global.logger;
 
 async function getRoles() {
 	logger.trace(`Get roles`);
-    var options = {
-        url: config.baseUrlUSR + '/role/' + config.serviceId,
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        json: true
-    };
-    try {
-        const res = await httpClient.httpRequest(options);
-        logger.trace(`Get roles :: res.statusCode :: ${res.statusCode}`)
-        logger.trace(`Get roles :: res.body :: ${JSON.stringify(res.body)}`)
-        if (res.statusCode !== 200) {
-          logger.error(`Get roles :: ${JSON.stringify(res.body)}`);
-          return
-        }
-        const role = res.body;
-        setRoles(role);
-    } catch (err) {
-        logger.error(`Get roles :: ${err.message}`);
-    }
+  try {
+		let authorDB = mongoose.connections[1].client.db(config.authorDB)
+		authorDB.collection('userMgmt.roles').findOne({_id: config.serviceId})
+		.then(_d => {
+			if(!_d) {
+	      logger.error(`Get roles :: Unable to find ${config.serviceId}`);
+	      return;
+			}
+	    logger.trace(`Get roles :: data :: ${JSON.stringify(_d)}`)
+	  	setRoles(_d);
+		})
+  } catch (err) {
+    logger.error(`Get roles :: ${err.message}`);
+  }
 }
 
 /**

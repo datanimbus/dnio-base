@@ -24,7 +24,6 @@ function init() {
     .then(() => informSM())
     .then(() => rolesUtils.getRoles())
     .then(() => hooksUtils.getHooks())
-    .then(() => startCronJob())
 }
 
 function getFileNames(doc, field) {
@@ -54,6 +53,7 @@ function getFileNames(doc, field) {
 function startCronJob() {
     cron.schedule('15 2 * * *', clearUnusedFiles)
 }
+startCronJob()
 
 async function clearUnusedFiles() {
     const batch = 1000;

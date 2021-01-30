@@ -6,6 +6,8 @@ const config = require('../../config');
 const queueMgmt = require('../../queue');
 const httpClient = require('../../http-client');
 
+const mongoose = require('mongoose');
+
 const logger = global.logger;
 const client = queueMgmt.client;
 
@@ -49,9 +51,7 @@ function callAllPreHooks(req, data, options) {
             preHookLog.message = err.message;
             throw err;
         }).finally(() => {
-            if (options.log) {
-                client.publish('prehookCreate', JSON.stringify(preHookLog));
-            }
+            if (options.log) client.publish('prehookCreate', JSON.stringify(preHookLog));
         });
     }, Promise.resolve(self));
 }
@@ -230,27 +230,17 @@ function callExperienceHook(req, res) {
 
 async function getHooks() {
 		logger.trace(`Get hooks`);
-    var options = {
-        url: config.baseUrlSM + '/service/' + config.serviceId,
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        qs: {
-            select: 'preHooks,wizard'
-        },
-        json: true
-    };
     try {
-        const res = await httpClient.httpRequest(options);
-        logger.trace(`Get hooks :: res.statusCode :: ${res.statusCode}`)
-        logger.trace(`Get hooks :: res.body :: ${JSON.stringify(res.body)}`)
-        if (res.statusCode !== 200) {
-            logger.error(`Get hooks :: ${JSON.stringify(res.body)}`);
-            return;
-        }
-        const hooks = res.body;
-        setHooks(hooks);
+			let authorDB = mongoose.connections[1].client.db(config.authorDB)
+			authorDB.collection('services').findOne({_id: config.serviceId}, {projection: {preHooks:1, wizard:1}})
+			.then(_d => {
+				if(!_d) {
+          logger.error(`Get hooks :: Unable to find ${config.serviceId}`);
+          return;
+				}
+	      logger.trace(`Get hooks :: data :: ${JSON.stringify(_d)}`)
+      	setHooks(_d);
+			})
     } catch (err) {
       logger.error(`Get hooks :: ${err.message}`);
     }
