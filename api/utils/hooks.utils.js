@@ -235,8 +235,6 @@ async function getHooks() {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'TxnId': `${process.env.SERVICE_ID}_${Date.now()}`,
-            'User': 'AUTO-FETCH'
         },
         qs: {
             select: 'preHooks,wizard'
@@ -245,15 +243,16 @@ async function getHooks() {
     };
     try {
         const res = await httpClient.httpRequest(options);
+        logger.trace(`Get hooks :: res.statusCode :: ${res.statusCode}`)
+        logger.trace(`Get hooks :: res.body :: ${JSON.stringify(res.body)}`)
         if (res.statusCode !== 200) {
             logger.error(`Get hooks :: ${JSON.stringify(res.body)}`);
             return;
         }
         const hooks = res.body;
         setHooks(hooks);
-        processHooksQueue();
     } catch (err) {
-        logger.error(`Get hooks :: ${err.message}`);
+      logger.error(`Get hooks :: ${err.message}`);
     }
 }
 
@@ -276,30 +275,11 @@ function createExperienceHooksList(data) {
     let wizard = data.wizard;
     if (wizard) {
         hooks = [].concat.apply([], wizard.map(_d => _d.actions));
-        logger.trace(`${JSON.stringify(hooks)}`);
+        logger.trace(`Experience hooks - ${JSON.stringify(hooks)}`);
     }
     return hooks;
 }
 
-function processHooksQueue() {
-    try {
-        var opts = client.subscriptionOptions();
-        opts.setStartWithLastReceived();
-        opts.setDurableName(config.serviceId + '-hooks-durable');
-        var subscription = client.subscribe(config.serviceId + '-hooks', config.serviceId + '-hooks', opts);
-        subscription.on('message', function (_body) {
-            try {
-                let bodyObj = JSON.parse(_body.getData());
-                logger.debug(`Message from queue :: ${config.serviceId}-hooks :: ${JSON.stringify(bodyObj)}`);
-                setHooks(bodyObj);
-            } catch (err) {
-                logger.error(`Processing hooks queue :: ${err.message}`);
-            }
-        });
-    } catch (err) {
-        logger.error(`Processing hooks queue :: ${err.message}`);
-    }
-}
 
 module.exports.callAllPreHooks = callAllPreHooks;
 module.exports.callExperienceHook = callExperienceHook;

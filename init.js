@@ -13,23 +13,18 @@ const hooksUtils = require('./api/utils/hooks.utils');
 const fileFields = ''.split(',');
 const logger = global.logger;
 function init() {
-    try {
-        if (!fs.existsSync(path.join(process.cwd(), 'hooks.json'))) {
-            fs.writeFileSync(path.join(process.cwd(), 'hooks.json'), '{"preHooks":[],"experienceHooks":[]}', 'utf-8');
-        }
-    } catch (e) {
-        logger.error(e);
+  try {
+    if (!fs.existsSync(path.join(process.cwd(), 'hooks.json'))) {
+      fs.writeFileSync(path.join(process.cwd(), 'hooks.json'), '{"preHooks":[],"experienceHooks":[]}', 'utf-8');
     }
-    return controller.fixSecureText()
-        .then(() => {
-            return informSM();
-        }).then(() => {
-            return rolesUtils.getRoles();
-        }).then(() => {
-            return hooksUtils.getHooks();
-        }).then(() => {
-            startCronJob();
-        })
+  } catch (e) {
+    logger.error(e);
+  }
+  return controller.fixSecureText()
+    .then(() => informSM())
+    .then(() => rolesUtils.getRoles())
+    .then(() => hooksUtils.getHooks())
+    .then(() => startCronJob())
 }
 
 function getFileNames(doc, field) {
@@ -130,7 +125,6 @@ async function informSM() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'TxnID': `SM ${Date.now()}`
         },
         qs: {
             status: 'Active'
