@@ -152,6 +152,8 @@ schema.pre('save', async function (next) {
     try {
         const errors = await specialFields.validateDateFields(req, newDoc, oldDoc);
         if (errors) {
+            let txnId = req.headers[global.txnIdHeader];
+            logger.error(`[${txnId}] Error in validation date fields :: ` , errors)
             next(errors);
         } else {
             next();
