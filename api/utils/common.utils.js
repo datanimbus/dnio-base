@@ -426,19 +426,21 @@ async function getGeoDetails(req, path, address) {
  * @param {*} data The data to send through socket
  */
 async function informThroughSocket(req, data) {
-    var options = {
-        url: config.baseUrlGW + '/fileStatus/import',
-        method: 'PUT',
-        headers: {
-            'txnId': req ? req.headers[global.txnIdHeader] : '',
-            'user': req ? req.headers[global.userHeader] : '',
-            'Content-Type': 'application/json',
-        },
-        json: true,
-        body: data
-    };
-    logger.debug(JSON.stringify({ options }));
-    return httpClient.httpRequest(options);
+	let txnId = req.get("TxnId")
+  var options = {
+    url: config.baseUrlGW + '/gw/fileStatus/import',
+    method: 'PUT',
+    headers: {
+      'txnId': req ? req.get("TxnId") : '',
+      'user': req ? req.headers[global.userHeader] : '',
+      'authorization': req ? req.headers.authorization : '',
+      'Content-Type': 'application/json',
+    },
+    json: true,
+    body: data
+};
+  logger.trace(`[${txnId}] Update GW :: File import status :: ${JSON.stringify({ options })}`);
+  return httpClient.httpRequest(options);
 }
 
 function isExpandAllowed(req, path) {

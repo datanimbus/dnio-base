@@ -12,11 +12,11 @@ const multer = require('multer');
 const bodyParser = require('body-parser');
 const log4js = require('log4js');
 const mongoose = require('mongoose');
+mongoose.set('useFindAndModify', false);
 const utils = require('@appveen/utils');
 const dataStackUtils = require('@appveen/data.stack-utils');
 
 const config = require('./config');
-const queueMgmt = require('./queue');
 
 let baseImageVersion = require('./package.json').version;
 const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} v.${config.serviceVersion}]` : `[${config.serviceName} v.${config.serviceVersion}]`
@@ -45,6 +45,7 @@ global.loggerName = LOGGER_NAME;
 global.logger = logger;
 
 require('./db-factory');
+const queueMgmt = require('./queue');
 const init = require('./init');
 const specialFields = require('./api/utils/special-fields.utils');
 
