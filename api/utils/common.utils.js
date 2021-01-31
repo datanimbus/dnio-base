@@ -14,6 +14,7 @@ const logger = global.logger;
 const client = queueMgmt.client;
 const serviceCache = global.serviceCache;
 const documentCache = global.documentCache;
+var moment = require('moment-timezone');
 const e = {};
 
 /**
@@ -842,6 +843,37 @@ e.decryptArrData = function (data, nestedKey) {
     return Promise.all(promises);
 }
 
+function getFormattedDate(txnId, dateObj, defaultTimeZone, supportedTimeZones) {
+    if (!dateObj) return;
+    if (dateObj.rawData) {
+        if (dateObj.tzInfo && supportedTimeZones.length && !supportedTimeZones.includes(dateObj.tzInfo))
+            throw new Error('Invalid timezone value ' + dateObj.tzInfo);
+        return formatDate(txnId, dateObj.rawData, dateObj.tzInfo || defaultTimeZone, false);
+    } else if (dateObj.unix) {
+        return formatDate(txnId, dateObj.unix, defaultTimeZone, true);
+    } else {
+        logger.error(`[${txnId}] Invalid dateObj in getFormattedDate :: ` , dateobj);
+        throw new Error('Invalid date time value');
+    }
+}
+function formatDate(txnId, rawData, tzInfo, isUnix) {
+    try {
+        parsedDate = new Date(rawData)
+        let dt = moment(parsedDate.toISOString())
+        return {
+            rawData: rawData.toString(),
+            tzData: dt.tz(tzInfo).format(),
+            tzInfo: tzInfo,
+            utc: dt.toISOString(),
+            unix: isUnix ? rawData : Date.parse(rawData)
+        }
+    } catch (e) {
+        logger.error(`[${txnId}] Invalid data in formatDate :: ${rawData} ${tzInfo} ${isUnix}`);
+        throw new Error('Invalid date time value');
+    }
+}
+
+
 e.simulate = simulate;
 e.getDocumentIds = getDocumentIds;
 e.getServiceDoc = getServiceDoc;
@@ -850,5 +882,6 @@ e.decryptText = decryptText;
 e.getGeoDetails = getGeoDetails;
 e.informThroughSocket = informThroughSocket;
 e.isExpandAllowed = isExpandAllowed;
+e.getFormattedDate = getFormattedDate;
 
 module.exports = e;

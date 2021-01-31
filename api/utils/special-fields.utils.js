@@ -91,6 +91,10 @@ function enrichGeojson() {
 
 }
 
+function validateDateFields() {
+
+}
+
 
 module.exports.createOnlyFields = createOnlyFields;
 module.exports.precisionFields = precisionFields;
@@ -107,4 +111,5 @@ module.exports.decryptSecureFields = decryptSecureFields;
 module.exports.patchRelationInFilter = patchRelationInFilter;
 module.exports.fixBoolean = fixBoolean;
 module.exports.enrichGeojson = enrichGeojson;
+module.exports.validateDateFields = validateDateFields;
 module.exports.mongooseUniquePlugin = mongooseUniquePlugin;
