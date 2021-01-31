@@ -1,9 +1,24 @@
 const { parentPort, workerData } = require('worker_threads');
 const _ = require('lodash');
 const mongoose = require('mongoose');
+mongoose.set('useFindAndModify', false);
 
 const config = require('../../config');
+
+const log4js = require('log4js');
+const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} v.${config.serviceVersion}] [Worker]` : `[${config.serviceName} v.${config.serviceVersion}] [Worker]`
+const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
+log4js.configure({
+    appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
+    categories: { default: { appenders: ['out'], level: LOG_LEVEL } }
+});
+const logger = log4js.getLogger(LOGGER_NAME);
+
+global.logger = logger
+
 require('../../db-factory');
+global.doNotSubscribe = true
+const queueMgmt = require('../../queue');
 
 async function execute() {
     const fileMapperUtils = require('../utils/fileMapper.utils');
@@ -11,11 +26,12 @@ async function execute() {
 
     const model = mongoose.model('fileMapper');
     const fileTransfersModel = mongoose.model('fileTransfers');
-    const logger = global.logger;
 
     const fileId = workerData.fileId;
     const data = workerData.data;
     const req = workerData.req;
+    let txnId = workerData.req.headers["TxnId"]
+    logger.debug(`[${txnId}] Worker :: ${fileId}`)
     const isHeaderProvided = Boolean.valueOf(data.headers);
     const headerMapping = data.headerMapping;
     const fileName = data.fileName;

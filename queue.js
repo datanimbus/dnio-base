@@ -21,6 +21,8 @@ client.on('reconnect', () => {
 
 // Roles quque
 function processRolesQueue() {
+	// check if this is running inside a worker
+	if (global.doNotSubscribe) return
 	logger.info(`Starting subscription to roles channel`)
   try {
     var opts = client.subscriptionOptions();
@@ -43,24 +45,26 @@ function processRolesQueue() {
 
 // Hooks queue
 function processHooksQueue() {
+	// check if this is running inside a worker
+	if (global.doNotSubscribe) return
 	logger.info(`Starting subscription to hooks channel`)
-    try {
-        var opts = client.subscriptionOptions();
-        opts.setStartWithLastReceived();
-        opts.setDurableName(config.serviceId + '-hooks-durable');
-        var subscription = client.subscribe(config.serviceId + '-hooks', config.serviceId + '-hooks', opts);
-        subscription.on('message', function (_body) {
-            try {
-                let bodyObj = JSON.parse(_body.getData());
-                logger.debug(`Message from hooks channel :: ${config.serviceId}-hooks :: ${JSON.stringify(bodyObj)}`);
-                setHooks(bodyObj);
-            } catch (err) {
-                logger.error(`Error processing hooks message :: ${err.message}`);
-            }
-        });
-    } catch (err) {
-        logger.error(`Hooks channel :: ${err.message}`);
-    }
+  try {
+      var opts = client.subscriptionOptions();
+      opts.setStartWithLastReceived();
+      opts.setDurableName(config.serviceId + '-hooks-durable');
+      var subscription = client.subscribe(config.serviceId + '-hooks', config.serviceId + '-hooks', opts);
+      subscription.on('message', function (_body) {
+          try {
+              let bodyObj = JSON.parse(_body.getData());
+              logger.debug(`Message from hooks channel :: ${config.serviceId}-hooks :: ${JSON.stringify(bodyObj)}`);
+              setHooks(bodyObj);
+          } catch (err) {
+              logger.error(`Error processing hooks message :: ${err.message}`);
+          }
+      });
+  } catch (err) {
+      logger.error(`Hooks channel :: ${err.message}`);
+  }
 }
 
 /**
