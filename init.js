@@ -13,26 +13,18 @@ const hooksUtils = require('./api/utils/hooks.utils');
 const fileFields = ''.split(',');
 const logger = global.logger;
 function init() {
-    try {
-        if (!fs.existsSync(path.join(process.cwd(), 'hooks.json'))) {
-            fs.writeFileSync(path.join(process.cwd(), 'hooks.json'), '{"preHooks":[],"experienceHooks":[]}', 'utf-8');
-        }
-    } catch (e) {
-        logger.error(e);
+  try {
+    if (!fs.existsSync(path.join(process.cwd(), 'hooks.json'))) {
+      fs.writeFileSync(path.join(process.cwd(), 'hooks.json'), '{"preHooks":[],"experienceHooks":[]}', 'utf-8');
     }
-    return controller.fixSecureText()
-        .then(() => {
-            logger.debug('Fixing secure text completed');
-            return setDefaultTimeZone();
-        }).then(() => {
-            return informSM();
-        }).then(() => {
-            return rolesUtils.getRoles();
-        }).then(() => {
-            return hooksUtils.getHooks();
-        }).then(() => {
-            startCronJob();
-        })
+  } catch (e) {
+    logger.error(e);
+  }
+  return controller.fixSecureText()
+    .then(() => setDefaultTimeZone())
+    .then(() => informSM())
+    .then(() => rolesUtils.getRoles())
+    .then(() => hooksUtils.getHooks())
 }
 
 function setDefaultTimeZone() {
@@ -84,6 +76,7 @@ function getFileNames(doc, field) {
 function startCronJob() {
     cron.schedule('15 2 * * *', clearUnusedFiles)
 }
+startCronJob()
 
 async function clearUnusedFiles() {
     const batch = 1000;
@@ -149,12 +142,12 @@ function deleteFileFromDB(filename) {
 }
 
 async function informSM() {
-    logger.info('inform Sm triggered ');
+    logger.trace(`Ping SM service`);
     const options = {
         url: config.baseUrlSM + '/service/' + config.serviceId + '/statusChange',
         method: 'PUT',
         headers: {
-            'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         qs: {
             status: 'Active'
@@ -162,29 +155,32 @@ async function informSM() {
         json: true
     };
     return httpClient.httpRequest(options).then(res => {
-        if (res.statusCode === 200) {
-            let maintenanceInfo = null;
-            const body = res.body;
-            if (body.status == 'Maintenance') {
-                global.status = 'Maintenance';
-                if (body.maintenanceInfo) {
-                    maintenanceInfo = JSON.parse(body.maintenanceInfo);
-                    let type = maintenanceInfo.type;
-                    if (type == 'purge') {
-                        return controller.bulkDelete(body.relatedService);
-                    }
-                }
-            }
-            if (body.outgoingAPIs) {
-                logger.debug({ outgoingAPIs: body.outgoingAPIs });
-                global.outgoingAPIs = body.outgoingAPIs;
-            }
-        } else {
-            throw new Error('Service not found');
-        }
+      if (res.statusCode === 200) {
+          let maintenanceInfo = null;
+          const body = res.body;
+          if (body.status == 'Maintenance') {
+          		logger.info(`Service going into maintenance mode!`)
+          		logger.info(`Maintenance mode :: data :: ${JSON.stringify(maintenanceInfo)}`)
+              global.status = 'Maintenance';
+              if (body.maintenanceInfo) {
+                  maintenanceInfo = JSON.parse(body.maintenanceInfo);
+                  let type = maintenanceInfo.type;
+                  logger.info(`Maintenance type :: ${type}`)
+                  if (type == 'purge') {
+                  		logger.info(`Maintenance mode :: related service :: ${JSON.stringify(body.relatedService)}`)
+                      return controller.bulkDelete(body.relatedService);
+                  }
+              }
+          }
+          if (body.outgoingAPIs) {
+              logger.trace(`Outgoing APIs - ${JSON.stringify({ outgoingAPIs: body.outgoingAPIs })}`);
+              global.outgoingAPIs = body.outgoingAPIs;
+          }
+      } else {
+          throw new Error('Service not found');
+      }
     }).catch(err => {
-        logger.error('Error requesting service-manager')
-        logger.error(err.message);
+        logger.error(`Error pinging service-manager :: ${err.message}`)
     });
 }
 module.exports = init;

@@ -1,5 +1,6 @@
-const request = require('request');
-
+const request = require('request-promise');
+const sh = require("shorthash");
+const crypto = require("crypto");
 /**
  * @typedef {Object} QueryParams
  * @property {string} [select]
@@ -34,16 +35,11 @@ function httpRequest(options) {
         options.method = 'GET';
     }
     options.json = true;
+    options["resolveWithFullResponse"] = true;
+    options["headers"]["TxnId"] = `${process.env.SERVICE_ID || "BASE"}_${sh.unique(crypto.createHash("md5").update(Date.now().toString()).digest("hex"))}`
+    options["headers"]["USER"] = `${process.env.SERVICE_ID || "BASE"}`
 
-    return new Promise((resolve, reject) => {
-        request(options, function (err, res, body) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(res);
-            }
-        });
-    })
+    return request(options)
 }
 
 module.exports.httpRequest = httpRequest;

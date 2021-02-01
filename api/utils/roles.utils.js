@@ -1,38 +1,29 @@
 const fs = require('fs');
 const path = require('path');
 
+const mongoose = require('mongoose');
+
 const config = require('../../config');
-const queueMgmt = require('../../queue');
 const httpClient = require('../../http-client');
 
 const logger = global.logger;
-const client = queueMgmt.client;
 
 async function getRoles() {
-    var options = {
-        url: config.baseUrlUSR + '/role/' + config.serviceId,
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'TxnId': `BASE_${Date.now()}`,
-            'User': 'AUTO-FETCH'
-        },
-        json: true
-    };
-    try {
-        const res = await httpClient.httpRequest(options);
-        if (res.statusCode !== 200) {
-            logger.error('roles.utils>getRoles', 'User service returned', res.statusCode);
-            logger.debug(JSON.stringify(res.body));
-            return;
-        }
-        const role = res.body;
-        setRoles(role);
-        processRolesQueue();
-    } catch (err) {
-        logger.error('roles.utils>getRoles', err);
-    }
-
+	logger.trace(`Get roles`);
+  try {
+		let authorDB = mongoose.connections[1].client.db(config.authorDB)
+		authorDB.collection('userMgmt.roles').findOne({_id: config.serviceId})
+		.then(_d => {
+			if(!_d) {
+	      logger.error(`Get roles :: Unable to find ${config.serviceId}`);
+	      return;
+			}
+	    logger.trace(`Get roles :: data :: ${JSON.stringify(_d)}`)
+	  	setRoles(_d);
+		})
+  } catch (err) {
+    logger.error(`Get roles :: ${err.message}`);
+  }
 }
 
 /**
@@ -44,27 +35,6 @@ function setRoles(role) {
         fs.writeFileSync(path.join(process.cwd(), 'role.json'), JSON.stringify(role), 'utf-8');
     }
 }
-
-function processRolesQueue() {
-    try {
-        var opts = client.subscriptionOptions();
-        opts.setStartWithLastReceived();
-        opts.setDurableName(config.serviceId + '-role-durable');
-        var subscription = client.subscribe(config.serviceId + '-role', config.serviceId + '-role', opts);
-        subscription.on('message', function (_body) {
-            try {
-                let bodyObj = JSON.parse(_body.getData());
-                logger.debug(`Message from queue :: ${config.serviceId}-role :: ${JSON.stringify(bodyObj)}`);
-                setRoles(bodyObj);
-            } catch (err) {
-                logger.error('roles.utils>processRolesQueue', err);
-            }
-        });
-    } catch (err) {
-        logger.error('roles.utils>processRolesQueue', err);
-    }
-}
-
 
 module.exports.getRoles = getRoles;
 module.exports.setRoles = setRoles;

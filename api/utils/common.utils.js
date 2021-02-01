@@ -426,19 +426,21 @@ async function getGeoDetails(req, path, address) {
  * @param {*} data The data to send through socket
  */
 async function informThroughSocket(req, data) {
-    var options = {
-        url: config.baseUrlGW + '/fileStatus/import',
-        method: 'PUT',
-        headers: {
-            'txnId': req ? req.headers[global.txnIdHeader] : '',
-            'user': req ? req.headers[global.userHeader] : '',
-            'Content-Type': 'application/json',
-        },
-        json: true,
-        body: data
-    };
-    logger.debug(JSON.stringify({ options }));
-    return httpClient.httpRequest(options);
+	let txnId = req.get("TxnId")
+  var options = {
+    url: config.baseUrlGW + '/gw/fileStatus/import',
+    method: 'PUT',
+    headers: {
+      'txnId': req ? req.get("TxnId") : '',
+      'user': req ? req.headers[global.userHeader] : '',
+      'authorization': req ? req.headers.authorization : '',
+      'Content-Type': 'application/json',
+    },
+    json: true,
+    body: data
+};
+  logger.trace(`[${txnId}] Update GW :: File import status :: ${JSON.stringify({ options })}`);
+  return httpClient.httpRequest(options);
 }
 
 function isExpandAllowed(req, path) {
@@ -764,7 +766,7 @@ function fixForField(field) {
     let updatedArr = [];
     return model.count(filter)
         .then((count) => {
-            logger.debug('Documents found to be fixed for secureText field ' + field + ' ' + count);
+        		if(count > 0) logger.info(`Secure text fix :: ${count} Documents found for ${field}`);
             let batchSize = 100;
             let totalBatches = count / batchSize;
             let arr = [];
@@ -772,6 +774,7 @@ function fixForField(field) {
                 arr.push(i);
             }
             return arr.reduce((_p, curr) => {
+            		logger.info(`Secure text fix :: batch :: ${JSON.stringify(curr)}`)
                 return _p
                     .then(() => {
                         return getData(filter, curr, batchSize);
@@ -783,8 +786,7 @@ function fixForField(field) {
 }
 
 e.fixSecureText = function () {
-    logger.debug('Fixing Secure Text');
-    logger.debug('Fields found ' + secureFields);
+    if (secureFields.join() != "" ) logger.info(`Fixing Secure Text. Fields - ${secureFields}`);
     return secureFields.reduce((acc, curr) => {
         return acc.then(() => {
             return fixForField(curr);

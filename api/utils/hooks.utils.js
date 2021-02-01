@@ -6,6 +6,8 @@ const config = require('../../config');
 const queueMgmt = require('../../queue');
 const httpClient = require('../../http-client');
 
+const mongoose = require('mongoose');
+
 const logger = global.logger;
 const client = queueMgmt.client;
 
@@ -49,9 +51,7 @@ function callAllPreHooks(req, data, options) {
             preHookLog.message = err.message;
             throw err;
         }).finally(() => {
-            if (options.log) {
-                client.publish('prehookCreate', JSON.stringify(preHookLog));
-            }
+            if (options.log) client.publish('prehookCreate', JSON.stringify(preHookLog));
         });
     }, Promise.resolve(self));
 }
@@ -229,31 +229,20 @@ function callExperienceHook(req, res) {
 
 
 async function getHooks() {
-    var options = {
-        url: config.baseUrlSM + '/service/' + config.serviceId,
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'TxnId': `BASE_${Date.now()}`,
-            'User': 'AUTO-FETCH'
-        },
-        qs: {
-            select: 'preHooks,wizard'
-        },
-        json: true
-    };
+		logger.trace(`Get hooks`);
     try {
-        const res = await httpClient.httpRequest(options);
-        if (res.statusCode !== 200) {
-            logger.error('hooks.utils>getHooks', 'Service Manager returned', res.statusCode);
-            logger.debug(JSON.stringify(res.body));
-            return;
-        }
-        const hooks = res.body;
-        setHooks(hooks);
-        processHooksQueue();
+			let authorDB = mongoose.connections[1].client.db(config.authorDB)
+			authorDB.collection('services').findOne({_id: config.serviceId}, {projection: {preHooks:1, wizard:1}})
+			.then(_d => {
+				if(!_d) {
+          logger.error(`Get hooks :: Unable to find ${config.serviceId}`);
+          return;
+				}
+	      logger.trace(`Get hooks :: data :: ${JSON.stringify(_d)}`)
+      	setHooks(_d);
+			})
     } catch (err) {
-        logger.error('hooks.utils>getHooks', err);
+      logger.error(`Get hooks :: ${err.message}`);
     }
 }
 
@@ -276,30 +265,11 @@ function createExperienceHooksList(data) {
     let wizard = data.wizard;
     if (wizard) {
         hooks = [].concat.apply([], wizard.map(_d => _d.actions));
-        logger.debug(hooks);
+        logger.trace(`Experience hooks - ${JSON.stringify(hooks)}`);
     }
     return hooks;
 }
 
-function processHooksQueue() {
-    try {
-        var opts = client.subscriptionOptions();
-        opts.setStartWithLastReceived();
-        opts.setDurableName(config.serviceId + '-hooks-durable');
-        var subscription = client.subscribe(config.serviceId + '-hooks', config.serviceId + '-hooks', opts);
-        subscription.on('message', function (_body) {
-            try {
-                let bodyObj = JSON.parse(_body.getData());
-                logger.debug(`Message from queue :: ${config.serviceId}-hooks :: ${JSON.stringify(bodyObj)}`);
-                setHooks(bodyObj);
-            } catch (err) {
-                logger.error('hooks.utils>processHooksQueue', err);
-            }
-        });
-    } catch (err) {
-        logger.error('hooks.utils>processHooksQueue', err);
-    }
-}
 
 module.exports.callAllPreHooks = callAllPreHooks;
 module.exports.callExperienceHook = callExperienceHook;
