@@ -23,6 +23,8 @@ function init() {
     return controller.fixSecureText()
         .then(() => {
             logger.debug('Fixing secure text completed');
+            return setDefaultTimeZone();
+        }).then(() => {
             return informSM();
         }).then(() => {
             return rolesUtils.getRoles();
@@ -31,6 +33,28 @@ function init() {
         }).then(() => {
             startCronJob();
         })
+}
+
+function setDefaultTimeZone() {
+    let options = {
+        url: config.baseUrlUSR + '/app/' + config.app,
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        qs: {
+            select: 'defaultTimezone'
+        },
+        json: true
+    };
+    return httpClient.httpRequest(options).then(res => {
+        logger.info('App Default Timezone for DS  :: ', res.defaultTimeZone);
+        global.defaultTimeZone = res.defaultTimeZone;
+    }).catch((err) => {
+        logger.error('Error in getting APP Default Timezone');
+        logger.info('Setting data.stack Default timezone as App Default Timezone for DS :: ', config.dataStackDefaultTimezone);
+        global.defaultTimeZone = config.dataStackDefaultTimezone;
+    })
 }
 
 function getFileNames(doc, field) {
