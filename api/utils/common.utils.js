@@ -431,9 +431,9 @@ async function informThroughSocket(req, data) {
     url: config.baseUrlGW + '/gw/fileStatus/import',
     method: 'PUT',
     headers: {
-      'txnId': req ? req.get("TxnId") : '',
-      'user': req ? req.headers[global.userHeader] : '',
-      'authorization': req ? req.headers.authorization : '',
+      'TxnId': req ? req.get("TxnId") : '',
+      'User': req ? req.headers[global.userHeader] : '',
+      'Authorization': req ? req.headers.authorization : '',
       'Content-Type': 'application/json',
     },
     json: true,
