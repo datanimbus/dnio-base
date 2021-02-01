@@ -45,7 +45,7 @@ function setDefaultTimeZone() {
             global.defaultTimeZone = res.body.defaultTimeZone;
         }
         else {
-            logger.error('Error from User service');
+            logger.error('Error from User service', JSON.stringify(res.body));
             throw new Error(res.body);
         }
     }).catch((err) => {
