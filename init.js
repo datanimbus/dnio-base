@@ -40,10 +40,16 @@ function setDefaultTimeZone() {
         json: true
     };
     return httpClient.httpRequest(options).then(res => {
-        logger.info('App Default Timezone for DS  :: ', res.defaultTimeZone);
-        global.defaultTimeZone = res.defaultTimeZone;
+        if(res.statusCode == 200 && res.body.defaultTimeZone) {
+            logger.info('App Default Timezone for DS  :: ', res.body.defaultTimeZone);
+            global.defaultTimeZone = res.body.defaultTimeZone;
+        }
+        else {
+            logger.error('Error from User service');
+            throw new Error(res.body);
+        }
     }).catch((err) => {
-        logger.error('Error in getting APP Default Timezone');
+        logger.error('Error in getting APP Default Timezone :: ', err);
         logger.info('Setting data.stack Default timezone as App Default Timezone for DS :: ', config.dataStackDefaultTimezone);
         global.defaultTimeZone = config.dataStackDefaultTimezone;
     })
