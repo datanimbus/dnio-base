@@ -36,13 +36,11 @@ router.get('/ready', (req, res) => {
             if (mongoose.connection.readyState != 1) {
                 return res.status(400).end();
             }
-            logger.info('Checking runInit :: ', runInit)
             if (!runInit) {
-                res.end();
+                return res.end();
             }
             try {
                 await init();
-                logger.info('Ran init :: ', runInit)
                 runInit = false;
                 res.end();
             } catch (e) {
