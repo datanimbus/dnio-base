@@ -173,4 +173,28 @@ router.put('/enrich', (req, res) => {
   })
 });
 
+router.put('/:fileId/readStatus', async (_req, _res) => {
+	let txnId = _req.get("TxnId")
+  let fileId = _req.params.fileId;
+  let user = _req.headers.user
+  let isRead = _req.body.isRead;
+  try {
+	  let doc = await model.findOne({fileId : fileId})
+	  if (!doc) {
+	  	logger.error(`[${txnId}] File status :: ${fileId} ::  Not found`)
+	    return _res.status(404).json({ message: "File not found."})
+	  }
+	  logger.debug(`[${txnId}] File status :: ${fileId} :: Found`)
+	  logger.debug(`[${txnId}] File status :: ${fileId} :: ${JSON.stringify(doc)}`)
+	  doc.isRead = isRead
+	  if(doc._metadata) doc._metadata.lastUpdated = new Date();
+	  await doc.save()
+	  logger.info(`[${txnId}] File status :: ${fileId} :: Success`)
+	  _res.json({ message : "File read status updated successfully." })
+	} catch (_err) {
+		logger.error(`[${txnId}] File status :: ${fileId} :: ${_err.message}`)
+		_res.status(500).json({ message: _err.message})
+	}
+})
+
 module.exports = router;
