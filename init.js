@@ -21,39 +21,35 @@ function init() {
     logger.error(e);
   }
   return controller.fixSecureText() 
-    .then(() => setDefaultTimezone())  
     .then(() => informSM())
     .then(() => rolesUtils.getRoles())
     .then(() => hooksUtils.getHooks())
 }
 
 function setDefaultTimezone() {
-    let options = {
-        url: config.baseUrlUSR + '/app/' + config.app,
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        qs: {
-            select: 'defaultTimezone'
-        },
-        json: true
-    };
-    return httpClient.httpRequest(options).then(res => {
-        if(res.statusCode == 200 && res.body.defaultTimezone) {
-            logger.info('App Default Timezone for DS  :: ', res.body.defaultTimezone);
-            global.defaultTimezone = res.body.defaultTimezone;
-        }
-        else {
-            logger.error('Error from User service', JSON.stringify(res.body));
-            throw new Error(res.body);
-        }
-    }).catch((err) => {
-        logger.error('Error in getting APP Default Timezone :: ', err.message);
-        logger.info('Setting data.stack Default timezone as App Default Timezone for DS :: ', config.dataStackDefaultTimezone);
+  try {
+		let authorDB = mongoose.connections[1].client.db(config.authorDB)
+		authorDB.collection('userMgmt.apps').findOne({_id: config.app})
+		.then(_d => {
+			if(!_d) {
+	      logger.error(`Set timezone of ${config.app} :: Unable to find ${config.app}`);
+	      return;
+			}
+	    logger.trace(`Set timezone of ${config.app} :: data :: ${JSON.stringify(_d)}`)
+	  	if(!_d.defaultTimezone) {
+	    	logger.info(`Set timezone of ${config.app} :: Not set, switching to data.stack default config`)
         global.defaultTimezone = config.dataStackDefaultTimezone;
-    })
+	    	logger.info(`Set timezone of ${config.app} :: Set as ${config.dataStackDefaultTimezone}`)
+	    	return
+	  	}
+      global.defaultTimezone = _d.defaultTimezone;
+	    logger.info(`Set timezone of ${config.app} :: Set as ${global.defaultTimezone}`)
+		})
+  } catch (err) {
+    logger.error(`Set timezone of ${config.app} :: ${err.message}`);
+  }
 }
+setDefaultTimezone()
 
 function getFileNames(doc, field) {
     if (!doc) return [];
