@@ -21,7 +21,6 @@ function init() {
     logger.error(e);
   }
   return controller.fixSecureText()
-    .then(() => setDefaultTimeZone())
     .then(() => informSM())
     .then(() => rolesUtils.getRoles())
     .then(() => hooksUtils.getHooks())
@@ -49,11 +48,12 @@ function setDefaultTimeZone() {
             throw new Error(res.body);
         }
     }).catch((err) => {
-        logger.error('Error in getting APP Default Timezone :: ', err);
+        logger.error('Error in getting APP Default Timezone :: ', err.message);
         logger.info('Setting data.stack Default timezone as App Default Timezone for DS :: ', config.dataStackDefaultTimezone);
         global.defaultTimeZone = config.dataStackDefaultTimezone;
     })
 }
+setDefaultTimeZone()
 
 function getFileNames(doc, field) {
     if (!doc) return [];
