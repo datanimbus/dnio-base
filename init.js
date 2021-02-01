@@ -20,7 +20,8 @@ function init() {
   } catch (e) {
     logger.error(e);
   }
-  return controller.fixSecureText()
+  return controller.fixSecureText() 
+    .then(() => setDefaultTimezone())  
     .then(() => informSM())
     .then(() => rolesUtils.getRoles())
     .then(() => hooksUtils.getHooks())
@@ -53,7 +54,6 @@ function setDefaultTimezone() {
         global.defaultTimezone = config.dataStackDefaultTimezone;
     })
 }
-setDefaultTimeZone()
 
 function getFileNames(doc, field) {
     if (!doc) return [];
