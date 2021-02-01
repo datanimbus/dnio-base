@@ -21,13 +21,13 @@ function init() {
     logger.error(e);
   }
   return controller.fixSecureText()
-    .then(() => setDefaultTimeZone())
+    .then(() => setDefaultTimezone())
     .then(() => informSM())
     .then(() => rolesUtils.getRoles())
     .then(() => hooksUtils.getHooks())
 }
 
-function setDefaultTimeZone() {
+function setDefaultTimezone() {
     let options = {
         url: config.baseUrlUSR + '/app/' + config.app,
         method: 'GET',
@@ -40,9 +40,9 @@ function setDefaultTimeZone() {
         json: true
     };
     return httpClient.httpRequest(options).then(res => {
-        if(res.statusCode == 200 && res.body.defaultTimeZone) {
-            logger.info('App Default Timezone for DS  :: ', res.body.defaultTimeZone);
-            global.defaultTimeZone = res.body.defaultTimeZone;
+        if(res.statusCode == 200 && res.body.defaultTimezone) {
+            logger.info('App Default Timezone for DS  :: ', res.body.defaultTimezone);
+            global.defaultTimezone = res.body.defaultTimezone;
         }
         else {
             logger.error('Error from User service', JSON.stringify(res.body));
@@ -51,7 +51,7 @@ function setDefaultTimeZone() {
     }).catch((err) => {
         logger.error('Error in getting APP Default Timezone :: ', err);
         logger.info('Setting data.stack Default timezone as App Default Timezone for DS :: ', config.dataStackDefaultTimezone);
-        global.defaultTimeZone = config.dataStackDefaultTimezone;
+        global.defaultTimezone = config.dataStackDefaultTimezone;
     })
 }
 
