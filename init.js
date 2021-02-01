@@ -21,9 +21,38 @@ function init() {
     logger.error(e);
   }
   return controller.fixSecureText()
+    .then(() => setDefaultTimeZone())
     .then(() => informSM())
     .then(() => rolesUtils.getRoles())
     .then(() => hooksUtils.getHooks())
+}
+
+function setDefaultTimeZone() {
+    let options = {
+        url: config.baseUrlUSR + '/app/' + config.app,
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        qs: {
+            select: 'defaultTimezone'
+        },
+        json: true
+    };
+    return httpClient.httpRequest(options).then(res => {
+        if(res.statusCode == 200 && res.body.defaultTimeZone) {
+            logger.info('App Default Timezone for DS  :: ', res.body.defaultTimeZone);
+            global.defaultTimeZone = res.body.defaultTimeZone;
+        }
+        else {
+            logger.error('Error from User service');
+            throw new Error(res.body);
+        }
+    }).catch((err) => {
+        logger.error('Error in getting APP Default Timezone :: ', err);
+        logger.info('Setting data.stack Default timezone as App Default Timezone for DS :: ', config.dataStackDefaultTimezone);
+        global.defaultTimeZone = config.dataStackDefaultTimezone;
+    })
 }
 
 function getFileNames(doc, field) {

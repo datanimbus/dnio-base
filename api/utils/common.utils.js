@@ -861,6 +861,7 @@ function getFormattedDate(txnId, dateObj, defaultTimeZone, supportedTimeZones) {
 function formatDate(txnId, rawData, tzInfo, isUnix) {
     try {
         parsedDate = new Date(rawData)
+        if(!tzInfo) tzInfo = global.defaultTimeZone;
         let dt = moment(parsedDate.toISOString())
         return {
             rawData: rawData.toString(),
