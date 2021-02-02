@@ -218,7 +218,7 @@ async function execute() {
     if (errorCount > 100 || conflictCount > 100) {
         result.status = 'Error';
     }
-    mongoose.disconnect();
+    // mongoose.disconnect();
     return result;
 }
 

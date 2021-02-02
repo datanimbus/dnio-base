@@ -24,36 +24,41 @@ const client = queueMgmt.client;
  * @returns {Promise<object>}
  */
 function callAllPreHooks(req, data, options) {
-    let self = JSON.parse(JSON.stringify(data));
-    let preHooks = [];
-    try {
-        preHooks = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'hooks.json'), 'utf-8')).preHooks;
-    } catch (e) {
-        logger.error('Parsing Pre-Hook', e);
-    }
-    return preHooks.reduce(function (acc, curr) {
-        let oldData = null;
-        let preHookLog = null;
-        return acc.then(_data => {
-            oldData = _data;
-            preHookLog = constructPreHookLog(req, curr, options);
-            preHookLog.data.old = oldData;
-            const payload = constructPayload(req, _data, options);
-            return invokeHook(curr.url, payload, curr.failMessage);
-        }).then(_data => {
-            const newData = Object.assign({}, oldData, _data.data);
-            newData._metadata = oldData._metadata;
-            preHookLog.status = 'Completed';
-            preHookLog.data.new = newData;
-        }).catch(err => {
-            preHookLog.status = 'Error';
-            preHookLog.comment = err.message;
-            preHookLog.message = err.message;
-            throw err;
-        }).finally(() => {
-            if (options.log) client.publish('prehookCreate', JSON.stringify(preHookLog));
-        });
-    }, Promise.resolve(self));
+	let txnId = req.get("TxnId")
+	logger.debug(`[${txnId}] PreHook :: Options :: ${JSON.stringify(options)}`)
+	logger.trace(`[${txnId}] PreHook :: ${JSON.stringify(data)}`)
+  let self = JSON.parse(JSON.stringify(data));
+  let preHooks = [];
+  try {
+    preHooks = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'hooks.json'), 'utf-8')).preHooks;
+  } catch (e) {
+		logger.debug(`[${txnId}] PreHook :: Parser error :: ${e.message}`)
+  }
+	logger.info(`[${txnId}] PreHook :: ${preHooks.length} found`)
+  preHooks.forEach(_d => logger.info(`[${txnId}] PreHook :: ${_d.name} - ${_d.url} `))
+  return preHooks.reduce(function (acc, curr) {
+    let oldData = null;
+    let preHookLog = null;
+    return acc.then(_data => {
+      oldData = _data;
+      preHookLog = constructPreHookLog(req, curr, options);
+      preHookLog.data.old = oldData;
+      const payload = constructPayload(req, _data, options);
+      return invokeHook(curr.url, payload, curr.failMessage);
+    }).then(_data => {
+      const newData = Object.assign({}, oldData, _data.data);
+      newData._metadata = oldData._metadata;
+      preHookLog.status = 'Completed';
+      preHookLog.data.new = newData;
+    }).catch(err => {
+      preHookLog.status = 'Error';
+      preHookLog.comment = err.message;
+      preHookLog.message = err.message;
+      throw err;
+    }).finally(() => {
+      if (options && options.log) client.publish('prehookCreate', JSON.stringify(preHookLog));
+    });
+  }, Promise.resolve(self));
 }
 
 /**
@@ -120,7 +125,7 @@ function invokeHook(url, data, customErrMsg) {
         url: url,
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+          'Content-Type': 'application/json'
         },
         json: true,
         body: data,
