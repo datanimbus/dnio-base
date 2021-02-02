@@ -876,6 +876,30 @@ function formatDate(txnId, rawData, tzInfo, isUnix) {
     }
 }
 
+e.getGenericHeaders = () => {
+	return {
+		"DataStack-DS-Name" : config.serviceName,
+	}
+}
+
+e.generateHeaders = (_txnId) => {
+	let headers = require(`../../service.json`).headers
+	let generatedHeaders = e.getGenericHeaders()
+	logger.trace(`[${_txnId}] Service headers :: ${JSON.stringify(headers)}`)
+	headers.forEach(_header => generatedHeaders[_header.header] = _header.value)
+	logger.trace(`[${_txnId}] Generated headers :: ${JSON.stringify(generatedHeaders)}`)
+	return generatedHeaders
+}
+
+e.generateProperties = (_txnId) => {
+	let headers = require(`../../service.json`).headers
+	let properties = {}
+	logger.trace(`[${_txnId}] Service properties :: ${JSON.stringify(headers)}`)
+	headers.forEach(_header => properties[_header.key] = _header.value)
+	logger.trace(`[${_txnId}] Generated properties :: ${JSON.stringify(properties)}`)
+	return properties
+}
+
 
 e.simulate = simulate;
 e.getDocumentIds = getDocumentIds;
