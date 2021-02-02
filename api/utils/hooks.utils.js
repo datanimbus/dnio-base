@@ -57,6 +57,7 @@ function callAllPreHooks(req, data, options) {
       preHookLog.status = 'Error';
       preHookLog.comment = err.message;
       preHookLog.message = err.message;
+      throw preHookLog
     }).finally(() => {
       if (options && options.log) client.publish('prehookCreate', JSON.stringify(preHookLog));
     });
@@ -127,6 +128,7 @@ function invokeHook(txnId, url, data, customErrMsg) {
   data["properties"] = commonUtils.generateProperties(txnId)
   let headers = commonUtils.generateHeaders(txnId)
   headers['Content-Type'] = 'application/json'
+  headers['TxnId'] = txnId
   var options = {
     url: url,
     method: 'POST',
@@ -156,7 +158,7 @@ function invokeHook(txnId, url, data, customErrMsg) {
   })
   .catch(err => {
     logger.error(`Error requesting hook :: ${url} :: ${err.message}`);
-    const message = customErrMsg ? customErrMsg : `Pre-save link ${url} down!Unable to proceed.`;
+    const message = customErrMsg ? customErrMsg : `Pre-save "${data.name}" down! Unable to proceed.`;
     throw new Error(message)
   });
 }
