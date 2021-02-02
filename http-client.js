@@ -36,8 +36,10 @@ function httpRequest(options) {
     }
     options.json = true;
     options["resolveWithFullResponse"] = true;
-    options["headers"]["TxnId"] = `${process.env.SERVICE_ID || "BASE"}_${sh.unique(crypto.createHash("md5").update(Date.now().toString()).digest("hex"))}`
-    options["headers"]["USER"] = `${process.env.SERVICE_ID || "BASE"}`
+    if(!options["headers"]["TxnId"]) {
+    	options["headers"]["TxnId"] = `${process.env.SERVICE_ID || "BASE"}_${sh.unique(crypto.createHash("md5").update(Date.now().toString()).digest("hex"))}`
+    	options["headers"]["USER"] = `${process.env.SERVICE_ID || "BASE"}`
+    }
 
     return request(options)
 }

@@ -65,7 +65,7 @@ schema.pre('save', async function (next) {
     		source: 'presave' 
     	}
       const data = await hooksUtils.callAllPreHooks(req, this, options);
-      logger.trace(`[${req.headers.TxnId}] Prehook data :: ${JSON.stringify(data)}`)
+      logger.trace(`[${req.get("TxnId")}] Prehook data :: ${JSON.stringify(data)}`)
       _.assign(this, data);
       next();
     } catch (e) {
