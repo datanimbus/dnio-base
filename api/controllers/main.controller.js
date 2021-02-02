@@ -546,6 +546,7 @@ router.put('/:id/math', (req, res) => {
 });
 
 router.post('/hook', (req, res) => {
+	let txnId = req.get("TxnId")
     async function execute() {
         try {
             const url = req.query.url;
@@ -556,7 +557,7 @@ router.post('/hook', (req, res) => {
                 });
             }
             try {
-                const httpRes = await hooksUtils.invokeHook(url, data);
+                const httpRes = await hooksUtils.invokeHook(txnId, url, data);
                 res.status(200).json(httpRes);
             } catch (e) {
                 res.status(400).json({

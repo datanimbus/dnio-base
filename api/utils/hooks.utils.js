@@ -5,6 +5,7 @@ const _ = require('lodash');
 const config = require('../../config');
 const queueMgmt = require('../../queue');
 const httpClient = require('../../http-client');
+const commonUtils = require('./common.utils');
 
 const mongoose = require('mongoose');
 
@@ -44,7 +45,7 @@ function callAllPreHooks(req, data, options) {
       preHookLog = constructPreHookLog(req, curr, options);
       preHookLog.data.old = oldData;
       let payload = constructPayload(req, curr, _data, options);
-      return invokeHook(curr.url, payload, curr.failMessage);
+      return invokeHook(txnId, curr.url, payload, curr.failMessage);
     }).then(_data => {
       newData = Object.assign({}, oldData, _data.data);
       newData._metadata = oldData._metadata;
@@ -121,14 +122,15 @@ function constructPreHookLog(req, preHook, options) {
  * @param {*} data The Payload that needs to be sent
  * @param {string} [customErrMsg] The Custom Error Message
  */
-function invokeHook(url, data, customErrMsg) {
+function invokeHook(txnId, url, data, customErrMsg) {
   let timeout = (process.env.HOOK_CONNECTION_TIMEOUT && parseInt(process.env.HOOK_CONNECTION_TIMEOUT)) || 30;
+  data["properties"] = commonUtils.generateProperties(txnId)
+  let headers = commonUtils.generateHeaders(txnId)
+  headers['Content-Type'] = 'application/json'
   var options = {
     url: url,
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: headers,
     json: true,
     body: data,
     timeout: timeout * 1000
