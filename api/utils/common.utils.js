@@ -846,7 +846,7 @@ e.decryptArrData = function (data, nestedKey) {
 }
 
 function getFormattedDate(txnId, dateObj, defaultTimeZone, supportedTimeZones) {
-    if (!dateObj) return;
+    if (_.isEmpty(dateObj)) return;
     if (dateObj.rawData) {
         if (dateObj.tzInfo && supportedTimeZones.length && !supportedTimeZones.includes(dateObj.tzInfo))
             throw new Error('Invalid timezone value ' + dateObj.tzInfo);
@@ -854,14 +854,14 @@ function getFormattedDate(txnId, dateObj, defaultTimeZone, supportedTimeZones) {
     } else if (dateObj.unix) {
         return formatDate(txnId, dateObj.unix, defaultTimeZone, true);
     } else {
-        logger.error(`[${txnId}] Invalid dateObj in getFormattedDate :: ` , dateobj);
+        logger.error(`[${txnId}] Invalid dateObj in getFormattedDate :: ` , dateObj);
         throw new Error('Invalid date time value');
     }
 }
 function formatDate(txnId, rawData, tzInfo, isUnix) {
     try {
         parsedDate = new Date(rawData)
-        if(!tzInfo) tzInfo = global.defaultTimeZone;
+        if(!tzInfo) tzInfo = global.defaultTimezone;
         let dt = moment(parsedDate.toISOString())
         return {
             rawData: rawData.toString(),
