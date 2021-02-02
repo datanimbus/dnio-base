@@ -1,8 +1,21 @@
 const { parentPort, workerData } = require('worker_threads');
 const _ = require('lodash');
 const mongoose = require('mongoose');
+mongoose.set('useFindAndModify', false);
 
 const config = require('../../config');
+
+const log4js = require('log4js');
+const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} v.${config.serviceVersion}] [Worker]` : `[${config.serviceName} v.${config.serviceVersion}] [Worker]`
+const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
+log4js.configure({
+    appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
+    categories: { default: { appenders: ['out'], level: LOG_LEVEL } }
+});
+const logger = log4js.getLogger(LOGGER_NAME);
+
+global.logger = logger
+
 require('../../db-factory');
 
 async function execute() {

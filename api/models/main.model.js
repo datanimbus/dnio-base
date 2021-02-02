@@ -57,13 +57,17 @@ schema.pre('validate', async function (next) {
 schema.pre('save', utils.counter.getIdGenerator(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER));
 
 schema.pre('save', async function (next) {
-    const newDoc = this;
-    const oldDoc = this._oldDoc;
     const req = this._req;
     try {
-        const data = await hooksUtils.callAllPreHooks(req, this);
-        _.assign(this, data);
-        next();
+    	let options = {
+    		operation: this.isNew ? 'POST' : 'PUT',
+    		simulate: false,
+    		source: 'presave' 
+    	}
+      const data = await hooksUtils.callAllPreHooks(req, this, options);
+      logger.trace(`[${req.headers.TxnId}] Prehook data :: ${JSON.stringify(data)}`)
+      _.assign(this, data);
+      next();
     } catch (e) {
         next(e);
     }

@@ -24,36 +24,42 @@ const client = queueMgmt.client;
  * @returns {Promise<object>}
  */
 function callAllPreHooks(req, data, options) {
-    let self = JSON.parse(JSON.stringify(data));
-    let preHooks = [];
-    try {
-        preHooks = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'hooks.json'), 'utf-8')).preHooks;
-    } catch (e) {
-        logger.error('Parsing Pre-Hook', e);
-    }
-    return preHooks.reduce(function (acc, curr) {
-        let oldData = null;
-        let preHookLog = null;
-        return acc.then(_data => {
-            oldData = _data;
-            preHookLog = constructPreHookLog(req, curr, options);
-            preHookLog.data.old = oldData;
-            const payload = constructPayload(req, _data, options);
-            return invokeHook(curr.url, payload, curr.failMessage);
-        }).then(_data => {
-            const newData = Object.assign({}, oldData, _data.data);
-            newData._metadata = oldData._metadata;
-            preHookLog.status = 'Completed';
-            preHookLog.data.new = newData;
-        }).catch(err => {
-            preHookLog.status = 'Error';
-            preHookLog.comment = err.message;
-            preHookLog.message = err.message;
-            throw err;
-        }).finally(() => {
-            if (options.log) client.publish('prehookCreate', JSON.stringify(preHookLog));
-        });
-    }, Promise.resolve(self));
+	let txnId = req.get("TxnId")
+	logger.debug(`[${txnId}] PreHook :: Options :: ${JSON.stringify(options)}`)
+	logger.trace(`[${txnId}] PreHook :: ${JSON.stringify(data)}`)
+  let preHooks = [];
+  try {
+    preHooks = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'hooks.json'), 'utf-8')).preHooks;
+  } catch (e) {
+		logger.error(`[${txnId}] PreHook :: Parser error :: ${e.message}`)
+  }
+	logger.info(`[${txnId}] PreHook :: ${preHooks.length} found`)
+  preHooks.forEach(_d => logger.info(`[${txnId}] PreHook :: ${_d.name} - ${_d.url} `))
+  let newData = {}
+  return preHooks.reduce(function (acc, curr) {
+    let oldData = null;
+    let preHookLog = null;
+    return acc.then(_data => {
+      oldData = _data;
+      preHookLog = constructPreHookLog(req, curr, options);
+      preHookLog.data.old = oldData;
+      let payload = constructPayload(req, curr, _data, options);
+      return invokeHook(curr.url, payload, curr.failMessage);
+    }).then(_data => {
+      newData = Object.assign({}, oldData, _data.data);
+      newData._metadata = oldData._metadata;
+      preHookLog.status = 'Completed';
+      preHookLog.data.new = newData;
+      return newData
+    }).catch(err => {
+      logger.error(`[${txnId}] PreHook :: ${err.message}`)
+      preHookLog.status = 'Error';
+      preHookLog.comment = err.message;
+      preHookLog.message = err.message;
+    }).finally(() => {
+      if (options && options.log) client.publish('prehookCreate', JSON.stringify(preHookLog));
+    });
+  }, Promise.resolve(JSON.parse(JSON.stringify(data))))
 }
 
 /**
@@ -66,16 +72,17 @@ function callAllPreHooks(req, data, options) {
  * @param {boolean} options.simulate 
  * @param {boolean} options.log 
  */
-function constructPayload(req, data, options) {
+function constructPayload(req, preHook, data, options) {
     const payload = {};
     payload.trigger = {};
     payload.operation = options.operation;
-    payload.txnId = req.headers[global.txnIdHeader];
-    payload.user = req.headers[global.userHeader];
+    payload.txnId = req.get("TxnId");
+    payload.user = req.get("User");
     payload.data = JSON.parse(JSON.stringify(data));
     payload.trigger.source = options.source;
     payload.trigger.simulate = options.simulate;
     payload.dataService = config.serviceId;
+    payload.name = preHook.name;
     return payload;
 }
 
@@ -115,47 +122,41 @@ function constructPreHookLog(req, preHook, options) {
  * @param {string} [customErrMsg] The Custom Error Message
  */
 function invokeHook(url, data, customErrMsg) {
-    let timeout = (process.env.HOOK_CONNECTION_TIMEOUT && parseInt(process.env.HOOK_CONNECTION_TIMEOUT)) || 30;
-    var options = {
-        url: url,
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        json: true,
-        body: data,
-        timeout: timeout * 1000
-    };
-    if (typeof process.env.TLS_REJECT_UNAUTHORIZED === 'string' && process.env.TLS_REJECT_UNAUTHORIZED.toLowerCase() === 'false') {
-        options.insecure = true;
-        options.rejectUnauthorized = false;
+  let timeout = (process.env.HOOK_CONNECTION_TIMEOUT && parseInt(process.env.HOOK_CONNECTION_TIMEOUT)) || 30;
+  var options = {
+    url: url,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    json: true,
+    body: data,
+    timeout: timeout * 1000
+  };
+  if (typeof process.env.TLS_REJECT_UNAUTHORIZED === 'string' && process.env.TLS_REJECT_UNAUTHORIZED.toLowerCase() === 'false') {
+    options.insecure = true;
+    options.rejectUnauthorized = false;
+  }
+  return httpClient.httpRequest(options)
+  .then(res => {
+    if (!res) {
+      logger.error(`Error requesting hook :: ${url}`);
+      let message = customErrMsg ? customErrMsg : `Pre-save link ${url} down!Unable to proceed.`;
+      throw new Error(message)
+    } else {
+      if (res.statusCode >= 200 && res.statusCode < 400) return res.body
+      else {
+        let errMsg = `Error invoking pre-save link ${url}.Unable to proceed.`;
+        if (res.body && res.body.message) errMsg = res.body.message
+        throw new Error(errMsg)
+      }
     }
-    return new Promise((resolve, reject) => {
-        httpClient.httpRequest(options).then(res => {
-            if (!res) {
-                const message = customErrMsg ? customErrMsg : 'Pre-save link ' + url + ' down. Unable to proceed. ';
-                logger.error('Error requesting hook'.url);
-                reject(new Error(message));
-            } else {
-                if (res.statusCode >= 200 && res.statusCode < 400) {
-                    resolve(res.body);
-                } else {
-                    let errMsg;
-                    if (res.body && res.body.message) {
-                        errMsg = res.body.message;
-                    } else {
-                        errMsg = 'Error invoking pre-save link ' + url + '  .Unable to proceed. ';
-                    }
-                    reject(new Error(errMsg));
-                }
-            }
-        }).catch(err => {
-            logger.error('Error requesting hook', url)
-            logger.error(err.message);
-            const message = customErrMsg ? customErrMsg : 'Pre-save link ' + url + ' down. Unable to proceed. ';
-            reject(new Error(message));
-        });
-    });
+  })
+  .catch(err => {
+    logger.error(`Error requesting hook :: ${url} :: ${err.message}`);
+    const message = customErrMsg ? customErrMsg : `Pre-save link ${url} down!Unable to proceed.`;
+    throw new Error(message)
+  });
 }
 
 
