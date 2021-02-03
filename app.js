@@ -43,6 +43,8 @@ global.status = null;
 global.activeRequest = 0;
 global.loggerName = LOGGER_NAME;
 global.logger = logger;
+global.userHeader = 'user';
+global.txnIdHeader = 'TxnId';
 
 require('./db-factory');
 const queueMgmt = require('./queue');

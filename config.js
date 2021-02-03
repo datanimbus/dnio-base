@@ -7,10 +7,10 @@ e.isK8sEnv = function () {
 
 e.hookConnectionTimeout = parseInt(process.env.HOOK_CONNECTION_TIMEOUT) || 30;
 e.mongoUrl = process.env.MONGO_APPCENTER_URL || 'mongodb://localhost';
-e.authorDB = process.env.MONGO_AUTHOR_DBNAME || 'odpConfig';
+e.authorDB = process.env.MONGO_AUTHOR_DBNAME || 'datastackConfig';
 e.mongoAuthorUrl = process.env.MONGO_AUTHOR_URL || 'mongodb://localhost';
 e.mongoLogUrl = process.env.MONGO_LOGS_URL || 'mongodb://localhost';
-e.logsDB = process.env.MONGO_LOGS_DBNAME || 'odpLogs';
+e.logsDB = process.env.MONGO_LOGS_DBNAME || 'datastackLogs';
 e.googleKey = process.env.GOOGLE_API_KEY || '';
 e.queueName = 'webHooks';
 e.streamingConfig = {
