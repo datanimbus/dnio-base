@@ -1,4 +1,3 @@
-const utils = require('@appveen/utils');
 const request = require('request');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
