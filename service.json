@@ -33,7 +33,14 @@
   "api": "/testPreHook",
   "port": 20011,
   "wizard": [],
-  "webHooks": [],
+  "webHooks": [
+    {
+      "_id": "601996d314569f604bc853a4",
+      "name": "Posthook",
+      "url": "https://local.getsandbox.com/posthook",
+      "failMessage": ""
+    }
+  ],
   "preHooks": [
     {
       "_id": "6018474f45659ade94df20c8",

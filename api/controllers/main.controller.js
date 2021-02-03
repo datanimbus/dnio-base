@@ -476,6 +476,7 @@ router.put('/:id', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
+	let txnId = req.get("TxnId")
     async function execute() {
         const workflowModel = authorDB.model('workflow');
         try {
@@ -507,7 +508,7 @@ router.delete('/:id', (req, res) => {
                 }
                 status = await doc.remove();
             }
-            logger.debug(status);
+            logger.trace(`[${txnId}] Delete doc :: ${req.params.id} :: ${status}`);
             res.status(200).json({
                 message: 'Document Deleted'
             });
@@ -545,6 +546,7 @@ router.put('/:id/math', (req, res) => {
     })
 });
 
+// WHAT is THIS?
 router.post('/hook', (req, res) => {
 	let txnId = req.get("TxnId")
     async function execute() {

@@ -174,18 +174,17 @@ schema.post('save', function (doc) {
     const oldData = doc._oldData ? JSON.parse(JSON.stringify(doc._oldData)) : null;
     const webHookData = {};
     webHookData._id = newData._id;
-    webHookData.data = {};
-    webHookData.data.new = JSON.stringify(newData);
-    webHookData.data.old = JSON.stringify(oldData);
-    webHookData.user = req.headers[global.userHeader];
-    webHookData.txnId = req.headers[global.txnIdHeader];
-    webHookData.timeStamp = new Date()
-    queue.sendToQueue(webHookData);
+    webHookData.user = req.headers[global.userHeader]
+    webHookData.txnId = req.headers[global.txnIdHeader] || req.headers["txnid"]
+    webHookData.new = newData;
+    webHookData.old = oldData;
+    hooksUtils.prepPostHooks(webHookData)
+    // queue.sendToQueue(webHookData);
     let auditData = {};
     auditData.versionValue = '-1'
     auditData.user = webHookData.user;
     auditData.txnId = webHookData.txnId;
-    auditData.timeStamp = webHookData.timeStamp;
+    auditData.timeStamp = new Date();
     auditData.data = {};
     auditData.data.old = {};
     auditData.data.new = {};
@@ -194,9 +193,9 @@ schema.post('save', function (doc) {
     auditData._metadata.lastUpdated = new Date();
     auditData._metadata.createdAt = new Date();
     auditData._metadata.deleted = false;
-    auditData.data._id = JSON.parse(webHookData.data.new)._id;
-    auditData.data._version = JSON.parse(webHookData.data.new)._metadata.version.document;
-    getDiff(JSON.parse(webHookData.data.old), JSON.parse(webHookData.data.new), auditData.data.old, auditData.data.new);
+    auditData.data._id = webHookData.new._id;
+    auditData.data._version = webHookData.new._metadata.version.document;
+    getDiff(webHookData.old, webHookData.new, auditData.data.old, auditData.data.new);
     let oldLastUpdated = auditData.data.old && auditData.data.old._metadata ? auditData.data.old._metadata.lastUpdated : null;
     let newLastUpdated = auditData.data.new && auditData.data.new._metadata ? auditData.data.new._metadata.lastUpdated : null;
     if (oldLastUpdated) delete auditData.data.old._metadata.lastUpdated;

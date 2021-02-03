@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
+const crypto = require("crypto");
 
 const config = require('../../config');
 const queueMgmt = require('../../queue');
@@ -12,6 +13,9 @@ const mongoose = require('mongoose');
 const logger = global.logger;
 const client = queueMgmt.client;
 
+async function saveHook(_txnId, type, operation, _oldData, _newData){
+	let model = mongoose.model('webHooks')
+}
 
 /**
  * 
@@ -26,6 +30,7 @@ const client = queueMgmt.client;
  */
 function callAllPreHooks(req, data, options) {
 	let txnId = req.get("TxnId")
+	options["type"] = "PreHook"
 	logger.debug(`[${txnId}] PreHook :: Options :: ${JSON.stringify(options)}`)
 	logger.trace(`[${txnId}] PreHook :: ${JSON.stringify(data)}`)
   let preHooks = [];
@@ -36,16 +41,23 @@ function callAllPreHooks(req, data, options) {
   }
 	logger.info(`[${txnId}] PreHook :: ${preHooks.length} found`)
   preHooks.forEach(_d => logger.info(`[${txnId}] PreHook :: ${_d.name} - ${_d.url} `))
+  let properties = commonUtils.generateProperties(txnId)
+  let headers = commonUtils.generateHeaders(txnId)
   let newData = {}
   return preHooks.reduce(function (acc, curr) {
     let oldData = null;
     let preHookLog = null;
+    let payload = {}
     return acc.then(_data => {
       oldData = _data;
-      preHookLog = constructPreHookLog(req, curr, options);
+      preHookLog = constructHookLog(req, curr, options);
+      preHookLog.txnId = txnId
+      preHookLog.headers = headers
+      preHookLog.properties = properties
       preHookLog.data.old = oldData;
-      let payload = constructPayload(req, curr, _data, options);
-      return invokeHook(txnId, curr.url, payload, curr.failMessage);
+      payload = constructPayload(req, curr, _data, options);
+      payload["properties"] = properties
+      return invokeHook(txnId, curr.url, payload, curr.failMessage, headers);
     }).then(_data => {
       newData = Object.assign({}, oldData, _data.data);
       newData._metadata = oldData._metadata;
@@ -55,13 +67,75 @@ function callAllPreHooks(req, data, options) {
     }).catch(err => {
       logger.error(`[${txnId}] PreHook :: ${err.message}`)
       preHookLog.status = 'Error';
-      preHookLog.comment = err.message;
       preHookLog.message = err.message;
       throw preHookLog
     }).finally(() => {
-      if (options && options.log) client.publish('prehookCreate', JSON.stringify(preHookLog));
+      insertLog("PreHook", txnId, preHookLog)
     });
   }, Promise.resolve(JSON.parse(JSON.stringify(data))))
+}
+
+function prepPostHooks(_data){
+	let txnId = _data.txnId
+	logger.trace(`[${txnId}] PostHook :: ${JSON.stringify(_data)}`)
+  let postHooks = [];
+  try {
+    postHooks = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'hooks.json'), 'utf-8')).webHooks;
+  } catch (e) {
+		logger.error(`[${txnId}] PostHook :: Parser error :: ${e.message}`)
+		throw e
+  }
+  let operation = 'POST'
+  if(_data.old && _data.new) operation = 'PUT'
+  if(_data.old && !_data.new) operation = 'DELETE'
+	logger.info(`[${txnId}] PostHook :: ${postHooks.length} found`)
+  postHooks.forEach(_d => logger.info(`[${txnId}] PostHook :: ${_d.name} - ${_d.url} `))
+	let postHookLog = {
+		txnId: txnId,
+		user: _data.user,
+		status: 'Initiated',
+		errorMessage: '',
+		retry: 0,
+		operation: operation,
+		type: 'PostHook',
+		trigger: {
+			source: 'postSave',
+			simulate: false,
+		},
+		service: {
+			id: config.serviceId,
+			name: config.serviceName
+		},
+		headers: commonUtils.generateHeaders(txnId),
+		properties: commonUtils.generateProperties(txnId),
+		data: {
+			old: _data.old,
+			new: _data.new
+		},
+		_metadata: {
+    	createdAt: new Date(),
+    	lastUpdated: new Date(),
+    	deleted: false,
+    	version: {
+    		release: process.env.RELEASE || 'dev'
+    	}
+  	}
+  }
+  return postHooks.reduce(function (_prev, _curr) {
+    return _prev.then(_data => {
+    	postHookLog["_id"] = crypto.randomBytes(16).toString("hex")
+    	postHookLog["name"]= _curr.name
+			postHookLog["url"]= _curr.url
+      insertLog('PostHook', txnId, postHookLog)
+    });
+  }, Promise.resolve())
+}
+
+function insertLog(_type, _txnId, _data){
+	logger.trace(`[${_txnId}] ${_type} log :: ${JSON.stringify(_data)}`)
+	global.logsDB.collection(`${config.app}.hook`).insertOne(_data)
+	.then(_d => logger.debug(`[${_txnId}] ${_type} log :: ${_data._id}`))
+	.catch(_e => logger.error(`[${_txnId}] ${_type} log :: ${_data._id} :: ${_e.message}`))
 }
 
 /**
@@ -85,6 +159,7 @@ function constructPayload(req, preHook, data, options) {
     payload.trigger.simulate = options.simulate;
     payload.dataService = config.serviceId;
     payload.name = preHook.name;
+    payload.app = config.appNamespace;
     return payload;
 }
 
@@ -98,23 +173,37 @@ function constructPayload(req, preHook, data, options) {
  * @param {boolean} options.simulate 
  * @param {boolean} options.log 
  */
-function constructPreHookLog(req, preHook, options) {
-    const logData = {};
-    logData._metadata = {};
-    logData._metadata.createdAt = new Date();
-    logData._metadata.lastUpdated = new Date();
-    logData.data = {};
-    logData.service = config.serviceId
-    logData.timestamp = new Date();
-    logData.url = preHook.url;
-    logData.name = preHook.name
-    logData.operation = options.operation;
-    logData.trigger = {};
-    logData.trigger.source = options.source;
-    logData.trigger.simulate = options.simulate;
-    logData.txnId = req.headers[global.txnIdHeader];
-    logData.userId = req.headers[global.userHeader];
-    return logData;
+function constructHookLog(req, hook, options) {
+  return {
+  	_id: crypto.randomBytes(16).toString("hex"),
+  	name: hook.name,
+		url: hook.url,
+		user: req.headers[global.userHeader],
+		txnId: req.headers[global.txnIdHeader],
+		status: 'Initiated',
+		errorMessage: '',
+		retry: 0,
+		operation: options.operation,
+		type: options.type,
+		trigger: {
+			source: options.source,
+			simulate: options.simulate,
+		},
+		service: {
+			id: config.serviceId,
+			name: config.serviceName
+		},
+		headers: {},
+		properties: {},
+		data: {
+			old: null,
+			new: null
+		},
+		_metadata: {
+    	createdAt: new Date(),
+    	lastUpdated: new Date()
+  	}
+  }
 }
 
 /**
@@ -123,10 +212,10 @@ function constructPreHookLog(req, preHook, options) {
  * @param {*} data The Payload that needs to be sent
  * @param {string} [customErrMsg] The Custom Error Message
  */
-function invokeHook(txnId, url, data, customErrMsg) {
+function invokeHook(txnId, url, data, customErrMsg, _headers) {
   let timeout = (process.env.HOOK_CONNECTION_TIMEOUT && parseInt(process.env.HOOK_CONNECTION_TIMEOUT)) || 30;
-  data["properties"] = commonUtils.generateProperties(txnId)
-  let headers = commonUtils.generateHeaders(txnId)
+  data.properties = data.properties || commonUtils.generateProperties(txnId)
+  let headers = _headers || commonUtils.generateHeaders(txnId)
   headers['Content-Type'] = 'application/json'
   headers['TxnId'] = txnId
   var options = {
@@ -162,7 +251,6 @@ function invokeHook(txnId, url, data, customErrMsg) {
     throw new Error(message)
   });
 }
-
 
 /**
 * 
@@ -231,13 +319,11 @@ function callExperienceHook(req, res) {
     }
 }
 
-
-
 async function getHooks() {
 		logger.trace(`Get hooks`);
     try {
 			let authorDB = mongoose.connections[1].client.db(config.authorDB)
-			authorDB.collection('services').findOne({_id: config.serviceId}, {projection: {preHooks:1, wizard:1}})
+			authorDB.collection('services').findOne({_id: config.serviceId}, {projection: {preHooks:1, wizard:1, webHooks:1}})
 			.then(_d => {
 				if(!_d) {
           logger.error(`Get hooks :: Unable to find ${config.serviceId}`);
@@ -275,8 +361,11 @@ function createExperienceHooksList(data) {
     return hooks;
 }
 
-
-module.exports.callAllPreHooks = callAllPreHooks;
-module.exports.callExperienceHook = callExperienceHook;
-module.exports.getHooks = getHooks;
-module.exports.invokeHook = invokeHook;
+module.exports = {
+	callAllPreHooks,
+	prepPostHooks,
+	callExperienceHook,
+	getHooks,
+	invokeHook,
+	saveHook
+}

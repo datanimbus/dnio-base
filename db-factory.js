@@ -12,8 +12,6 @@ let logger = global.logger
 const dbName = config.serviceDB;
 
 // global.logger = logger;
-global.userHeader = 'user';
-global.txnIdHeader = 'txnId';
 global.serviceCache = new NodeCache({ stdTTL: 60, checkperiod: 120, useClones: false });
 global.documentCache = new NodeCache({ stdTTL: 60, checkperiod: 120, useClones: false });
 global.trueBooleanValues = ['y', 'yes', 'true', 'yeah', 'affirmative', 'ok'];
@@ -25,6 +23,14 @@ authorDB.on('reconnect', () => { logger.info(` *** ${config.authorDB} RECONNECTE
 authorDB.on('connected', () => { logger.info(`Connected to ${config.authorDB} DB`); });
 authorDB.on('reconnectFailed', () => { logger.error(` *** ${config.authorDB} FAILED TO RECONNECT *** `); });
 global.authorDB = authorDB;
+
+const logsDB = mongoose.createConnection(config.mongoAuthorUrl + '/' + config.logsDB + '?authSource=admin', config.mongoOptions);
+logsDB.on('connecting', () => { logger.info(` *** ${config.logsDB} CONNECTING *** `); });
+logsDB.on('disconnected', () => { logger.error(` *** ${config.logsDB} LOST CONNECTION *** `); });
+logsDB.on('reconnect', () => { logger.info(` *** ${config.logsDB} RECONNECTED *** `); });
+logsDB.on('connected', () => { logger.info(`Connected to ${config.logsDB} DB`); });
+logsDB.on('reconnectFailed', () => { logger.error(` *** ${config.logsDB} FAILED TO RECONNECT *** `); });
+global.logsDB = logsDB;
 
 mongoose.connect(config.mongoUrl + '/' + dbName + '?authSource=admin', config.mongoOptions, err => {
     if (err) {
