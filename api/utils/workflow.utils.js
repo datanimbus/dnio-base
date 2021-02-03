@@ -3,6 +3,8 @@ const path = require('path');
 const _ = require('lodash');
 
 const config = require('../../config');
+const hooksUtils = require('./hooks.utils');
+const specialFields = require('./special-fields.utils');
 
 const logger = global.logger;
 const configDB = global.authorDB;
@@ -117,7 +119,178 @@ function getWorkflowItem(req, operation, _id, status, newDoc, oldDoc) {
     };
 };
 
+
+/**
+ * @param {*} req The Incomming Request Object
+ * @param {*} data The Data to simulate
+ * @param {Object} [options] Other Options for simulation
+ * @param {boolean} [options.generateId] Should generate new _id only for POST
+ * @param {boolean} [options.simulate] Simulation Flag
+ * @param {string} [options.operation] Operation for which simulate is called : POST/PUT/GET
+ * @param {string} [options.trigger] Trigger for this simulate presave/submit/approve
+ * @param {string} [options.docId] Document ID
+ * @param {string} [options.source] Alias of trigger
+ */
+function simulate(req, data, options) {
+    const model = mongoose.model(config.serviceId);
+    if (!options) {
+        options = {};
+    }
+    options.simulate = true;
+    data = new model(data).toObject(); // Type Casting as per schema.
+    let promise = Promise.resolve(data);
+    let oldData;
+    if (!data._id && options.generateId) {
+        promise = utils.counter.generateId(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER).then(id => {
+            data._id = id;
+            return data;
+        });
+    } else if (data._id && options.operation == 'PUT') {
+        promise = model.findOne({ _id: data._id }).lean(true).then(_d => {
+            oldData = _d;
+            return _.assign(JSON.parse(JSON.stringify(_d)), data);
+        });
+    }
+    return promise.then((newData) => {
+        data = newData;
+        return schemaValidation(req, data, oldData).catch(err => modifyError(err, 'schema'));
+    }).then((newData) => {
+        data = newData;
+        return hooksUtils.callAllPreHooks(req, data, options).catch(err => modifyError(err, 'preHook'));
+    }).then(newData => {
+        data = newData;
+        return schemaValidation(req, data, oldData).catch(err => modifyError(err, 'schema'));
+    }).then((newData) => {
+        data = newData;
+        return uniqueValidation(req, data, oldData).catch(err => modifyError(err, 'unique'));
+    }).then(() => {
+        return createOnlyValidation(req, data, oldData).catch(err => modifyError(err, 'createOnly'));
+    }).then(() => {
+        return relationValidation(req, data, oldData).catch(err => modifyError(err, 'relation'));
+    }).then(() => {
+        return enrichGeojson(req, data, oldData).catch(err => modifyError(err, 'geojson'));
+    }).then(() => {
+        return data;
+    }).catch(err => {
+        logger.error(err);
+        throw err;
+    });
+}
+
+/**
+ * 
+ * @param {*} err The Error Object of catch
+ * @param {string} source Source of Error
+ */
+function modifyError(err, source) {
+    const error = {};
+    error.source = source;
+    error.error = err;
+    throw error;
+}
+
+
+/**
+ * 
+ * @param {*} req The Incoming Request Object
+ * @param {*} newData The Data to validate against schema
+ * @param {*} [oldData] Old Data if PUT request
+ */
+async function schemaValidation(req, newData, oldData) {
+    const model = mongoose.model(config.serviceId);
+    if (oldData) {
+        newData = Object.assign(oldData, newData);
+    }
+    let modelData = new model(newData);
+    modelData.isNew = false;
+    logger.debug(JSON.stringify({ modelData }));
+    try {
+        const status = await modelData.validate();
+        return modelData.toObject();
+    } catch (e) {
+        logger.error('schemaValidation', e);
+        throw e;
+    }
+}
+
+/**
+ * 
+ * @param {*} req The Incoming Request Object
+ * @param {*} newData The Data to validate against schema
+ * @param {*} [oldData] Old Data if PUT request
+ */
+async function uniqueValidation(req, newData, oldData) {
+    try {
+        const errors = await specialFields.validateUnique(req, newData, oldData);
+        if (errors) {
+            throw errors;
+        }
+        return null;
+    } catch (e) {
+        logger.error('uniqueValidation', e);
+        throw e;
+    }
+}
+
+/**
+ * 
+ * @param {*} req The Incoming Request Object
+ * @param {*} newData The Data to validate against schema
+ * @param {*} [oldData] Old Data if PUT request
+ */
+async function createOnlyValidation(req, newData, oldData) {
+    try {
+        const errors = specialFields.validateCreateOnly(req, newData, oldData, true);
+        if (errors) {
+            throw errors;
+        }
+        return null;
+    } catch (e) {
+        logger.error('createOnlyValidation', e);
+        throw e;
+    }
+}
+
+/**
+ * 
+ * @param {*} req The Incoming Request Object
+ * @param {*} newData The Data to validate against schema
+ * @param {*} [oldData] Old Data if PUT request
+ */
+async function relationValidation(req, newData, oldData) {
+    try {
+        const errors = await specialFields.validateRelation(req, newData, oldData);
+        if (errors) {
+            throw errors;
+        }
+        return null;
+    } catch (e) {
+        logger.error('relationValidation', e);
+        throw e;
+    }
+}
+
+/**
+ * 
+ * @param {*} req The Incoming Request Object
+ * @param {*} newData The Data to validate against schema
+ * @param {*} [oldData] Old Data if PUT request
+ */
+async function enrichGeojson(req, newData, oldData) {
+    try {
+        const errors = await specialFields.enrichGeojson(req, newData, oldData);
+        if (errors) {
+            throw errors;
+        }
+        return null;
+    } catch (e) {
+        logger.error('enrichGeojson', e);
+        throw e;
+    }
+}
+
 module.exports.getApproversList = getApproversList;
 module.exports.isWorkflowEnabled = isWorkflowEnabled;
 module.exports.hasSkipReview = hasSkipReview;
 module.exports.getWorkflowItem = getWorkflowItem;
+module.exports.simulate = simulate;

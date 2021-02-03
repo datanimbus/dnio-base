@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 
 const config = require('../../config');
 const crudderUtils = require('../utils/crudder.utils');
-const hooksUtils = require('../utils/hooks.utils');
-const specialFields = require('../utils/special-fields.utils');
+const workflowUtils = require('../utils/workflow.utils');
 
 const logger = global.logger;
 const model = mongoose.model(config.serviceId);
@@ -60,40 +59,8 @@ router.post('/simulate', (req, res) => {
     async function execute() {
         try {
             const payload = req.body;
-            let errors = await specialFields.fixBoolean(req, payload, null);
-            if (errors) {
-                logger.error(errors);
-                return res.status(400).json(errors);
-            }
-            errors = await specialFields.validateCreateOnly(req, payload, null);
-            if (errors) {
-                logger.error(errors);
-                return res.status(400).json(errors);
-            }
-            errors = await specialFields.validateRelation(req, payload, null);
-            if (errors) {
-                logger.error(errors);
-                return res.status(400).json(errors);
-            }
-            errors = await specialFields.validateUnique(req, payload, null);
-            if (errors) {
-                logger.error(errors);
-                return res.status(400).json(errors);
-            }
-            errors = await specialFields.validateDateFields(req, payload, null);
-            if (errors) {
-                logger.error(errors);
-                return res.status(400).json(errors);
-            }
-            try {
-                const data = await hooksUtils.callAllPreHooks(req, payload, { operation: '', source: 'simulate', simulate: true })
-                res.status(200).json(data);
-            } catch (e) {
-                logger.error(e);
-                res.status(400).json({
-                    message: e.message
-                });
-            }
+            const data = await workflowUtils.simulate(req, payload, { simulate: true, source: 'simulate', trigger: 'form-submit' });
+            res.status(200).json(data);
         } catch (e) {
             if (typeof e === 'string') {
                 throw new Error(e);
