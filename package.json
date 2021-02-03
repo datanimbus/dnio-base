@@ -13,9 +13,11 @@
     "dependencies": {
         "@appveen/data.stack-utils": "^1.0.13",
         "@appveen/utils": "^2.1.3",
+        "archiver": "^5.2.0",
         "async": "^3.2.0",
         "bluebird": "^3.7.2",
         "express": "^4.17.1",
+        "line-reader": "^0.4.0",
         "lodash": "^4.17.20",
         "log4js": "^6.2.0",
         "moment-timezone": "^0.5.32",
