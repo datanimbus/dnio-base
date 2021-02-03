@@ -63,37 +63,27 @@ router.post('/simulate', (req, res) => {
             let errors = await specialFields.fixBoolean(req, payload, null);
             if (errors) {
                 logger.error(errors);
-                return res.status(400).json({
-                    message: err.message
-                });
+                return res.status(400).json(errors);
             }
             errors = await specialFields.validateCreateOnly(req, payload, null);
             if (errors) {
                 logger.error(errors);
-                return res.status(400).json({
-                    message: err.message
-                });
+                return res.status(400).json(errors);
             }
             errors = await specialFields.validateRelation(req, payload, null);
             if (errors) {
                 logger.error(errors);
-                return res.status(400).json({
-                    message: err.message
-                });
+                return res.status(400).json(errors);
             }
             errors = await specialFields.validateUnique(req, payload, null);
             if (errors) {
                 logger.error(errors);
-                return res.status(400).json({
-                    message: err.message
-                });
+                return res.status(400).json(errors);
             }
             errors = await specialFields.validateDateFields(req, payload, null);
             if (errors) {
                 logger.error(errors);
-                return res.status(400).json({
-                    message: err.message
-                });
+                return res.status(400).json(errors);
             }
             try {
                 const data = await hooksUtils.callAllPreHooks(req, payload, { operation: '', source: 'simulate', simulate: true })
