@@ -73,10 +73,12 @@ router.get('/', (req, res) => {
         }
     }
     execute().catch(err => {
-        logger.error(err);
-        res.status(500).json({
-            message: err.message
-        });
+        logger.error('Error in /utils/export execute :: ', err);
+        if(!res.headersSent) {
+            res.status(500).json({
+                message: err.message
+            });
+        }
     })
 });
 
