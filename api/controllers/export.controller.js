@@ -5,6 +5,8 @@ const config = require('../../config');
 const commonUtils = require('../utils/common.utils');
 const crudderUtils = require('../utils/crudder.utils');
 const threadUtils = require('../utils/thread.utils');
+const uuid = require("uuid/v1");
+const httpClient = require('./../../http-client');
 
 const logger = global.logger;
 const fileTransfersModel = mongoose.model('fileTransfers');
@@ -51,48 +53,18 @@ router.get('/download/:id', (req, res) => {
 router.get('/', (req, res) => {
     async function execute() {
         try {
-            const _id = uuid();
-            const fileName = config.serviceName + '_' + Date.now() + '.xlsx';
-            const serviceModel = mongoose.model(config.serviceId);
-            let filter = {};
-            try {
-                if (req.query.filter) {
-                    filter = JSON.parse(req.query.filter);
-                    filter = crudderUtils.parseFilter(filter);
+            let txnId = req.get("TxnId")
+            const fileId = uuid();
+            res.status(200).json({_id: _id, message: "Process queued" });
+            const result = await threadUtils.executeThread(txnId, 'export', {
+                fileId,
+                reqData: {
+                    headers: req.headers,
+                    query: req.query
                 }
-            } catch (e) {
-                logger.error(e);
-                return res.status(400).json({
-                    message: e
-                });
-            }
-            let select = '';
-            let sort = '';
-            if (req.query.select && req.query.select.trim()) {
-                select = req.query.select.split(',').join(' ');
-            }
-            if (req.query.sort && req.query.sort.trim()) {
-                sort = req.query.sort.split(',').join(' ');
-            }
-            const data = {
-                _id,
-                fileName,
-                status: 'Pending',
-                user: req.headers[global.userHeader],
-                type: 'export',
-                _metadata: {
-                    deleted: false,
-                    lastUpdated: new Date(),
-                    createdAt: new Date()
-                }
-            };
-            const totalRecords = await serviceModel.countDocuments(filter);
-            data.validCount = totalRecords;
-            let transferDoc = new fileTransfersModel(data);
-            transferDoc._req = req;
-            transferDoc = await transferDoc.save();
-            
-            const docs = await serviceModel.find(filter).select(select).sort(sort).lean();
+            })
+            logger.info(`[${txnId}] : File export result :: `, result);
+            informGW(result , req.get('Authorization'))
         } catch (e) {
             if (typeof e === 'string') {
                 throw new Error(e);
@@ -107,5 +79,21 @@ router.get('/', (req, res) => {
         });
     })
 });
+
+function informGW(data, jwtToken){
+ 
+    var options = {
+        url: config.baseUrlGW +  '/gw/fileStatus/export',
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': jwtToken
+        },
+        json: true,
+        body: data
+    };
+    httpClient.httpRequest(options);
+
+}
 
 module.exports = router;

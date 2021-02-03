@@ -254,7 +254,7 @@ async function getServiceDoc(req, serviceId, documentId) {
                 'Content-Type': 'application/json'
             },
             qs: {
-                select: 'api,app'
+                select: 'api,app,definition,attributeList,collectionName'
             },
             json: true
         }).then(res => res.body);
@@ -483,6 +483,45 @@ e.getServiceDetail = function (serviceId, req) {
     });
 }
 
+e.getStoredServiceDetail = function (serviceId, serviceDetailsObj, req) {   
+    let txnId = req.headers['txnid'];
+    if (serviceDetailsObj[serviceId]) {
+        return Promise.resolve(serviceDetailsObj[serviceId]);
+    }  else if (serviceId == 'USER') {
+        return Promise.resolve();
+    } else {
+        var options = {
+            url: "http://localhost:10003/sm/service/" + serviceId + "?select=port,api,relatedSchemas,app,preHooks,definition",
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "TxnId": txnId,
+                "Authorization": req.headers['authorization']
+            },
+            json: true
+        };
+        return new Promise((resolve, reject) => {
+            //logger.debug('Requesting SM');
+            request.get(options, function (err, res, body) {
+                if (err) {
+                    logger.error(`[${txnId}] Error requesting service-manager in stored`)
+                    logger.error(err.message);
+                    reject(err);
+                } else if (!res) {
+                    logger.error(`[${txnId}] service-manager service down`);
+                    reject(new Error("service-manager service down"));
+                } else {
+                    if (res.statusCode === 200) {
+                        serviceDetailsObj[serviceId] = body;
+                        resolve(body);
+                    } else {
+                        reject(new Error("Service not found"));
+                    }
+                }
+            });
+        });
+    }
+}
 
 e.bulkDelete = function (relatedService) {
     let document = null;
@@ -794,7 +833,7 @@ e.fixSecureText = function () {
     }, Promise.resolve());
 }
 
-function decryptData(data, nestedKey) {
+function decryptData(data, nestedKey, forFile) {
     let keys = nestedKey.split('.');
     if (keys.length == 1) {
         if (data[keys[0]]) {
@@ -802,7 +841,10 @@ function decryptData(data, nestedKey) {
                 let promises = data[keys[0]].map(_d => {
                     return decryptText(_d.value)
                         .then(_decrypted => {
-                            _d.value = _decrypted;
+                            if(forFile)
+                                _d = _decrypted;
+                            else
+                                _d.value = _decrypted;
                             return _d;
                         });
                 });
@@ -814,7 +856,10 @@ function decryptData(data, nestedKey) {
             } else if (data[keys[0]] && typeof data[keys[0]].value == 'string') {
                 return decryptText(data[keys[0]].value)
                     .then(_d => {
-                        data[keys[0]].value = _d;
+                        if(forFile)
+                            data[keys[0]] = _d;
+                        else
+                            data[keys[0]].value = _d;
                         return data;
                     });
             }
@@ -826,22 +871,22 @@ function decryptData(data, nestedKey) {
             let ele = keys.shift();
             let newNestedKey = keys.join('.');
             if (Array.isArray(data[ele])) {
-                let promises = data[ele].map(_d => decryptData(_d, newNestedKey));
+                let promises = data[ele].map(_d => decryptData(_d, newNestedKey, forFile));
                 return Promise.all(promises)
                     .then(_d => {
                         data[ele] = _d;
                         return data;
                     });
             }
-            return decryptData(data[ele], newNestedKey).then(() => data);
+            return decryptData(data[ele], newNestedKey, forFile).then(() => data);
         } else {
             return Promise.resolve(data);
         }
     }
 }
 
-e.decryptArrData = function (data, nestedKey) {
-    let promises = data.map(_d => decryptData(_d, nestedKey));
+e.decryptArrData = function (data, nestedKey, forFile) {
+    let promises = data.map(_d => decryptData(_d, nestedKey, forFile));
     return Promise.all(promises);
 }
 
@@ -900,6 +945,49 @@ e.generateProperties = (_txnId) => {
 	return properties
 }
 
+function crudDocuments(_service, method, body, qs, req) {
+    let HOST = _service.host;
+    let PORT = _service.port;
+    if((!(process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT)) && fs.existsSync("/.dockerenv")){
+        if (process.env.PLATFORM != 'NIX') HOST = "host.docker.internal";
+    } 
+    var options = {
+        url: "http://" + HOST + ":" + PORT + _service.uri,
+        method: method.toUpperCase(),
+        headers: {
+            "Content-Type": "application/json",
+            "TxnId": req.headers['txnid'],
+            "Authorization": req.headers['authorization'],
+            'Cache': req.headers['cache']
+        },
+        json:true
+    };
+    if(body){
+        options.body = body;
+    }
+    if (qs) options.qs = JSON.parse(JSON.stringify(qs));
+
+    return new Promise((resolve, reject) => {
+        request[method.toLowerCase()](options, function (err, res, body) {
+            if (err) {
+                logger.error("Error requesting Service " + options.url);
+                logger.error(err);
+                reject(new Error("Error requesting Service"));
+            } else if (!res) {
+                reject(new Error("Service Down"));
+            } else {
+                if (res.statusCode == 200) resolve(body);
+                else {
+                    if(body && body.message) 
+                        reject(new Error(body.message));
+                    else 
+                        reject(new Error(JSON.stringify(body)));
+                }
+            }
+        });
+    });
+}
+
 
 e.simulate = simulate;
 e.getDocumentIds = getDocumentIds;
@@ -910,5 +998,6 @@ e.getGeoDetails = getGeoDetails;
 e.informThroughSocket = informThroughSocket;
 e.isExpandAllowed = isExpandAllowed;
 e.getFormattedDate = getFormattedDate;
+e.crudDocuments = crudDocuments;
 
 module.exports = e;
