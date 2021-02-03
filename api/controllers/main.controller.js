@@ -14,7 +14,7 @@ const workflowUtils = require('../utils/workflow.utils');
 const logger = global.logger;
 const model = mongoose.model(config.serviceId);
 let softDeletedModel;
-if(!config.permanentDelete) softDeletedModel = mongoose.model(config.serviceId + '.deleted');
+if (!config.permanentDelete) softDeletedModel = mongoose.model(config.serviceId + '.deleted');
 const mathQueue = async.priorityQueue(processMathQueue);
 const client = queue.client;
 
@@ -119,7 +119,7 @@ router.put('/bulkUpdate', (req, res) => {
                 const payload = doc.toObject();
                 _.merge(payload, req.body);
                 if (workflowUtils.isWorkflowEnabled() && !workflowUtils.hasSkipReview(req)) {
-                    const wfItem = workflowUtils.getWorkflowItem(req, 'PUT', doc._id, 'Submited', payload, doc.toObject());
+                    const wfItem = workflowUtils.getWorkflowItem(req, 'PUT', doc._id, 'Pending', payload, doc.toObject());
                     const wfDoc = new workflowModel(wfItem);
                     wfDoc._req = req;
                     status = await wfDoc.save();
@@ -174,7 +174,7 @@ router.delete('/utils/bulkDelete', (req, res) => {
                 doc._req = req;
                 doc._oldDoc = doc.toObject();
                 if (workflowUtils.isWorkflowEnabled() && !workflowUtils.hasSkipReview(req)) {
-                    const wfItem = workflowUtils.getWorkflowItem(req, 'DELETE', doc._id, 'Submited', null, doc.toObject());
+                    const wfItem = workflowUtils.getWorkflowItem(req, 'DELETE', doc._id, 'Pending', null, doc.toObject());
                     const wfDoc = new workflowModel(wfItem);
                     wfDoc._req = req;
                     status = await wfDoc.save();
@@ -362,27 +362,31 @@ router.post('/', (req, res) => {
         try {
             const payload = req.body;
             let promises;
-            if (workflowUtils.isWorkflowEnabled() && !workflowUtils.hasSkipReview(req)) {
+            const hasSkipReview = await workflowUtils.hasSkipReview(req);
+            if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
                 if (Array.isArray(payload)) {
                     promises = payload.map(async (e) => {
-                        const wfItem = workflowUtils.getWorkflowItem(req, 'POST', e._id, 'Submited', e, null);
+                        const wfItem = workflowUtils.getWorkflowItem(req, 'POST', e._id, 'Pending', e, null);
                         const wfDoc = new workflowModel(wfItem);
                         wfDoc._req = req;
+                        const status = await wfDoc.save();
                         return {
-                            wfId: (await wfDoc.save())._id,
+                            wfId: status._id,
                             message: 'Workflow has been created'
                         };
                     });
                     promises = await Promise.all(promises);
                 } else {
-                    const wfItem = workflowUtils.getWorkflowItem(req, 'POST', payload._id, 'Submited', payload, null);
+                    const wfItem = workflowUtils.getWorkflowItem(req, 'POST', payload._id, 'Pending', payload, null);
                     const wfDoc = new workflowModel(wfItem);
                     wfDoc._req = req;
+                    const status = await wfDoc.save();
                     promises = {
-                        wfId: (await wfDoc.save())._id,
+                        wfId: status._id,
                         message: 'Workflow has been created'
                     };
                 }
+                res.status(200).json(promises);
             } else {
                 if (Array.isArray(payload)) {
                     promises = payload.map(async (data) => {
@@ -449,7 +453,7 @@ router.put('/:id', (req, res) => {
             }
             doc._req = req;
             if (workflowUtils.isWorkflowEnabled() && !workflowUtils.hasSkipReview(req)) {
-                const wfItem = workflowUtils.getWorkflowItem(req, isNewDoc ? 'POST' : 'PUT', doc._id, 'Submited', payload, isNewDoc ? null : doc._oldDoc);
+                const wfItem = workflowUtils.getWorkflowItem(req, isNewDoc ? 'POST' : 'PUT', doc._id, 'Pending', payload, isNewDoc ? null : doc._oldDoc);
                 const wfDoc = new workflowModel(wfItem);
                 wfDoc._req = req;
                 status = await wfDoc.save();
@@ -495,7 +499,7 @@ router.delete('/:id', (req, res) => {
             doc._req = req;
             doc._oldDoc = doc.toObject();
             if (workflowUtils.isWorkflowEnabled() && !workflowUtils.hasSkipReview(req)) {
-                const wfItem = workflowUtils.getWorkflowItem(req, 'DELETE', doc._id, 'Submited', null, doc.toObject());
+                const wfItem = workflowUtils.getWorkflowItem(req, 'DELETE', doc._id, 'Pending', null, doc.toObject());
                 const wfDoc = new workflowModel(wfItem);
                 wfDoc._req = req;
                 status = await wfDoc.save();
@@ -548,7 +552,7 @@ router.put('/:id/math', (req, res) => {
 
 // WHAT is THIS?
 router.post('/hook', (req, res) => {
-	let txnId = req.get("TxnId")
+    let txnId = req.get("TxnId")
     async function execute() {
         try {
             const url = req.query.url;

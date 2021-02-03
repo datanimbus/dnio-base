@@ -75,6 +75,43 @@ function parseFilter(filterParsed) {
     return filterParsed;
 }
 
+function cursor(req, model){
+	let reqParams = req.query;// Object.keys(req.swagger.params).reduce((prev, curr) => {
+	// 	prev[curr] = req.swagger.params[curr].value;
+	// 	return prev;
+	// }, {});
+	var filter = reqParams['filter'] ? reqParams.filter : {};
+	var sort = reqParams['sort'] ? {} : {
+		'_metadata.lastUpdated': -1
+	};
+	
+	reqParams['sort'] ? reqParams.sort.split(',').map(el => el.split('-').length > 1 ? sort[el.split('-')[1]] = -1 : sort[el.split('-')[0]] = 1) : null;
+	var select = reqParams['select'] ? reqParams.select.split(',') : [];
+	var skip = reqParams['skip'] ? reqParams.skip : 0;
+	var batchSize = reqParams['batchSize'] ? reqParams.batchSize : 500;
+	var search = reqParams['search'] ? reqParams.search : null;
+	if (typeof filter === 'string') {
+		try {
+			filter = JSON.parse(filter);
+			filter = FilterParse(filter);
+		} catch (err) {
+			logger.error('Failed to parse filter :' + err);
+			filter = {};
+		}
+	}
+	filter = _.assign({}, filter);
+	if (search) {
+		filter['$text'] = { '$search': search };
+	}
+	var query = model.find(filter).skip(skip).sort(sort);
+	query.lean();
+	if (select.length || select.length) {
+		var union = select.concat(select);
+		query.select(union.join(' '));
+	}
+	return query.batchSize(batchSize).cursor();
+}
 
 module.exports.validateAggregation = validateAggregation;
 module.exports.parseFilter = parseFilter;
+module.exports.cursor = cursor;
