@@ -730,7 +730,6 @@ e.generateProperties = (_txnId) => {
 }
 
 
-e.simulate = simulate;
 e.getDocumentIds = getDocumentIds;
 e.getServiceDoc = getServiceDoc;
 e.encryptText = encryptText;
