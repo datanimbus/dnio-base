@@ -5,7 +5,7 @@ const _ = require('lodash');
 const config = require('../../config');
 
 const logger = global.logger;
-const configDB = global.authorDB.db;
+const configDB = global.authorDB;
 
 
 /**
