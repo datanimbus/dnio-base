@@ -55,7 +55,7 @@ router.get('/', (req, res) => {
         try {
             let txnId = req.get("TxnId")
             const fileId = uuid();
-            res.status(200).json({_id: _id, message: "Process queued" });
+            res.status(200).json({_id: fileId, message: "Process queued" });
             const result = await threadUtils.executeThread(txnId, 'export', {
                 fileId,
                 reqData: {

@@ -721,7 +721,7 @@ e.decryptArrData = function (data, nestedKey, forFile) {
 function getFormattedDate(txnId, dateObj, defaultTimeZone, supportedTimeZones) {
     if (_.isEmpty(dateObj)) return;
     if (dateObj.rawData) {
-        if (dateObj.tzInfo && supportedTimeZones.length && !supportedTimeZones.includes(dateObj.tzInfo))
+        if (dateObj.tzInfo  && dateObj.tzInfo !== defaultTimeZone && supportedTimeZones.length && !supportedTimeZones.includes(dateObj.tzInfo))
             throw new Error('Invalid timezone value ' + dateObj.tzInfo);
         return formatDate(txnId, dateObj.rawData, dateObj.tzInfo || defaultTimeZone, false);
     } else if (dateObj.unix) {
@@ -731,6 +731,7 @@ function getFormattedDate(txnId, dateObj, defaultTimeZone, supportedTimeZones) {
         throw new Error('Invalid date time value');
     }
 }
+
 function formatDate(txnId, rawData, tzInfo, isUnix) {
     try {
         parsedDate = new Date(rawData)
