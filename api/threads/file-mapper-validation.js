@@ -24,6 +24,7 @@ async function execute() {
     const fileMapperUtils = require('../utils/fileMapper.utils');
     const commonUtils = require('../utils/common.utils');
 
+    logger.level = LOG_LEVEL;
     const model = mongoose.model('fileMapper');
     const fileTransfersModel = mongoose.model('fileTransfers');
 

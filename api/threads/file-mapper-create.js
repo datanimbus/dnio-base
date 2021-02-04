@@ -25,6 +25,7 @@ async function execute() {
     const model = mongoose.model('fileMapper');
     const serviceModel = mongoose.model(config.serviceId);
 
+    logger.level = LOG_LEVEL;
     const fileId = workerData.fileId;
     const data = workerData.data;
     const create = data.create ? data.create : [];
