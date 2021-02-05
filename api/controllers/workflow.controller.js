@@ -240,7 +240,7 @@ router.put('/action', (req, res) => {
     });
 });
 
-router.get('/utils/users', (req, res) => {
+router.get('/users', (req, res) => {
     async function execute() {
         try {
             let txnId = req.get([global.txnIdHeader])
