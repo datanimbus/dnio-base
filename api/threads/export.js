@@ -6,6 +6,8 @@ const mongoose = require('mongoose');
 let lineReader = require('line-reader');
 const crypto = require('crypto');
 const uuid = require("uuid/v1");
+const moment = require('moment');
+const specialFields = require('../utils/special-fields.utils');
 
 mongoose.set('useFindAndModify', false);
 
@@ -24,7 +26,83 @@ global.logger = logger;
 
 require('../../db-factory');
 
+/** 
 
+This shall be used later when data.stack starts supporitng timezones for export.
+
+// to do moment
+function convertToTimezone(value, dateType, timezone = 0) {
+    if(value) {
+       try {
+        const temp = new Date((new Date(value)).getTime() - (timezone * 60 * 1000));
+        if(dateType == 'date'){
+            return dateformat(temp, 'mmm d, yyyy');
+        } else {
+			return dateformat(temp, 'mmm d, yyyy, HH:MM:ss');
+        }
+       } catch(e) {
+			logger.error(e);
+       }
+    }
+}
+
+*/
+
+function convertToTimezone(dateObj, dateType, timezone = 0) {
+    if(dateObj) {
+       try {
+        return {
+            tzData : dateType == 'date' ? moment(dateObj.tzData).format('MMM Do, YYYY') : dateObj.tzData,
+            tzInfo: dateObj.tzInfo
+        }
+       } catch(e) {
+			logger.error(e);
+       }
+    }
+}
+
+function parseDateField(data, key, dateType, timezone) {
+	if(data[key]) {
+		if(Array.isArray(data[key])) {
+            data[key] = data[key].map(dt => {
+                let result = convertToTimezone(dt, dateType, timezone);
+                data[key] = result.tzData;
+                data[key + '-Timezone Info'] = result.tzInfo;
+            })
+        } else {
+            let result = convertToTimezone(data[key], dateType, timezone);
+            data[key] = result.tzData;
+            data[key + '-Timezone Info'] = result.tzInfo;
+		}
+		return data;
+	}
+	let nestedKeys ,nextKey;
+	if(key) nestedKeys =  key.split('.');
+	if(nestedKeys) nextKey = nestedKeys.shift();
+	if(nextKey && data[nextKey]) {
+		if(Array.isArray(data[nextKey]))
+			data[nextKey] = data[nextKey].map(dt => parseDateField(dt, nestedKeys.join('.'), dateType, timezone));
+		if(typeof data[nextKey] == "object")
+			data[nextKey] = parseDateField(data[nextKey], nestedKeys.join('.'), dateType, timezone)
+		return data;
+    }
+	return data;
+}
+
+function convertDateToTimezone(doc, timezone) {
+	specialFields.dateFields.forEach(pf => {
+        // if(!timezone) {
+        //     timezone = pf['defaulTimezone'] || global.defaultTimezone;
+        //     timezone = moment.tz('timezone').utcOffset() * -1;
+        // }
+		doc = parseDateField(doc, pf['field'], pf['dateType'], timezone)
+	});
+	// if(doc._metadata) {
+	// 	doc._metadata.createdAt = convertToTimezone(doc._metadata.createdAt, 'datetime', timezone);
+	// 	doc._metadata.lastUpdated = convertToTimezone(doc._metadata.lastUpdated, 'datetime', timezone);
+	// }
+    return doc
+}
 
 function flatten(obj, deep, parent) {
     let temp = {};
@@ -64,7 +142,11 @@ function flatten(obj, deep, parent) {
 function getHeadersAsPerSelectParam(headersObj, selectOrder) {
     Object.keys(headersObj).forEach(headerKey => {
         if (!selectOrder.includes(headerKey))
-            selectOrder.push(headerKey)
+        if(headerKey.endsWith('-Timezone Info')) {
+            selectOrder.splice(selectOrder.indexOf(headerKey.replace('-Timezone Info', '')) + 1, 0, headerKey);
+        } else {
+            selectOrder.push(headerKey);
+        }
     });
     return selectOrder;
 }
@@ -188,6 +270,9 @@ function keyvalue(data, obj, keys, values, flag) {
             keys += item.key;
             values += item["properties"]["name"]
             obj[keys] = values;
+            if(item['properties']['dateType']) {
+                obj[keys + '-Timezone Info'] = values + '-Timezone Info';  
+            }
             keys = keys.replace(item.key, "");
             values = values.replace(item["properties"]["name"], "");
         }
@@ -202,7 +287,6 @@ async function execute() {
     const commonUtils = require('../utils/common.utils');
     const exportUtils = require('./../utils/export.utils');
     const crudderUtils = require('./../utils/crudder.utils');
-    const specialFields = require('../utils/special-fields.utils');
     const serviceModel = mongoose.model(config.serviceId);
     const fileTransfersModel = mongoose.model('fileTransfers');
 
@@ -319,6 +403,12 @@ async function execute() {
             /******** Decrypting Secured Fields *******/
             documents = await specialFields.secureFields.reduce((acc, curr) => acc.then(_d => commonUtils.decryptArrData(_d, curr, true)), Promise.resolve(documents));
             logger.trace(`[${txnId}] : Decrypted Documents for batch :: `, i + 1);
+
+            /*********** Formating Date Fields ************/
+            documents = documents.map(doc => convertDateToTimezone(doc, 0));
+
+            /***** Converting Date Fields To Given Timezone *****/
+            // documents = documents.map(doc => convertDateToTimezone(doc, timezone));
 
             /******** Flatenning documents to write in TXT file *******/
             documents = documents.map(doc => flatten(doc, true));
