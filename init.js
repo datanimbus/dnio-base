@@ -7,11 +7,10 @@ const cron = require('node-cron');
 const config = require('./config');
 const httpClient = require('./http-client');
 const controller = require('./api/utils/common.utils');
-const rolesUtils = require('./api/utils/roles.utils');
-const hooksUtils = require('./api/utils/hooks.utils');
 
 const fileFields = ''.split(',');
 const logger = global.logger;
+
 function init() {
   try {
     if (!fs.existsSync(path.join(process.cwd(), 'hooks.json'))) {
@@ -22,8 +21,6 @@ function init() {
   }
   return controller.fixSecureText() 
     .then(() => informSM())
-    .then(() => rolesUtils.getRoles())
-    .then(() => hooksUtils.getHooks())
 }
 
 function setDefaultTimezone() {

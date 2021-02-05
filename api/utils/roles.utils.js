@@ -5,8 +5,21 @@ const mongoose = require('mongoose');
 
 const config = require('../../config');
 const httpClient = require('../../http-client');
+const queueMgmt = require('../../queue');
 
 const logger = global.logger;
+
+const client = queueMgmt.client;
+
+client.on('connect', () => {
+	getRoles()
+	processRolesQueue()
+})
+
+client.on('reconnect', () => {
+	getRoles()
+	processRolesQueue()
+})
 
 async function getRoles() {
 	logger.trace(`Get roles`);
@@ -34,6 +47,30 @@ function setRoles(role) {
     if (role && typeof role === 'object') {
         fs.writeFileSync(path.join(process.cwd(), 'role.json'), JSON.stringify(role), 'utf-8');
     }
+}
+
+// Roles quque
+function processRolesQueue() {
+	// check if this is running inside a worker
+	if (global.doNotSubscribe) return
+	logger.info(`Starting subscription to roles channel`)
+  try {
+    var opts = client.subscriptionOptions();
+    opts.setStartWithLastReceived();
+    opts.setDurableName(config.serviceId + '-role-durable');
+    var subscription = client.subscribe(config.serviceId + '-role', config.serviceId + '-role', opts);
+    subscription.on('message', function (_body) {
+      try {
+        let bodyObj = JSON.parse(_body.getData());
+        logger.debug(`Message from roles channel :: ${config.serviceId}-role :: ${JSON.stringify(bodyObj)}`);
+        setRoles(bodyObj);
+      } catch (err) {
+        logger.error(`Error processing roles queue :: ${err.message}`);
+      }
+    });
+  } catch (err) {
+    logger.error(`Roles channel :: ${err.message}`);
+  }
 }
 
 module.exports.getRoles = getRoles;

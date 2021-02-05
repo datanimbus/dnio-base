@@ -180,32 +180,33 @@ schema.post('save', function (doc) {
     webHookData.old = oldData;
     hooksUtils.prepPostHooks(webHookData)
     // queue.sendToQueue(webHookData);
-    let auditData = {};
-    auditData.versionValue = '-1'
-    auditData.user = webHookData.user;
-    auditData.txnId = webHookData.txnId;
-    auditData.timeStamp = new Date();
-    auditData.data = {};
-    auditData.data.old = {};
-    auditData.data.new = {};
-    auditData._metadata = {};
-    auditData.colName = `${config.app}.${config.serviceCollection}.audit`;
-    auditData._metadata.lastUpdated = new Date();
-    auditData._metadata.createdAt = new Date();
-    auditData._metadata.deleted = false;
-    auditData.data._id = webHookData.new._id;
-    auditData.data._version = webHookData.new._metadata.version.document;
-    getDiff(webHookData.old, webHookData.new, auditData.data.old, auditData.data.new);
-    let oldLastUpdated = auditData.data.old && auditData.data.old._metadata ? auditData.data.old._metadata.lastUpdated : null;
-    let newLastUpdated = auditData.data.new && auditData.data.new._metadata ? auditData.data.new._metadata.lastUpdated : null;
-    if (oldLastUpdated) delete auditData.data.old._metadata.lastUpdated;
-    if (newLastUpdated) delete auditData.data.new._metadata.lastUpdated;
-    if (!_.isEqual(auditData.data.old, auditData.data.new)) {
-        if (oldLastUpdated) auditData.data.old._metadata.lastUpdated = oldLastUpdated;
-        if (newLastUpdated) auditData.data.new._metadata.lastUpdated = newLastUpdated;
-        if (auditData.versionValue != 0) {
-            client.publish('auditQueue', JSON.stringify(auditData))
-        }
+    if(config.disableAudits){
+	    let auditData = {};
+	    auditData.versionValue = '-1'
+	    auditData.user = webHookData.user;
+	    auditData.txnId = webHookData.txnId;
+	    auditData.timeStamp = new Date();
+	    auditData.data = {};
+	    auditData.data.old = {};
+	    auditData.data.new = {};
+	    auditData._metadata = {};
+	    auditData.colName = `${config.app}.${config.serviceCollection}.audit`;
+	    auditData._metadata.lastUpdated = new Date();
+	    auditData._metadata.createdAt = new Date();
+	    auditData._metadata.deleted = false;
+	    auditData.data._id = webHookData.new._id;
+	    auditData.data._version = webHookData.new._metadata.version.document;
+	    getDiff(webHookData.old, webHookData.new, auditData.data.old, auditData.data.new);
+	    let oldLastUpdated = auditData.data.old && auditData.data.old._metadata ? auditData.data.old._metadata.lastUpdated : null;
+	    let newLastUpdated = auditData.data.new && auditData.data.new._metadata ? auditData.data.new._metadata.lastUpdated : null;
+	    if (oldLastUpdated) delete auditData.data.old._metadata.lastUpdated;
+	    if (newLastUpdated) delete auditData.data.new._metadata.lastUpdated;
+	    if (!_.isEqual(auditData.data.old, auditData.data.new)) {
+	        if (oldLastUpdated) auditData.data.old._metadata.lastUpdated = oldLastUpdated;
+	        if (newLastUpdated) auditData.data.new._metadata.lastUpdated = newLastUpdated;
+	        // client.publish('auditQueue', JSON.stringify(auditData))
+	        hooksUtils.insertAuditLog(txnid, auditData)
+	    }
     }
 });
 

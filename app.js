@@ -36,6 +36,8 @@ const fileValidator = utils.fileValidator;
 const logger = log4js.getLogger(LOGGER_NAME);
 logger.info(`Service version : ${config.serviceVersion}`)
 logger.info(`Base image version : ${baseImageVersion}`)
+logger.info(`Disable data history : ${config.disableAudits} `)
+logger.info(`Disable insights : ${config.disableInsights} `)
 
 global.Promise = bluebird;
 global.serverStartTime = new Date();
@@ -50,6 +52,7 @@ require('./db-factory');
 const queueMgmt = require('./queue');
 const init = require('./init');
 const specialFields = require('./api/utils/special-fields.utils');
+require('./api/utils/roles.utils');
 
 let timeOut = process.env.API_REQUEST_TIMEOUT || 120;
 let secureFields = specialFields.secureFields;

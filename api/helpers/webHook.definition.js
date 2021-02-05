@@ -25,17 +25,31 @@ var definition = {
   service: {
   	id: { type: "String", },
   	name: { type: "String", }
-  }
+  },
   headers: { type: 'Object', },
   properties: { type: 'Object' }
   data: { type: 'Object', },
+  logs: [{
+  	type: 'Object'
+  }],
+	scheduleTime: {
+		type: 'Number'
+	},
   _metadata: {
     createdAt: {
       type: 'Date'
     },
     lastUpdated: {
       type: 'Date'
-    }
+    },
+    version: {
+  		release: {
+  			type: 'String'
+  		}
+  	},
+  	disableInsights: {
+  		type: 'Boolean'
+  	}
   },
 };
 module.exports.definition = definition;
