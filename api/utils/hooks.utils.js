@@ -116,6 +116,7 @@ function prepPostHooks(_data){
 			id: config.serviceId,
 			name: config.serviceName
 		},
+  	callbackUrl: `/api/c/${config.app}${config.serviceEndpoint}/utils/callback`,
 		headers: commonUtils.generateHeaders(txnId),
 		properties: commonUtils.generateProperties(txnId),
 		data: {
@@ -132,7 +133,7 @@ function prepPostHooks(_data){
     		release: process.env.RELEASE || 'dev'
     	},
     	disableInsights: config.disableInsights
-  	}
+  	},
   }
   let streamingPayload = {
   	collection: `${config.app}.hook`,
@@ -142,6 +143,7 @@ function prepPostHooks(_data){
   return postHooks.reduce(function (_prev, _curr) {
     return _prev.then(_data => {
     	postHookLog["_id"] = crypto.randomBytes(16).toString("hex")
+    	postHookLog.callbackUrl = `${postHookLog.callbackUrl}/${postHookLog._id}`
     	streamingPayload["_id"] = postHookLog["_id"]
     	postHookLog["name"]= _curr.name
 			postHookLog["url"]= _curr.url
