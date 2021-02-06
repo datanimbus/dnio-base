@@ -7,11 +7,10 @@ const cron = require('node-cron');
 const config = require('./config');
 const httpClient = require('./http-client');
 const controller = require('./api/utils/common.utils');
-const rolesUtils = require('./api/utils/roles.utils');
-const hooksUtils = require('./api/utils/hooks.utils');
 
 const fileFields = ''.split(',');
 const logger = global.logger;
+
 function init() {
   try {
     if (!fs.existsSync(path.join(process.cwd(), 'hooks.json'))) {
@@ -22,8 +21,6 @@ function init() {
   }
   return controller.fixSecureText() 
     .then(() => informSM())
-    .then(() => rolesUtils.getRoles())
-    .then(() => hooksUtils.getHooks())
 }
 
 function setDefaultTimezone() {
@@ -32,21 +29,21 @@ function setDefaultTimezone() {
 		authorDB.collection('userMgmt.apps').findOne({_id: config.app})
 		.then(_d => {
 			if(!_d) {
-	      logger.error(`Set timezone of ${config.app} :: Unable to find ${config.app}`);
+	      logger.error(`Timezone of ${config.app} :: Unable to find ${config.app}`);
 	      return;
 			}
-	    logger.trace(`Set timezone of ${config.app} :: data :: ${JSON.stringify(_d)}`)
+	    logger.trace(`Timezone of ${config.app} :: data :: ${JSON.stringify(_d)}`)
 	  	if(!_d.defaultTimezone) {
-	    	logger.info(`Set timezone of ${config.app} :: Not set, switching to data.stack default config`)
+	    	logger.info(`Timezone of ${config.app} :: Not set, switching to data.stack default config`)
         global.defaultTimezone = config.dataStackDefaultTimezone;
-	    	logger.info(`Set timezone of ${config.app} :: Set as ${config.dataStackDefaultTimezone}`)
+	    	logger.info(`Timezone of ${config.app} :: Set as ${config.dataStackDefaultTimezone}`)
 	    	return
 	  	}
       global.defaultTimezone = _d.defaultTimezone;
-	    logger.info(`Set timezone of ${config.app} :: Set as ${global.defaultTimezone}`)
+	    logger.info(`Timezone of ${config.app} :: Set as ${global.defaultTimezone}`)
 		})
   } catch (err) {
-    logger.error(`Set timezone of ${config.app} :: ${err.message}`);
+    logger.error(`Timezone of ${config.app} :: ${err.message}`);
   }
 }
 setDefaultTimezone()

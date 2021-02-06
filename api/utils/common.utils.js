@@ -571,7 +571,7 @@ function decryptSecureData(d) {
 
 function getData(filter, page, count) {
     page = (page === 0) ? 0 : page * count;
-    return mongoose.connection.db.collection('def2406').find(filter).skip(page).limit(count).toArray();
+    return mongoose.connection.db.collection(config.serviceCollection).find(filter).skip(page).limit(count).toArray();
 }
 
 function fixData(field, data) {

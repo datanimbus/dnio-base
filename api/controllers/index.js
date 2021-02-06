@@ -8,5 +8,6 @@ router.use('/utils/file', require('./file.controller'));
 router.use('/utils/fileMapper', require('./fileMapper.controller'));
 router.use('/utils/export', require('./export.controller'));
 router.use('/utils/health', require('./health.controller'));
+router.use('/utils/callback', require('./callback.controller'));
 
 module.exports = router;

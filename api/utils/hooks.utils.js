@@ -13,6 +13,16 @@ const mongoose = require('mongoose');
 const logger = global.logger;
 const client = queueMgmt.client;
 
+client.on('connect', () => {
+	getHooks()
+	processHooksQueue()
+})
+
+client.on('reconnect', () => {
+	getHooks()
+	processHooksQueue()
+})
+
 async function saveHook(_txnId, type, operation, _oldData, _newData){
 	let model = mongoose.model('webHooks')
 }
@@ -70,7 +80,7 @@ function callAllPreHooks(req, data, options) {
       preHookLog.message = err.message;
       throw preHookLog
     }).finally(() => {
-      insertLog("PreHook", txnId, preHookLog)
+      if (!config.disableInsights) insertHookLog("PreHook", txnId, preHookLog)
     });
   }, Promise.resolve(JSON.parse(JSON.stringify(data))))
 }
@@ -93,8 +103,8 @@ function prepPostHooks(_data){
 	let postHookLog = {
 		txnId: txnId,
 		user: _data.user,
-		status: 'Initiated',
-		errorMessage: '',
+		status: 'Pending',
+		message: null,
 		retry: 0,
 		operation: operation,
 		type: 'PostHook',
@@ -106,36 +116,55 @@ function prepPostHooks(_data){
 			id: config.serviceId,
 			name: config.serviceName
 		},
+  	callbackUrl: `/api/c/${config.app}${config.serviceEndpoint}/utils/callback`,
 		headers: commonUtils.generateHeaders(txnId),
 		properties: commonUtils.generateProperties(txnId),
 		data: {
 			old: _data.old,
 			new: _data.new
 		},
+		logs: [],
+		scheduleTime: null,
 		_metadata: {
     	createdAt: new Date(),
     	lastUpdated: new Date(),
     	deleted: false,
     	version: {
     		release: process.env.RELEASE || 'dev'
-    	}
-  	}
+    	},
+    	disableInsights: config.disableInsights
+  	},
+  }
+  let streamingPayload = {
+  	collection: `${config.app}.hook`,
+  	txnId: txnId, 
+  	retry: 0
   }
   return postHooks.reduce(function (_prev, _curr) {
     return _prev.then(_data => {
     	postHookLog["_id"] = crypto.randomBytes(16).toString("hex")
+    	postHookLog.callbackUrl = `${postHookLog.callbackUrl}/${postHookLog._id}`
+    	streamingPayload["_id"] = postHookLog["_id"]
     	postHookLog["name"]= _curr.name
 			postHookLog["url"]= _curr.url
-      insertLog('PostHook', txnId, postHookLog)
+      insertHookLog('PostHook', txnId, postHookLog)
+      queueMgmt.sendToQueue(streamingPayload);
     });
   }, Promise.resolve())
 }
 
-function insertLog(_type, _txnId, _data){
+function insertHookLog(_type, _txnId, _data){
 	logger.trace(`[${_txnId}] ${_type} log :: ${JSON.stringify(_data)}`)
 	global.logsDB.collection(`${config.app}.hook`).insertOne(_data)
 	.then(_d => logger.debug(`[${_txnId}] ${_type} log :: ${_data._id}`))
 	.catch(_e => logger.error(`[${_txnId}] ${_type} log :: ${_data._id} :: ${_e.message}`))
+}
+
+function insertAuditLog(_txnId, _data){
+	logger.trace(`[${_txnId}] ${_type} Audit log :: ${JSON.stringify(_data)}`)
+	global.logsDB.collection(`${_data.colName}`).insertOne(_data)
+	.then(_d => logger.debug(`[${_txnId}] ${_type} Audit log :: ${_data._id}`))
+	.catch(_e => logger.error(`[${_txnId}] ${_type} Audit log :: ${_data._id} :: ${_e.message}`))
 }
 
 /**
@@ -319,6 +348,43 @@ function callExperienceHook(req, res) {
     }
 }
 
+function processHooksQueue() {
+	// check if this is running inside a worker
+	if (global.doNotSubscribe) return
+	logger.info(`Starting subscription to hooks channel`)
+  try {
+      var opts = client.subscriptionOptions();
+      opts.setStartWithLastReceived();
+      opts.setDurableName(config.serviceId + '-hooks-durable');
+      var subscription = client.subscribe(config.serviceId + '-hooks', config.serviceId + '-hooks', opts);
+      subscription.on('message', function (_body) {
+          try {
+              let bodyObj = JSON.parse(_body.getData());
+              logger.debug(`Message from hooks channel :: ${config.serviceId}-hooks :: ${JSON.stringify(bodyObj)}`);
+              setHooks(bodyObj);
+          } catch (err) {
+              logger.error(`Error processing hooks message :: ${err.message}`);
+          }
+      });
+  } catch (err) {
+      logger.error(`Hooks channel :: ${err.message}`);
+  }
+}
+
+function setHooks(data) {
+    let json = JSON.parse(JSON.stringify(data));
+    if (data && typeof data === 'object') {
+        json.experienceHooks = createExperienceHooksList(data);
+        delete json._id;
+        const filePath = path.join(process.cwd(), 'hooks.json');
+        if (fs.existsSync(filePath)) {
+            const temp = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            json = _.assign(temp, json);
+        }
+        fs.writeFileSync(filePath, JSON.stringify(json), 'utf-8');
+    }
+}
+
 async function getHooks() {
 		logger.trace(`Get hooks`);
     try {
@@ -337,20 +403,6 @@ async function getHooks() {
     }
 }
 
-function setHooks(data) {
-    let json = JSON.parse(JSON.stringify(data));
-    if (data && typeof data === 'object') {
-        json.experienceHooks = createExperienceHooksList(data);
-        delete json._id;
-        const filePath = path.join(process.cwd(), 'hooks.json');
-        if (fs.existsSync(filePath)) {
-            const temp = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-            json = _.assign(temp, json);
-        }
-        fs.writeFileSync(filePath, JSON.stringify(json), 'utf-8');
-    }
-}
-
 function createExperienceHooksList(data) {
     let hooks = [];
     let wizard = data.wizard;
@@ -366,6 +418,8 @@ module.exports = {
 	prepPostHooks,
 	callExperienceHook,
 	getHooks,
-	invokeHook,
+	setHooks,
+	insertHookLog,
+	insertAuditLog,
 	saveHook
 }
