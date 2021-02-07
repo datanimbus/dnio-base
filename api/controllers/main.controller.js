@@ -585,31 +585,6 @@ router.post('/hook', (req, res) => {
     });
 });
 
-router.post('/utils/experienceHook', (req, res) => {
-    async function execute() {
-        try {
-            const name = req.query.name;
-            if (!name) {
-                return res.status(400).json({
-                    message: 'Name is Mandatory'
-                });
-            }
-            hooksUtils.callExperienceHook(req, res);
-        } catch (e) {
-            if (typeof e === 'string') {
-                throw new Error(e);
-            }
-            throw e;
-        }
-    }
-    execute().catch(err => {
-        logger.error(err);
-        res.status(500).json({
-            message: err.message
-        });
-    });
-});
-
 function addAuthHeader(paths, jwt) {
     Object.keys(paths).forEach(path => {
         Object.keys(paths[path]).forEach(method => {
