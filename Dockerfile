@@ -6,7 +6,7 @@ COPY package.json /app
 
 COPY package-lock.json /app
 
-RUN npm i
+RUN npm i --production
 
 COPY app.js /app
 
