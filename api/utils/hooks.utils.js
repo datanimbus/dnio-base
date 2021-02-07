@@ -128,12 +128,11 @@ function prepPostHooks(_data){
 		_metadata: {
     	createdAt: new Date(),
     	lastUpdated: new Date(),
-    	deleted: false,
     	version: {
     		release: process.env.RELEASE || 'dev'
     	},
     	disableInsights: config.disableInsights
-  	},
+  	}
   }
   let streamingPayload = {
   	collection: `${config.app}.hook`,
@@ -287,65 +286,99 @@ function invokeHook(txnId, url, data, customErrMsg, _headers) {
 * @param {*} res Server response Object
 */
 function callExperienceHook(req, res) {
-    const hookName = unescape(req.params.name);
-    let payload = req.body;
-    let hooks;
-    try {
-        hooks = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'hooks.json'), 'utf-8')).experienceHooks;
-    } catch (e) {
-        logger.error('Parsing Exp-Hook', e);
-        return res.status(500).json({ message: 'Parsing Exp-Hook' + e.message });
+	const txnId = req.get("TxnId")
+  
+  const hookName = req.query.name;
+  const payload = req.body || {};
+  
+  let hooks;
+  try {
+    hooks = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'hooks.json'), 'utf-8')).experienceHooks;
+  	logger.trace(`[${txnId}] Experience hook :: Hooks :: ${JSON.stringify(hooks)}`)
+  } catch (e) {
+    logger.erorr(`[${txnId}] Experience hook :: Parse error :: ${e.message}`)
+    return res.status(500).json({ message: `Parsing error ${e.message}`})
+  }
+  try {
+    const wantedHook = hooks.find(hook => hookName == hook.name);
+    if (!wantedHook) {
+    	logger.error(`[${txnId}] Experience hook :: ${hookName} :: Not found`)
+      return res.status(400).json({ message: `Invalid experience hook ${hookName}` });
     }
-    try {
-        const wantedHook = hooks.find(e => hookName == e.name);
-        if (!wantedHook) {
-            return res.status(400).json({ message: 'Invalid Hook' });
-        }
-        if (!payload.data) {
-            return res.status(400).json({ message: 'Invalid Request' });
-        }
-        const options = {
-            url: wantedHook.url,
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'TxnId': req.headers[global.txnIdHeader],
-                'Authorization': req.headers.authorization,
-                'User': req.headers[global.userHeader]
-            },
-            body: {
-                data: payload.data,
-                txnId: req.headers[global.txnIdHeader],
-                user: req.headers[global.userHeader],
-                dataService: config.serviceId
-            },
-            json: true
-        };
-        httpClient.httpRequest(options).then(httpRes => {
-            if (!httpRes) {
-                logger.error('Experience Hook down');
-                return res.status(404).json({ message: 'Unable to connect to Hook Url' });
-            }
-            let errMessage = hookUrl.errorMessage;
-            if (resp.statusCode >= 400) {
-                if (body.message) errMessage = body.message;
-                return res.status(resp.statusCode).json({ message: errMessage });
-            }
-            return res.status(resp.statusCode).json(body);
-        }, err => {
-            logger.error('Error requesting Experience Hook', err);
-            return res.status(500).json({ message: 'Error while requesting hook' });
-        });
-    } catch (e) {
-        let message;
-        if (typeof e === 'string') {
-            message = e;
-        } else {
-            message = e.message;
-        }
-        logger.error(e);
-        return res.status(500).json({ message });
+    logger.debug(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url}`)
+    
+    let headers = commonUtils.generateHeaders(txnId)
+    headers['Content-Type'] = 'application/json'
+    headers['TxnId'] = txnId
+    headers['User'] = req.headers[global.userHeader]
+
+    const data = {
+      data: payload.data,
+      txnId: req.headers[global.txnIdHeader],
+      user: req.get("User"),
+      type: 'ExperienceHook',
+      service: {
+				id: config.serviceId,
+				name: config.serviceName
+			},
+      properties: commonUtils.generateProperties(txnId),
+      name: wantedHook.name,
+      url: wantedHook.url,
+      label: wantedHook.label
     }
+
+    const options = {
+      url: wantedHook.url,
+      method: 'POST',
+      headers: headers,
+      body: data,
+      json: true
+    };
+    httpClient.httpRequest(options)
+    .then(hookResponse => {
+	    if (!hookResponse) {
+	      let message = wantedHook.errorMessage || `Experience hook link ${url} down! Unable to proceed.`;
+	      logger.error(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Link has no power`)
+	      data["status"] = "Fail"
+	      data["message"] = message
+	      return res.status(500).json({ message })
+	    } else if (hookResponse.statusCode >= 200 && hookResponse.statusCode < 400) {
+      	logger.debug(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Response :: ${hookResponse.statusCode}`)
+      	logger.trace(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Body :: ${JSON.stringify(hookResponse.body)}`)
+	      data["status"] = "Success"
+	      data["message"] = hookResponse.statusCode
+      	return res.json(hookResponse.body)
+      }
+	  })
+	  .catch(err => {
+      let message = `Error invoking experience hook. Unable to proceed.`;
+      if (err.response.body && err.response.body.message) message = err.response.body.message
+      message = wantedHook.errorMessage || message
+    	logger.trace(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Response :: ${err.statusCode}`)
+    	logger.error(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Body :: ${JSON.stringify(err.response.body)}`)
+	    data["status"] = "Fail"
+	    data["message"] = message
+      return res.status(500).json({ message })
+	  })
+	  .finally(() => {
+	  	data["_id"] = crypto.randomBytes(16).toString("hex")
+	  	data["url"] = wantedHook.url
+	  	data["_metadata"] = {
+	    	createdAt: new Date(),
+	    	lastUpdated: new Date(),
+	    	version: {
+	    		release: process.env.RELEASE || 'dev'
+	    	}
+    	}
+    	if(!config.disableInsights) insertHookLog('ExperienceHook', txnId, data)
+	  })
+  } catch (e) {
+    let message;
+    if (typeof e === 'string') message = e
+    else message = e.message
+	  logger.error(`[${txnId}] Experience hook :: ${hookName} :: ${message}`)
+    return res.status(500).json({ message })
+  }
 }
 
 function processHooksQueue() {
