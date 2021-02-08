@@ -49,7 +49,7 @@ router.get('/count', (req, res) => {
 router.get('/users', (req, res) => {
     async function execute() {
         try {
-            let txnId = req.get([global.txnIdHeader])
+            let txnId = req.get(global.txnIdHeader)
             let filter = req.query.filter ? req.query.filter : {};
             filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
             let wfData = await workflowModel.aggregate([
@@ -68,18 +68,18 @@ router.get('/users', (req, res) => {
             ])
 
             wfData = wfData[0];
-            logger.debug(`${txnId} : WF users data :: `, data);
+            logger.debug(`${txnId} : WF users wfData :: `, wfData);
             if (wfData) {
                 delete wfData._id;
-                let users = _.uniq(wfData.requestedBy.concat(data.respondedBy));
+                let users = _.uniq(wfData.requestedBy.concat(wfData.respondedBy));
                 let usersCollection = authorDB.collection('userMgmt.users');
                 let usersData = await usersCollection.find({ _id: { $in: users } }).project({ '_id': 1, 'basicDetails.name': 1 }).toArray();
                 let userMap = {};
                 usersData.forEach(user => userMap[user._id] = user.basicDetails ? user.basicDetails.name : '');
                 logger.debug(`${txnId} : users map :: `, userMap);
-                data.requestedBy = getUsersNameFromMap(userMap, data.requestedBy);
-                data.respondedBy = getUsersNameFromMap(userMap, data.respondedBy);
-                return res.json(data);
+                wfData.requestedBy = getUsersNameFromMap(userMap, wfData.requestedBy);
+                wfData.respondedBy = getUsersNameFromMap(userMap, wfData.respondedBy);
+                return res.json(wfData);
             } else {
                 return res.json({})
             }
