@@ -118,7 +118,8 @@ router.put('/bulkUpdate', (req, res) => {
                 doc._oldDoc = doc.toObject();
                 const payload = doc.toObject();
                 _.merge(payload, req.body);
-                if (workflowUtils.isWorkflowEnabled() && !workflowUtils.hasSkipReview(req)) {
+                const hasSkipReview = await workflowUtils.hasSkipReview(req);
+                if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
                     const wfItem = workflowUtils.getWorkflowItem(req, 'PUT', doc._id, 'Pending', payload, doc.toObject());
                     const wfDoc = new workflowModel(wfItem);
                     wfDoc._req = req;
@@ -173,7 +174,8 @@ router.delete('/utils/bulkDelete', (req, res) => {
             const promises = docs.map(async (doc) => {
                 doc._req = req;
                 doc._oldDoc = doc.toObject();
-                if (workflowUtils.isWorkflowEnabled() && !workflowUtils.hasSkipReview(req)) {
+                const hasSkipReview = await workflowUtils.hasSkipReview(req);
+                if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
                     const wfItem = workflowUtils.getWorkflowItem(req, 'DELETE', doc._id, 'Pending', null, doc.toObject());
                     const wfDoc = new workflowModel(wfItem);
                     wfDoc._req = req;
@@ -452,21 +454,23 @@ router.put('/:id', (req, res) => {
                 doc._oldDoc = doc.toObject();
             }
             doc._req = req;
-            if (workflowUtils.isWorkflowEnabled() && !workflowUtils.hasSkipReview(req)) {
+            const hasSkipReview = await workflowUtils.hasSkipReview(req);
+            if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
                 const wfItem = workflowUtils.getWorkflowItem(req, isNewDoc ? 'POST' : 'PUT', doc._id, 'Pending', payload, isNewDoc ? null : doc._oldDoc);
                 const wfDoc = new workflowModel(wfItem);
                 wfDoc._req = req;
                 status = await wfDoc.save();
                 doc._metadata.workflow = status._id;
                 status = await doc.save();
+                return res.status(200).json({
+                    _workflow: doc._metadata.workflow,
+                    message: 'Workflow has been created'
+                });
             } else {
                 _.merge(doc, payload);
                 status = await doc.save();
+                return res.status(200).json(status);
             }
-            res.status(200).json({
-                _workflow: doc._metadata.workflow,
-                message: 'Workflow has been created'
-            });
         } catch (e) {
             if (typeof e === 'string') {
                 throw new Error(e);
@@ -501,7 +505,8 @@ router.delete('/:id', (req, res) => {
             }
             doc._req = req;
             doc._oldDoc = doc.toObject();
-            if (workflowUtils.isWorkflowEnabled() && !workflowUtils.hasSkipReview(req)) {
+            const hasSkipReview = await workflowUtils.hasSkipReview(req);
+            if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
                 const wfItem = workflowUtils.getWorkflowItem(req, 'DELETE', doc._id, 'Pending', null, doc.toObject());
                 const wfDoc = new workflowModel(wfItem);
                 wfDoc._req = req;
