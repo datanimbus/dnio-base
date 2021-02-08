@@ -371,7 +371,7 @@ router.post('/', (req, res) => {
                         wfDoc._req = req;
                         const status = await wfDoc.save();
                         return {
-                            wfId: status._id,
+                            _workflow: status._id,
                             message: 'Workflow has been created'
                         };
                     });
@@ -382,7 +382,7 @@ router.post('/', (req, res) => {
                     wfDoc._req = req;
                     const status = await wfDoc.save();
                     promises = {
-                        wfId: status._id,
+                        _workflow: status._id,
                         message: 'Workflow has been created'
                     };
                 }
@@ -463,7 +463,10 @@ router.put('/:id', (req, res) => {
                 _.merge(doc, payload);
                 status = await doc.save();
             }
-            res.status(200).json(status);
+            res.status(200).json({
+                _workflow: doc._metadata.workflow,
+                message: 'Workflow has been created'
+            });
         } catch (e) {
             if (typeof e === 'string') {
                 throw new Error(e);
@@ -480,7 +483,7 @@ router.put('/:id', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-	let txnId = req.get("TxnId")
+    let txnId = req.get("TxnId")
     async function execute() {
         const workflowModel = authorDB.model('workflow');
         try {
