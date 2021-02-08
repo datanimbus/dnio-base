@@ -111,7 +111,7 @@ function getWorkflowItem(req, operation, _id, status, newDoc, oldDoc) {
         documentId: _id,
         operation: operation,
         requestedBy: req.headers[global.userHeader],
-        app: req.body.app,
+        app: config.app,
         audit: [],
         status: status,
         data: {
