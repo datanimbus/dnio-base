@@ -20,6 +20,7 @@ require('../../db-factory');
 
 async function execute() {
     const workflowUtils = require('../utils/workflow.utils');
+    const { mergeCustomizer } = require('./../utils/common.utils');
     const authorDB = global.authorDB;
     const workflowModel = authorDB.model('workflow');
     const model = mongoose.model('fileMapper');
@@ -92,7 +93,7 @@ async function execute() {
                     } else {
                         temp._oldData = temp.toObject();
                         temp._req = req;
-                        _.merge(temp, doc.data);
+                        _.mergeWith(temp, doc.data, mergeCustomizer);
                         temp = await temp.save();
                     }
                     doc.status = 'Updated';

@@ -144,7 +144,7 @@ async function execute() {
                         operation: doc.data._id ? 'PUT' : 'POST',
                         source: 'fileMapper Validation'
                     });
-                    _.merge(doc.data, data);
+                    _.mergeWith(doc.data, data, commonUtils.mergeCustomizer);
                     if (doc.status == 'Pending') {
                         doc.status = 'Validated';
                     }

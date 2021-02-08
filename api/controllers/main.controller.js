@@ -10,6 +10,7 @@ const specialFields = require('../utils/special-fields.utils');
 const hooksUtils = require('../utils/hooks.utils');
 const crudderUtils = require('../utils/crudder.utils');
 const workflowUtils = require('../utils/workflow.utils');
+const { mergeCustomizer }  = require('./../utils/common.utils');
 
 const logger = global.logger;
 const model = mongoose.model(config.serviceId);
@@ -117,7 +118,7 @@ router.put('/bulkUpdate', (req, res) => {
                 doc._req = req;
                 doc._oldDoc = doc.toObject();
                 const payload = doc.toObject();
-                _.merge(payload, req.body);
+                _.mergeWith(payload, req.body, mergeCustomizer);
                 const hasSkipReview = await workflowUtils.hasSkipReview(req);
                 if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
                     const wfItem = workflowUtils.getWorkflowItem(req, 'PUT', doc._id, 'Pending', payload, doc.toObject());
@@ -127,7 +128,7 @@ router.put('/bulkUpdate', (req, res) => {
                     doc._metadata.workflow = status._id;
                     return await doc.save();
                 } else {
-                    _.merge(doc, req.body);
+                    _.mergeWith(doc, req.body, mergeCustomizer);
                     return new Promise((resolve, reject) => { doc.save().then(resolve).catch(resolve) });
                 }
             });
@@ -467,7 +468,7 @@ router.put('/:id', (req, res) => {
                     message: 'Workflow has been created'
                 });
             } else {
-                _.merge(doc, payload);
+                _.mergeWith(doc, payload, mergeCustomizer);
                 status = await doc.save();
                 return res.status(200).json(status);
             }

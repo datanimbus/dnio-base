@@ -817,6 +817,11 @@ function crudDocuments(_service, method, body, qs, req) {
     });
 }
 
+function mergeCustomizer (objValue, srcValue) {
+    if (_.isArray(objValue)) {
+        return srcValue;
+    }
+}
 
 e.getDocumentIds = getDocumentIds;
 e.getServiceDoc = getServiceDoc;
@@ -827,5 +832,5 @@ e.informThroughSocket = informThroughSocket;
 e.isExpandAllowed = isExpandAllowed;
 e.getFormattedDate = getFormattedDate;
 e.crudDocuments = crudDocuments;
-
+e.mergeCustomizer = mergeCustomizer;
 module.exports = e;
