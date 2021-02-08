@@ -167,6 +167,12 @@ schema.pre('save', async function (next) {
     }
 });
 
+schema.pre('save', function(next) {
+    let doc = this.toObject();
+    Object.keys(doc).forEach(el => this.markModified(el));
+    next();
+})
+
 
 schema.post('save', function (doc) {
     const req = doc._req;
