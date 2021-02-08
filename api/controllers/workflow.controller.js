@@ -46,6 +46,58 @@ router.get('/count', (req, res) => {
     });
 });
 
+router.get('/users', (req, res) => {
+    async function execute() {
+        try {
+            let txnId = req.get([global.txnIdHeader])
+            let filter = req.query.filter ? req.query.filter : {};
+            filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
+            let wfData = await workflowModel.aggregate([
+                { $match: filter },
+                {
+                    $group: {
+                        _id: null,
+                        requestedBy: {
+                            $addToSet: '$requestedBy'
+                        },
+                        respondedBy: {
+                            $addToSet: '$respondedBy'
+                        }
+                    }
+                }
+            ])
+
+            wfData = wfData[0];
+            logger.debug(`${txnId} : WF users data :: `, data);
+            if (wfData) {
+                delete wfData._id;
+                let users = _.uniq(wfData.requestedBy.concat(data.respondedBy));
+                let usersCollection = authorDB.collection('userMgmt.users');
+                let usersData = await usersCollection.find({ _id: { $in: users } }).project({ '_id': 1, 'basicDetails.name': 1 }).toArray();
+                let userMap = {};
+                usersData.forEach(user => userMap[user._id] = user.basicDetails ? user.basicDetails.name : '');
+                logger.debug(`${txnId} : users map :: `, userMap);
+                data.requestedBy = getUsersNameFromMap(userMap, data.requestedBy);
+                data.respondedBy = getUsersNameFromMap(userMap, data.respondedBy);
+                return res.json(data);
+            } else {
+                return res.json({})
+            }
+        } catch (e) {
+            if (typeof e === 'string') {
+                throw new Error(e);
+            }
+            throw e;
+        }
+    }
+    execute().catch(err => {
+        logger.error(err);
+        res.status(500).json({
+            message: err.message
+        });
+    })
+});
+
 router.get('/', (req, res) => {
     async function execute() {
         try {
@@ -240,57 +292,6 @@ router.put('/action', (req, res) => {
     });
 });
 
-router.get('/users', (req, res) => {
-    async function execute() {
-        try {
-            let txnId = req.get([global.txnIdHeader])
-            let filter = req.query.filter ? req.query.filter : {};
-            filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
-            let wfData = await workflowModel.aggregate([
-                { $match: filter },
-                {
-                    $group: {
-                        _id: null,
-                        requestedBy: {
-                            $addToSet: '$requestedBy'
-                        },
-                        respondedBy: {
-                            $addToSet: '$respondedBy'
-                        }
-                    }
-                }
-            ])
-
-            wfData = wfData[0];
-            logger.debug(`${txnId} : WF users data :: `, data);
-            if (wfData) {
-                delete wfData._id;
-                let users = _.uniq(wfData.requestedBy.concat(data.respondedBy));
-                let usersCollection = authorDB.collection('userMgmt.users');
-                let usersData = await usersCollection.find({ _id: { $in: users } }).project({ '_id': 1, 'basicDetails.name': 1 }).toArray();
-                let userMap = {};
-                usersData.forEach(user => userMap[user._id] = user.basicDetails ? user.basicDetails.name : '');
-                logger.debug(`${txnId} : users map :: `, userMap);
-                data.requestedBy = getUsersNameFromMap(userMap, data.requestedBy);
-                data.respondedBy = getUsersNameFromMap(userMap, data.respondedBy);
-                return res.json(data);
-            } else {
-                return res.json({})
-            }
-        } catch (e) {
-            if (typeof e === 'string') {
-                throw new Error(e);
-            }
-            throw e;
-        }
-    }
-    execute().catch(err => {
-        logger.error(err);
-        res.status(500).json({
-            message: err.message
-        });
-    })
-});
 
 function getUsersNameFromMap(userMap, userIds) {
     return userIds.map(userId => {
