@@ -9,6 +9,7 @@ const mongooseUtils = require('../utils/mongoose.utils');
 const client = queue.client;
 const logger = global.logger;
 const authorDB = global.authorDB;
+let model;
 
 const schema = new mongoose.Schema(definition, {
     usePushEach: true
@@ -90,4 +91,4 @@ schema.post('save', function (doc) {
     }
 });
 
-authorDB.model('workflow', schema, 'workflow');
+model = authorDB.model('workflow', schema, 'workflow');
