@@ -1,10 +1,10 @@
-"use strict";
+'use strict';
 //controllers
-const SRVC2006Controller = require("./srvc2006.controller.js");
+const SRVC2006Controller = require('./srvc2006.controller.js');
 // const logsController = require("./logs.controller.js");
-const preHooksController = require("./preHooks.controller.js");
+const preHooksController = require('./preHooks.controller.js');
 // const webHookStatusController = require("./webHookStatus.controller.js");
-const bulkUploadController = require("./bulkUpload.controller.js");
+const bulkUploadController = require('./bulkUpload.controller.js');
 
 //exports
 var exports = {};

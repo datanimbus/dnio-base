@@ -1,12 +1,3 @@
-const mongoose = require('mongoose');
-const _ = require('lodash');
-
-const config = require('../../config');
-const httpClient = require('../../http-client');
-const commonUtils = require('./common.utils');
-
-const logger = global.logger;
-
 const createOnlyFields = [];
 const precisionFields = [];
 const secureFields = [];
@@ -21,13 +12,13 @@ const relationRequiredFields = [];
  * @returns {object} 
  */
 function validateCreateOnly(newData, oldData) {
-    const errorPath = {};
-    if (newData && oldData) {
-        if (newData.someCreateOnly !== oldData.someCreateOnly) {
-            errorPath.someCreateOnly = true;
-        }
-    }
-    return Object.keys(errorPath).length > 0 ? errorPath : null;
+	const errorPath = {};
+	if (newData && oldData) {
+		if (newData.someCreateOnly !== oldData.someCreateOnly) {
+			errorPath.someCreateOnly = true;
+		}
+	}
+	return Object.keys(errorPath).length > 0 ? errorPath : null;
 }
 
 /**
@@ -37,13 +28,13 @@ function validateCreateOnly(newData, oldData) {
  * @returns {Promise<object>}
  */
 function validateRelation(newData, oldData) {
-    const errorPath = {};
-    if (newData && oldData) {
-        if (newData.someCreateOnly !== oldData.someCreateOnly) {
-            errorPath.someCreateOnly = true;
-        }
-    }
-    return Object.keys(errorPath).length > 0 ? errorPath : null;
+	const errorPath = {};
+	if (newData && oldData) {
+		if (newData.someCreateOnly !== oldData.someCreateOnly) {
+			errorPath.someCreateOnly = true;
+		}
+	}
+	return Object.keys(errorPath).length > 0 ? errorPath : null;
 }
 
 /**
@@ -53,13 +44,13 @@ function validateRelation(newData, oldData) {
  * @returns {Promise<object>}
  */
 function validateUnique(newData, oldData) {
-    const errorPath = {};
-    if (newData && oldData) {
-        if (newData.someCreateOnly !== oldData.someCreateOnly) {
-            errorPath.someCreateOnly = true;
-        }
-    }
-    return Object.keys(errorPath).length > 0 ? errorPath : null;
+	const errorPath = {};
+	if (newData && oldData) {
+		if (newData.someCreateOnly !== oldData.someCreateOnly) {
+			errorPath.someCreateOnly = true;
+		}
+	}
+	return Object.keys(errorPath).length > 0 ? errorPath : null;
 }
 
 

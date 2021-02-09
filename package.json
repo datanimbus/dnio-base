@@ -5,7 +5,7 @@
     "main": "app.js",
     "scripts": {
         "start": "node app.js",
-        "test": "Express project test"
+        "lint": "./node_modules/.bin/eslint app.js config.js db-factory.js http-client.js init.js queue.js api/ --fix"
     },
     "keywords": [],
     "author": "Jugnu Agrawal",

@@ -40,7 +40,7 @@ client.on('reconnect', () => {
  * @returns {Promise<object>}
  */
 function callAllPreHooks(req, data, options) {
-	let txnId = req.headers[global.txnIdHeader]
+	let txnId = req.headers[global.txnIdHeader];
 	options['type'] = 'PreHook';
 	logger.debug(`[${txnId}] PreHook :: Options :: ${JSON.stringify(options)}`);
 	logger.trace(`[${txnId}] PreHook :: ${JSON.stringify(data)}`);
@@ -55,6 +55,7 @@ function callAllPreHooks(req, data, options) {
 	let properties = commonUtils.generateProperties(txnId);
 	let headers = commonUtils.generateHeaders(txnId);
 	let newData = {};
+	let docId = data._id || null;
 	return preHooks.reduce(function (acc, curr) {
 		let oldData = null;
 		let preHookLog = {};
@@ -67,13 +68,16 @@ function callAllPreHooks(req, data, options) {
 			preHookLog.properties = properties;
 			preHookLog.data.old = oldData;
 			payload = constructPayload(req, curr, _data, options);
+			payload.docId = docId;
 			payload['properties'] = properties;
 			return invokeHook(txnId, curr.url, payload, curr.failMessage, headers);
-		}).then(_data => {
-			newData = Object.assign({}, oldData, _data.data);
+		}).then(_response => {
+			newData = Object.assign({}, oldData, _response.body.data);
 			newData._metadata = oldData._metadata;
 			preHookLog.status = 'Completed';
 			preHookLog.data.new = newData;
+			preHookLog.response.headers =  _response.headers;
+			preHookLog.response.body = _response.body;
 			return newData;
 		}).catch(err => {
 			logger.error(`[${txnId}] PreHook :: ${err.message}`);
@@ -97,11 +101,11 @@ function prepPostHooks(_data){
 		throw e;
 	}
 	let operation = 'POST';
-	let docId = _data.new._id
+	let docId = _data.new._id;
 	if(_data.old && _data.new) operation = 'PUT';
 	if(_data.old && !_data.new) {
 		operation = 'DELETE';
-		docId = _data.old._id
+		docId = _data.old._id;
 	}
 	logger.info(`[${txnId}] PostHook :: ${docId} :: ${postHooks.length} found`);
 	postHooks.forEach(_d => logger.info(`[${txnId}] PostHook :: ${docId} :: ${_d.name} - ${_d.url} `));
@@ -183,18 +187,18 @@ function insertAuditLog(_txnId, _data){
  * @param {boolean} options.log 
  */
 function constructPayload(req, preHook, data, options) {
-    const payload = {};
-    payload.trigger = {};
-    payload.operation = options.operation;
-    payload.txnId = req.headers[global.txnIdHeader];
-    payload.user = req.get("User");
-    payload.data = JSON.parse(JSON.stringify(data));
-    payload.trigger.source = options.source;
-    payload.trigger.simulate = options.simulate;
-    payload.dataService = config.serviceId;
-    payload.name = preHook.name;
-    payload.app = config.appNamespace;
-    return payload;
+	const payload = {};
+	payload.trigger = {};
+	payload.operation = options.operation;
+	payload.txnId = req.headers[global.txnIdHeader];
+	payload.user = req.get('User');
+	payload.data = JSON.parse(JSON.stringify(data));
+	payload.trigger.source = options.source;
+	payload.trigger.simulate = options.simulate;
+	payload.dataService = config.serviceId;
+	payload.name = preHook.name;
+	payload.app = config.appNamespace;
+	return payload;
 }
 
 /**
@@ -217,6 +221,7 @@ function constructHookLog(req, hook, options) {
 		status: 'Initiated',
 		errorMessage: '',
 		retry: 0,
+		docId: null,
 		operation: options.operation,
 		type: options.type,
 		trigger: {
@@ -232,6 +237,10 @@ function constructHookLog(req, hook, options) {
 		data: {
 			old: null,
 			new: null
+		},
+		response: {
+			headers: {},
+			body: {}
 		},
 		_metadata: {
 			createdAt: new Date(),
@@ -271,7 +280,7 @@ function invokeHook(txnId, url, data, customErrMsg, _headers) {
 				let message = customErrMsg ? customErrMsg : `Pre-save link ${url} down!Unable to proceed.`;
 				throw new Error(message);
 			} else {
-				if (res.statusCode >= 200 && res.statusCode < 400) return res.body;
+				if (res.statusCode >= 200 && res.statusCode < 400) return res;
 				else {
 					let errMsg = `Error invoking pre-save link ${url}.Unable to proceed.`;
 					if (res.body && res.body.message) errMsg = res.body.message;
@@ -292,10 +301,12 @@ function invokeHook(txnId, url, data, customErrMsg, _headers) {
 * @param {*} res Server response Object
 */
 function callExperienceHook(req, res) {
-	const txnId = req.headers[global.txnIdHeader]
+	const txnId = req.headers[global.txnIdHeader];
 	
 	const hookName = req.query.name;
 	const payload = req.body || {};
+	let docId = null;
+	if(payload && payload.data && payload.data._id) docId = payload.data._id;
 	
 	let hooks;
 	try {
@@ -320,6 +331,7 @@ function callExperienceHook(req, res) {
 
 		const data = {
 			data: payload.data,
+			docId: docId,
 			txnId: req.headers[global.txnIdHeader],
 			user: req.get('User'),
 			type: 'ExperienceHook',
@@ -356,7 +368,7 @@ function callExperienceHook(req, res) {
 					data['response'] = {
 						headers: hookResponse.headers,
 						body: hookResponse.body
-					}
+					};
 					res.status(200).json(hookResponse.body);
 				}
 			})

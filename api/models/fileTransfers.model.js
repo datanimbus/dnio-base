@@ -5,7 +5,7 @@ const definition = require('../helpers/fileTransfers.definition').definition;
 const mongooseUtils = require('../utils/mongoose.utils');
 
 const schema = new mongoose.Schema(definition, {
-    usePushEach: true
+	usePushEach: true
 });
 
 schema.plugin(mongooseUtils.metadataPlugin());
