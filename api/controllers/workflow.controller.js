@@ -73,7 +73,7 @@ router.get('/users', (req, res) => {
                 delete wfData._id;
                 let users = _.uniq(wfData.requestedBy.concat(wfData.respondedBy));
                 let usersCollection = authorDB.collection('userMgmt.users');
-                let usersData = await usersCollection.find({ _id: { $in: users } }).project({ '_id': 1, 'basicDetails.name': 1 }).toArray();
+                let usersData = await usersCollection.find({ _id: { $in: users } }).project({ '_id': 1, 'basicDetails.name': 1 });
                 let userMap = {};
                 usersData.forEach(user => userMap[user._id] = user.basicDetails ? user.basicDetails.name : '');
                 logger.debug(`${txnId} : users map :: `, userMap);
@@ -478,7 +478,7 @@ async function submit(req, res) {
 async function rework(req, res) {
     try {
         const ids = req.body.ids;
-        const docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.headers[global.userHeader] } }] }).toArray();
+        const docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.headers[global.userHeader] } }] });
         if (!docs || docs.length == 0) {
             return res.status(400).json({ message: 'Rework Failed' });
         }
@@ -516,7 +516,7 @@ async function rework(req, res) {
 async function approve(req, res) {
     try {
         const ids = req.body.ids;
-        const docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.headers[global.userHeader] } }] }).toArray();
+        const docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.headers[global.userHeader] } }] });
         if (!docs || docs.length == 0) {
             return res.status(400).json({ message: 'No Documents To Approve' });
         }
@@ -574,7 +574,7 @@ async function approve(req, res) {
 async function reject(req, res) {
     try {
         const ids = req.body.ids;
-        const docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.headers[global.userHeader] } }] }).toArray();
+        const docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.headers[global.userHeader] } }] });
         if (!docs || docs.length == 0) {
             return res.status(400).json({ message: 'No Documents To Reject' });
         }
