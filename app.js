@@ -63,13 +63,18 @@ let masking = [
     { url: `${baseURL}/{id}`, path: secureFields },
     { url: `${baseURL}/utils/experienceHook`, path: secureFields }
 ];
-const logToQueue = dataStackUtils.logToQueue(`${config.app}.${config.serviceId}`, queueMgmt.client, 'dataService', `${config.app}.${config.serviceId}.logs`, masking, config.serviceId);
 
 app.use(bodyParser.json({ limit: config.MaxJSONSize }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(utils.logMiddleware.getLogMiddleware(logger));
 app.use(upload.single('file'));
-app.use(logToQueue);
+app.use(function (req, res, next) {
+    if(config.disableInsights) next();
+	else {
+		const logToQueue = dataStackUtils.logToQueue(`${config.app}.${config.serviceId}`, queueMgmt.client, 'dataService', `${config.app}.${config.serviceId}.logs`, masking, config.serviceId);
+		logToQueue(req, res, next);
+	}
+});
 app.use(function (req, res, next) {
     let allowedExt = config.allowedExt || [];
     if (!req.files) return next();
