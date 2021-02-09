@@ -101,21 +101,22 @@ schema.pre('save', async function (next) {
     }
 });
 
-schema.pre('save', async function (next) {
-    const newDoc = this;
-    const oldDoc = this._oldDoc;
-    const req = this._req;
-    try {
-        const errors = await specialFields.validateUnique(req, newDoc, oldDoc);
-        if (errors) {
-            next(errors);
-        } else {
-            next();
-        }
-    } catch (e) {
-        next(e);
-    }
-});
+// Commenting as unique calidation is handled at post save level
+// schema.pre('save', async function (next) {
+//     const newDoc = this;
+//     const oldDoc = this._oldDoc;
+//     const req = this._req;
+//     try {
+//         const errors = await specialFields.validateUnique(req, newDoc, oldDoc);
+//         if (errors) {
+//             next(errors);
+//         } else {
+//             next();
+//         }
+//     } catch (e) {
+//         next(e);
+//     }
+// });
 
 schema.pre('save', async function (next) {
     const newDoc = this;
@@ -215,6 +216,32 @@ schema.post('save', function (doc) {
         }
     }
 });
+
+schema.post('save', function (error, doc, next) {
+    if (!error) return next();
+    if (error.code == 11000) {
+        if(error.errmsg) {
+            if(error.errmsg.indexOf('_id') > -1 && error.errmsg.indexOf('._id') === -1){
+                next(new Error(`ID ${doc._id} already exists.`));   
+            } else {
+                var uniqueAttributeFailed = error.errmsg.substring(
+                    error.errmsg.lastIndexOf("index:") + 7, 
+                    error.errmsg.lastIndexOf("_1")
+                );
+                if(uniqueAttributeFailed.endsWith('._id'))
+                    uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -4);
+                if(uniqueAttributeFailed.endsWith('.checksum') && secureFields.includes(uniqueAttributeFailed.slice(0, -9)))
+                    uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -9);
+                next(new Error("Unique check validation failed for "+uniqueAttributeFailed));   
+            }
+        } else {
+            next(new Error("Unique check validation failed"));
+        }
+    } else {
+        next();
+    }
+});
+
 
 mongoose.model(config.serviceId, schema, config.serviceCollection);
 
