@@ -260,6 +260,7 @@ router.put('/:id', (req, res) => {
             if (remarks) {
                 doc.remarks = remarks;
             }
+            doc._req = req;
             const savedData = await doc.save();
             logger.trace('Workflow Doc Updated', JSON.stringify({ savedData }));
             return res.status(200).json({ message: 'Edit Successful.' });
@@ -312,7 +313,8 @@ router.put('/doc/:id', (req, res) => {
                 timestamp: Date.now()
             };
             doc.audit.push(auditData);
-            const savedData = await doc.save(req);
+            doc._req = req;
+            const savedData = await doc.save();
             logger.debug(JSON.stringify({ savedData }));
             return res.status(200).json({ message: 'Edit Successful.' });
         } catch (e) {
@@ -425,7 +427,8 @@ async function discard(req, res) {
         }
         doc.audit.push(event);
         doc.markModified('audit');
-        const savedDoc = await doc.save(req);
+        doc._req = req;
+        const savedDoc = await doc.save();
         if (savedDoc.operation == 'PUT') {
             const status = await serviceModel.findOneAndUpdate({ _id: savedDoc.documentId }, { '_metadata.workflow': null }, { new: true });
             logger.debug('Unlocked Document', status);
@@ -467,7 +470,8 @@ async function submit(req, res) {
         doc.audit.push(event);
         doc.requestedBy = req.headers[global.userHeader];
         doc.markModified('audit');
-        const savedDoc = await doc.save(req);
+        doc._req = req;
+        const savedDoc = await doc.save();
         return res.status(200).json({ message: 'Submission Successful' });
     } catch (e) {
         logger.error(e);
@@ -503,7 +507,8 @@ async function rework(req, res) {
             }
             doc.audit.push(event);
             doc.markModified('audit');
-            return doc.save(req);
+            doc._req = req;
+            return doc.save();
         });
         const savedDoc = await Promise.all(promises);
         return res.status(200).json({ message: 'Sent For Changes.' });
@@ -539,14 +544,19 @@ async function approve(req, res) {
                 let serviceDoc;
                 if (doc.operation == 'POST') {
                     serviceDoc = new serviceModel(doc.data.new);
-                    serviceDoc = await serviceDoc.save(req);
+                    serviceDoc._req = req;
+                    serviceDoc = await serviceDoc.save();
                 } else if (doc.operation == 'PUT') {
                     serviceDoc = await serviceModel.findById(doc.documentId);
+                    serviceDoc._req = req;
+                    serviceDoc._oldDoc = serviceDoc.toObject();
                     Object.assign(serviceDoc, doc.data.new);
-                    serviceDoc = await serviceDoc.save(req);
+                    serviceDoc = await serviceDoc.save();
                 } else if (doc.operation == 'DELETE') {
                     serviceDoc = await serviceModel.findById(doc.documentId);
-                    serviceDoc = await serviceDoc.remove(req);
+                    serviceDoc._req = req;
+                    serviceDoc._oldDoc = serviceDoc.toObject();
+                    serviceDoc = await serviceDoc.remove();
                 }
                 doc.status = 'Approved';
             } catch (e) {
@@ -560,7 +570,8 @@ async function approve(req, res) {
                 }
                 doc.audit.push(event);
                 doc.markModified('audit');
-                return await doc.save(req);
+                doc._req = req;
+                return await doc.save();
             }
         });
         const savedDoc = await Promise.all(promises);
@@ -603,7 +614,8 @@ async function reject(req, res) {
             }
             doc.audit.push(event);
             doc.markModified('audit');
-            return await doc.save(req);
+            doc._req = req;
+            return await doc.save();
         });
         const savedDoc = await Promise.all(promises);
         return res.status(200).json({ message: 'Documents Rejected' });

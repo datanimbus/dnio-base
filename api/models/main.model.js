@@ -12,7 +12,7 @@ const specialFields = require('../utils/special-fields.utils');
 const client = queue.client;
 const logger = global.logger;
 let softDeletedModel;
-if(!config.permanentDelete) softDeletedModel = mongoose.model(config.serviceId + '.deleted');
+if (!config.permanentDelete) softDeletedModel = mongoose.model(config.serviceId + '.deleted');
 
 const schema = new mongoose.Schema(definition, {
     usePushEach: true
@@ -39,9 +39,9 @@ schema.pre('validate', async function (next) {
 
 schema.pre('validate', async function (next) {
     const self = this;
-    if(!config.permanentDelete && self.isnew && self._id) {
+    if (!config.permanentDelete && self.isnew && self._id) {
         softDeletedModel.findById(self._id).then(doc => {
-            if(doc) 
+            if (doc)
                 next(new Error('ID ' + self._id + 'already exists in deleted records.'))
             else
                 next();
@@ -59,15 +59,15 @@ schema.pre('save', utils.counter.getIdGenerator(config.ID_PREFIX, config.service
 schema.pre('save', async function (next) {
     const req = this._req;
     try {
-    	let options = {
-    		operation: this.isNew ? 'POST' : 'PUT',
-    		simulate: false,
-    		source: 'presave' 
-    	}
-      const data = await hooksUtils.callAllPreHooks(req, this, options);
-      logger.trace(`[${req.get("TxnId")}] Prehook data :: ${JSON.stringify(data)}`)
-      _.assign(this, data);
-      next();
+        let options = {
+            operation: this.isNew ? 'POST' : 'PUT',
+            simulate: false,
+            source: 'presave'
+        }
+        const data = await hooksUtils.callAllPreHooks(req, this, options);
+        logger.trace(`[${req.headers[global.txnIdHeader]}] Prehook data :: ${JSON.stringify(data)}`)
+        _.assign(this, data);
+        next();
     } catch (e) {
         next(e);
     }
@@ -157,7 +157,7 @@ schema.pre('save', async function (next) {
         const errors = await specialFields.validateDateFields(req, newDoc, oldDoc);
         if (errors) {
             let txnId = req.headers[global.txnIdHeader];
-            logger.error(`[${txnId}] Error in validation date fields :: ` , errors)
+            logger.error(`[${txnId}] Error in validation date fields :: `, errors)
             next(errors);
         } else {
             next();
@@ -167,7 +167,7 @@ schema.pre('save', async function (next) {
     }
 });
 
-schema.pre('save', function(next) {
+schema.pre('save', function (next) {
     let doc = this.toObject();
     Object.keys(doc).forEach(el => this.markModified(el));
     next();
@@ -186,33 +186,33 @@ schema.post('save', function (doc) {
     webHookData.old = oldData;
     hooksUtils.prepPostHooks(webHookData)
     // queue.sendToQueue(webHookData);
-    if(config.disableAudits){
-	    let auditData = {};
-	    auditData.versionValue = '-1'
-	    auditData.user = webHookData.user;
-	    auditData.txnId = webHookData.txnId;
-	    auditData.timeStamp = new Date();
-	    auditData.data = {};
-	    auditData.data.old = {};
-	    auditData.data.new = {};
-	    auditData._metadata = {};
-	    auditData.colName = `${config.app}.${config.serviceCollection}.audit`;
-	    auditData._metadata.lastUpdated = new Date();
-	    auditData._metadata.createdAt = new Date();
-	    auditData._metadata.deleted = false;
-	    auditData.data._id = webHookData.new._id;
-	    auditData.data._version = webHookData.new._metadata.version.document;
-	    getDiff(webHookData.old, webHookData.new, auditData.data.old, auditData.data.new);
-	    let oldLastUpdated = auditData.data.old && auditData.data.old._metadata ? auditData.data.old._metadata.lastUpdated : null;
-	    let newLastUpdated = auditData.data.new && auditData.data.new._metadata ? auditData.data.new._metadata.lastUpdated : null;
-	    if (oldLastUpdated) delete auditData.data.old._metadata.lastUpdated;
-	    if (newLastUpdated) delete auditData.data.new._metadata.lastUpdated;
-	    if (!_.isEqual(auditData.data.old, auditData.data.new)) {
-	        if (oldLastUpdated) auditData.data.old._metadata.lastUpdated = oldLastUpdated;
-	        if (newLastUpdated) auditData.data.new._metadata.lastUpdated = newLastUpdated;
-	        // client.publish('auditQueue', JSON.stringify(auditData))
-	        hooksUtils.insertAuditLog(txnid, auditData)
-	    }
+    if (config.disableAudits) {
+        let auditData = {};
+        auditData.versionValue = '-1'
+        auditData.user = webHookData.user;
+        auditData.txnId = webHookData.txnId;
+        auditData.timeStamp = new Date();
+        auditData.data = {};
+        auditData.data.old = {};
+        auditData.data.new = {};
+        auditData._metadata = {};
+        auditData.colName = `${config.app}.${config.serviceCollection}.audit`;
+        auditData._metadata.lastUpdated = new Date();
+        auditData._metadata.createdAt = new Date();
+        auditData._metadata.deleted = false;
+        auditData.data._id = webHookData.new._id;
+        auditData.data._version = webHookData.new._metadata.version.document;
+        getDiff(webHookData.old, webHookData.new, auditData.data.old, auditData.data.new);
+        let oldLastUpdated = auditData.data.old && auditData.data.old._metadata ? auditData.data.old._metadata.lastUpdated : null;
+        let newLastUpdated = auditData.data.new && auditData.data.new._metadata ? auditData.data.new._metadata.lastUpdated : null;
+        if (oldLastUpdated) delete auditData.data.old._metadata.lastUpdated;
+        if (newLastUpdated) delete auditData.data.new._metadata.lastUpdated;
+        if (!_.isEqual(auditData.data.old, auditData.data.new)) {
+            if (oldLastUpdated) auditData.data.old._metadata.lastUpdated = oldLastUpdated;
+            if (newLastUpdated) auditData.data.new._metadata.lastUpdated = newLastUpdated;
+            // client.publish('auditQueue', JSON.stringify(auditData))
+            hooksUtils.insertAuditLog(txnid, auditData)
+        }
     }
 });
 
