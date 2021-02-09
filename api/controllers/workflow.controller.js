@@ -98,6 +98,33 @@ router.get('/users', (req, res) => {
     })
 });
 
+router.get('/serviceList', (req, res) => {
+    async function execute() {
+        try {
+            const resObj = {};
+            resObj[config.serviceId] = 0;
+            let filter = req.query.filter;
+            if (filter) filter = JSON.parse(filter);
+            filter = crudderUtils.parseFilter(filter);
+            filter.serviceId = config.serviceId;
+            const count = await workflowModel.countDocuments(filter);
+            resObj[config.serviceId] = count;
+            res.status(200).json(resObj);
+        } catch (e) {
+            if (typeof e === 'string') {
+                throw new Error(e);
+            }
+            throw e;
+        }
+    }
+    execute().catch(err => {
+        logger.error(err);
+        res.status(500).json({
+            message: err.message
+        });
+    })
+});
+
 router.get('/', (req, res) => {
     async function execute() {
         try {
@@ -150,6 +177,42 @@ router.get('/', (req, res) => {
     });
 });
 
+router.put('/action', (req, res) => {
+    async function execute() {
+        try {
+            if (!req.body.action) {
+                return res.status(400).json({ message: 'Action is required.' });
+            } else if (req.body.action == 'Discard') {
+                return discard(req, res);
+            } else if (req.body.action == 'Submit') {
+                return submit(req, res);
+            } else if (req.body.action == 'Rework') {
+                return rework(req, res);
+            } else if (req.body.action == 'Approve') {
+                return approve(req, res);
+            } else if (req.body.action == 'Reject') {
+                return reject(req, res);
+            } else {
+                return res.status(400).json({ message: 'Action is Invalid.' });
+            }
+        } catch (e) {
+            if (typeof e === 'string') {
+                throw new Error(e);
+            }
+            throw e;
+        }
+    }
+    execute().catch(err => {
+        logger.error(err);
+        if (err.source) {
+            res.status(500).json(err);
+        } else {
+            res.status(500).json({
+                message: err.message
+            });
+        }
+    });
+});
 
 router.get('/:id', (req, res) => {
     async function execute() {
@@ -219,33 +282,6 @@ router.put('/:id', (req, res) => {
     });
 });
 
-router.get('/serviceList', (req, res) => {
-    async function execute() {
-        try {
-            const resObj = {};
-            resObj[config.serviceId] = 0;
-            let filter = req.query.filter;
-            if (filter) filter = JSON.parse(filter);
-            filter = crudderUtils.parseFilter(filter);
-            filter.serviceId = config.serviceId;
-            const count = await workflowModel.countDocuments(filter);
-            resObj[config.serviceId] = count;
-            res.status(200).json(resObj);
-        } catch (e) {
-            if (typeof e === 'string') {
-                throw new Error(e);
-            }
-            throw e;
-        }
-    }
-    execute().catch(err => {
-        logger.error(err);
-        res.status(500).json({
-            message: err.message
-        });
-    })
-});
-
 router.put('/doc/:id', (req, res) => {
     async function execute() {
         try {
@@ -297,44 +333,6 @@ router.put('/doc/:id', (req, res) => {
         }
     });
 });
-
-router.put('/action', (req, res) => {
-    async function execute() {
-        try {
-            if (!req.body.action) {
-                return res.status(400).json({ message: 'Action is required.' });
-            } else if (req.body.action == 'Discard') {
-                return discard(req, res);
-            } else if (req.body.action == 'Submit') {
-                return submit(req, res);
-            } else if (req.body.action == 'Rework') {
-                return rework(req, res);
-            } else if (req.body.action == 'Approve') {
-                return approve(req, res);
-            } else if (req.body.action == 'Reject') {
-                return reject(req, res);
-            } else {
-                return res.status(400).json({ message: 'Action is Invalid.' });
-            }
-        } catch (e) {
-            if (typeof e === 'string') {
-                throw new Error(e);
-            }
-            throw e;
-        }
-    }
-    execute().catch(err => {
-        logger.error(err);
-        if (err.source) {
-            res.status(500).json(err);
-        } else {
-            res.status(500).json({
-                message: err.message
-            });
-        }
-    });
-});
-
 
 function getUsersNameFromMap(userMap, userIds) {
     return userIds.map(userId => {
