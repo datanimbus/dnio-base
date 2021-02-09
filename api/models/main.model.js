@@ -230,7 +230,7 @@ schema.post('save', function (error, doc, next) {
                 );
                 if(uniqueAttributeFailed.endsWith('._id'))
                     uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -4);
-                if(uniqueAttributeFailed.endsWith('.checksum') && secureFields.includes(uniqueAttributeFailed.slice(0, -9)))
+                if(uniqueAttributeFailed.endsWith('.checksum') && specialFields.secureFields.includes(uniqueAttributeFailed.slice(0, -9)))
                     uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -9);
                 next(new Error("Unique check validation failed for "+uniqueAttributeFailed));   
             }
