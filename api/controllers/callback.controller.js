@@ -6,7 +6,7 @@ const config = require('../../config');
 const logger = global.logger;
 
 router.post('/:id', (req, res) => {
-	let txnId = req.get("TxnId")
+	let txnId = req.get(global.txnIdHeader)
 	async function execute(){
 	  try{
 	  	let hookId = req.params.id

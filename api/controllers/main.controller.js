@@ -496,7 +496,7 @@ router.put('/:id', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-    let txnId = req.get("TxnId")
+    let txnId = req.get(global.txnIdHeader)
     async function execute() {
         const workflowModel = authorDB.model('workflow');
         try {
@@ -569,7 +569,7 @@ router.put('/:id/math', (req, res) => {
 
 // WHAT is THIS?
 router.post('/hook', (req, res) => {
-    let txnId = req.get("TxnId")
+    let txnId = req.get(global.txnIdHeader)
     async function execute() {
         try {
             const url = req.query.url;
