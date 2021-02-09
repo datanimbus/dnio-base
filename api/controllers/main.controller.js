@@ -10,7 +10,7 @@ const specialFields = require('../utils/special-fields.utils');
 const hooksUtils = require('../utils/hooks.utils');
 const crudderUtils = require('../utils/crudder.utils');
 const workflowUtils = require('../utils/workflow.utils');
-const { mergeCustomizer }  = require('./../utils/common.utils');
+const { mergeCustomizer } = require('./../utils/common.utils');
 
 const logger = global.logger;
 const model = mongoose.model(config.serviceId);
@@ -366,10 +366,14 @@ router.post('/', (req, res) => {
             const payload = req.body;
             let promises;
             const hasSkipReview = await workflowUtils.hasSkipReview(req);
-            if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
+            if ((workflowUtils.isWorkflowEnabled() && !hasSkipReview) || req.query.draft) {
+                let wfItemStatus = 'Pending';
+                if (req.query.draft) {
+                    wfItemStatus = 'Draft';
+                }
                 if (Array.isArray(payload)) {
                     promises = payload.map(async (e) => {
-                        const wfItem = workflowUtils.getWorkflowItem(req, 'POST', e._id, 'Pending', e, null);
+                        const wfItem = workflowUtils.getWorkflowItem(req, 'POST', e._id, wfItemStatus, e, null);
                         const wfDoc = new workflowModel(wfItem);
                         wfDoc._req = req;
                         const status = await wfDoc.save();
@@ -380,7 +384,7 @@ router.post('/', (req, res) => {
                     });
                     promises = await Promise.all(promises);
                 } else {
-                    const wfItem = workflowUtils.getWorkflowItem(req, 'POST', payload._id, 'Pending', payload, null);
+                    const wfItem = workflowUtils.getWorkflowItem(req, 'POST', payload._id, wfItemStatus, payload, null);
                     const wfDoc = new workflowModel(wfItem);
                     wfDoc._req = req;
                     const status = await wfDoc.save();
@@ -456,8 +460,12 @@ router.put('/:id', (req, res) => {
             }
             doc._req = req;
             const hasSkipReview = await workflowUtils.hasSkipReview(req);
-            if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
-                const wfItem = workflowUtils.getWorkflowItem(req, isNewDoc ? 'POST' : 'PUT', doc._id, 'Pending', payload, isNewDoc ? null : doc._oldDoc);
+            if ((workflowUtils.isWorkflowEnabled() && !hasSkipReview) || req.query.draft) {
+                let wfItemStatus = 'Pending';
+                if (req.query.draft) {
+                    wfItemStatus = 'Draft';
+                }
+                const wfItem = workflowUtils.getWorkflowItem(req, isNewDoc ? 'POST' : 'PUT', doc._id, wfItemStatus, payload, isNewDoc ? null : doc._oldDoc);
                 const wfDoc = new workflowModel(wfItem);
                 wfDoc._req = req;
                 status = await wfDoc.save();
