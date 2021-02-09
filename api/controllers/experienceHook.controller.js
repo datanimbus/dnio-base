@@ -18,7 +18,7 @@ router.post('/', (req, res) => {
       }
 
       const payload = req.body || {};
-  		logger.debug(`[${txnId}] Experience hook :: ${JSON.stringify(payload)}`)
+  		logger.trace(`[${txnId}] Experience hook :: ${JSON.stringify(payload)}`)
   
       hooksUtils.callExperienceHook(req, res);
 	  } catch (e) {
