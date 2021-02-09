@@ -8,7 +8,7 @@ const models = require('./api/models');
 // let baseImageVersion = require('./package.json').version;
 // const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} v${config.serviceVersion}]` : `[${config.serviceName} v${config.serviceVersion}]`
 // const logger = log4js.getLogger(LOGGER_NAME);
-let logger = global.logger
+let logger = global.logger;
 const dbName = config.serviceDB;
 
 // global.logger = logger;
@@ -33,14 +33,14 @@ logsDB.on('reconnectFailed', () => { logger.error(` *** ${config.logsDB} FAILED 
 global.logsDB = logsDB;
 
 mongoose.connect(config.mongoUrl, config.mongoAppCenterOptions, err => {
-    if (err) {
-        logger.error(err);
-    } else {
-        logger.info(`Connected to ${dbName} DB`);
-        global.gfsBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}` });
-        global.gfsBucketExport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.exportedFile` });
-        global.gfsBucketImport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.fileImport` });
-    }
+	if (err) {
+		logger.error(err);
+	} else {
+		logger.info(`Connected to ${dbName} DB`);
+		global.gfsBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}` });
+		global.gfsBucketExport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.exportedFile` });
+		global.gfsBucketImport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.fileImport` });
+	}
 });
 
 mongoose.connection.on('connecting', () => { logger.info(` *** ${dbName} CONNECTING *** `); });

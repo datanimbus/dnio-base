@@ -14,10 +14,10 @@ var client = require('@appveen/data.stack-utils').streaming.init(
  * @param {*} data The Object that needs to be pushed into the queue
  */
 function sendToQueue(data) {
-    client.publish(config.queueName, JSON.stringify(data, null, 4));
-};
+	client.publish(config.queueName, JSON.stringify(data, null, 4));
+}
 
 module.exports = {
-    client: client,
-    sendToQueue: sendToQueue
-}
+	client: client,
+	sendToQueue: sendToQueue
+};

@@ -1,4 +1,3 @@
-const fs = require('fs');
 const serviceJSON = require('./service.json');
 const e = {};
 
@@ -28,7 +27,7 @@ e.mongoAuthorOptions = {
 	useUnifiedTopology: true,
 	useNewUrlParser: true,
 	minSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
-	dbName: process.env.MONGO_AUTHOR_DBNAME || "datastackConfig",
+	dbName: process.env.MONGO_AUTHOR_DBNAME || 'datastackConfig',
 };
 e.mongoAppCenterOptions = {
 	useUnifiedTopology: true,
@@ -58,8 +57,8 @@ e.serviceCollection = process.env.SERVICE_COLLECTION;
 e.permanentDelete = process.env.PERMANENT_DELETE || true;
 e.MaxJSONSize = process.env.MAX_JSON_SIZE || '1mb';
 e.dataStackDefaultTimezone = process.env.TZ_DEFAULT || 'Zulu';
-e.disableInsights = serviceJSON.disableInsights
-e.disableAudits = serviceJSON.versionValidity.validityValue == 0
+e.disableInsights = serviceJSON.disableInsights;
+e.disableAudits = serviceJSON.versionValidity.validityValue == 0;
 
 // ID Config ENV Varaiables
 e.ID_PADDING = process.env.ID_PADDING;

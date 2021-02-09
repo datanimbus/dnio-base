@@ -1,7 +1,5 @@
 const _ = require('lodash');
 
-const config = require('../../config');
-
 const logger = global.logger;
 
 function IsString(val) {
