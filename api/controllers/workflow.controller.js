@@ -5,7 +5,6 @@ const _ = require('lodash');
 const config = require('../../config');
 const workflowUtils = require('../utils/workflow.utils');
 const crudderUtils = require('../utils/crudder.utils');
-const commonUtils = require('../utils/common.utils');
 
 const logger = global.logger;
 const authorDB = global.authorDB;
@@ -297,7 +296,7 @@ router.put('/doc/:id', (req, res) => {
                 return res.status(400).json({ message: 'Workflow to be editted not found' });
             }
             doc.status = 'Draft';
-            const data = await commonUtils.simulate(req, newData, {
+            const data = await workflowUtils.simulate(req, newData, {
                 source: `simulate-workflow ${doc.status} edit`,
                 operation: doc.operation
             });
