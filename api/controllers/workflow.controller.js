@@ -553,7 +553,7 @@ async function approve(req, res) {
                 event.by = 'Entity';
                 event.action = 'Error';
                 event.remarks = typeof e === 'object' ? e.message : e;
-                doc.status = 'Error';
+                doc.status = 'Failed';
             } finally {
                 if (!doc.audit) {
                     doc.audit = [];
