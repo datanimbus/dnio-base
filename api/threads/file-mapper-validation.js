@@ -23,7 +23,9 @@ const queueMgmt = require('../../queue');
 async function execute() {
     const fileMapperUtils = require('../utils/fileMapper.utils');
     const commonUtils = require('../utils/common.utils');
+    const workflowUtils = require('../utils/workflow.utils');
 
+    logger.level = LOG_LEVEL;
     const model = mongoose.model('fileMapper');
     const fileTransfersModel = mongoose.model('fileTransfers');
 
@@ -139,11 +141,11 @@ async function execute() {
         return prev.then(() => {
             const tempPromises = items.map(async (doc) => {
                 try {
-                    const data = await commonUtils.simulate(req, doc.toObject().data, {
+                    const data = await workflowUtils.simulate(req, doc.toObject().data, {
                         operation: doc.data._id ? 'PUT' : 'POST',
                         source: 'fileMapper Validation'
                     });
-                    _.merge(doc.data, data);
+                    _.mergeWith(doc.data, data, commonUtils.mergeCustomizer);
                     if (doc.status == 'Pending') {
                         doc.status = 'Validated';
                     }

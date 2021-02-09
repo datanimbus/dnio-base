@@ -53,9 +53,9 @@ router.get('/download/:id', (req, res) => {
 router.get('/', (req, res) => {
     async function execute() {
         try {
-            let txnId = req.get("TxnId")
+            let txnId = req.get(global.txnIdHeader)
             const fileId = uuid();
-            res.status(200).json({_id: _id, message: "Process queued" });
+            res.status(200).json({_id: fileId, message: "Process queued" });
             const result = await threadUtils.executeThread(txnId, 'export', {
                 fileId,
                 reqData: {

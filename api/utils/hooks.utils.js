@@ -40,7 +40,7 @@ client.on('reconnect', () => {
  * @returns {Promise<object>}
  */
 function callAllPreHooks(req, data, options) {
-	let txnId = req.get('TxnId');
+	let txnId = req.headers[global.txnIdHeader]
 	options['type'] = 'PreHook';
 	logger.debug(`[${txnId}] PreHook :: Options :: ${JSON.stringify(options)}`);
 	logger.trace(`[${txnId}] PreHook :: ${JSON.stringify(data)}`);
@@ -183,18 +183,18 @@ function insertAuditLog(_txnId, _data){
  * @param {boolean} options.log 
  */
 function constructPayload(req, preHook, data, options) {
-	const payload = {};
-	payload.trigger = {};
-	payload.operation = options.operation;
-	payload.txnId = req.get('TxnId');
-	payload.user = req.get('User');
-	payload.data = JSON.parse(JSON.stringify(data));
-	payload.trigger.source = options.source;
-	payload.trigger.simulate = options.simulate;
-	payload.dataService = config.serviceId;
-	payload.name = preHook.name;
-	payload.app = config.appNamespace;
-	return payload;
+    const payload = {};
+    payload.trigger = {};
+    payload.operation = options.operation;
+    payload.txnId = req.headers[global.txnIdHeader];
+    payload.user = req.get("User");
+    payload.data = JSON.parse(JSON.stringify(data));
+    payload.trigger.source = options.source;
+    payload.trigger.simulate = options.simulate;
+    payload.dataService = config.serviceId;
+    payload.name = preHook.name;
+    payload.app = config.appNamespace;
+    return payload;
 }
 
 /**
@@ -292,7 +292,7 @@ function invokeHook(txnId, url, data, customErrMsg, _headers) {
 * @param {*} res Server response Object
 */
 function callExperienceHook(req, res) {
-	const txnId = req.get('TxnId');
+	const txnId = req.headers[global.txnIdHeader]
 	
 	const hookName = req.query.name;
 	const payload = req.body || {};

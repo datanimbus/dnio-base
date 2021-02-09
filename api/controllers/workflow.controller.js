@@ -46,6 +46,85 @@ router.get('/count', (req, res) => {
     });
 });
 
+router.get('/users', (req, res) => {
+    async function execute() {
+        try {
+            let txnId = req.get(global.txnIdHeader)
+            let filter = req.query.filter ? req.query.filter : {};
+            filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
+            let wfData = await workflowModel.aggregate([
+                { $match: filter },
+                {
+                    $group: {
+                        _id: null,
+                        requestedBy: {
+                            $addToSet: '$requestedBy'
+                        },
+                        respondedBy: {
+                            $addToSet: '$respondedBy'
+                        }
+                    }
+                }
+            ])
+
+            wfData = wfData[0];
+            logger.debug(`${txnId} : WF users wfData :: `, wfData);
+            if (wfData) {
+                delete wfData._id;
+                let users = _.uniq(wfData.requestedBy.concat(wfData.respondedBy));
+                let usersCollection = authorDB.collection('userMgmt.users');
+                let usersData = await usersCollection.find({ _id: { $in: users } }).project({ '_id': 1, 'basicDetails.name': 1 });
+                let userMap = {};
+                usersData.forEach(user => userMap[user._id] = user.basicDetails ? user.basicDetails.name : '');
+                logger.debug(`${txnId} : users map :: `, userMap);
+                wfData.requestedBy = getUsersNameFromMap(userMap, wfData.requestedBy);
+                wfData.respondedBy = getUsersNameFromMap(userMap, wfData.respondedBy);
+                return res.json(wfData);
+            } else {
+                return res.json({})
+            }
+        } catch (e) {
+            if (typeof e === 'string') {
+                throw new Error(e);
+            }
+            throw e;
+        }
+    }
+    execute().catch(err => {
+        logger.error(err);
+        res.status(500).json({
+            message: err.message
+        });
+    })
+});
+
+router.get('/serviceList', (req, res) => {
+    async function execute() {
+        try {
+            const resObj = {};
+            resObj[config.serviceId] = 0;
+            let filter = req.query.filter;
+            if (filter) filter = JSON.parse(filter);
+            filter = crudderUtils.parseFilter(filter);
+            filter.serviceId = config.serviceId;
+            const count = await workflowModel.countDocuments(filter);
+            resObj[config.serviceId] = count;
+            res.status(200).json(resObj);
+        } catch (e) {
+            if (typeof e === 'string') {
+                throw new Error(e);
+            }
+            throw e;
+        }
+    }
+    execute().catch(err => {
+        logger.error(err);
+        res.status(500).json({
+            message: err.message
+        });
+    })
+});
+
 router.get('/', (req, res) => {
     async function execute() {
         try {
@@ -98,135 +177,6 @@ router.get('/', (req, res) => {
     });
 });
 
-router.get('/:id', (req, res) => {
-    async function execute() {
-        try {
-            let doc = await workflowModel.findById(req.params.id).lean();
-            if (!doc) {
-                return res.status(404).json({
-                    message: 'Workflow Not Found'
-                });
-            }
-            res.status(200).json(doc);
-        } catch (e) {
-            if (typeof e === 'string') {
-                throw new Error(e);
-            }
-            throw e;
-        }
-    }
-    execute().catch(err => {
-        logger.error(err);
-        res.status(500).json({
-            message: err.message
-        });
-    })
-});
-
-router.get('/:id', (req, res) => {
-    async function execute() {
-        try {
-            let doc = await workflowModel.findById(req.params.id).lean();
-            if (!doc) {
-                return res.status(404).json({
-                    message: 'Workflow Not Found'
-                });
-            }
-            res.status(200).json(doc);
-        } catch (e) {
-            if (typeof e === 'string') {
-                throw new Error(e);
-            }
-            throw e;
-        }
-    }
-    execute().catch(err => {
-        logger.error(err);
-        res.status(500).json({
-            message: err.message
-        });
-    })
-});
-
-router.get('/serviceList', (req, res) => {
-    async function execute() {
-        try {
-            const resObj = {};
-            resObj[config.serviceId] = 0;
-            let filter = req.query.filter;
-            if (filter) filter = JSON.parse(filter);
-            filter = crudderUtils.parseFilter(filter);
-            filter.serviceId = config.serviceId;
-            const count = await workflowModel.countDocuments(filter);
-            resObj[config.serviceId] = count;
-            res.status(200).json(resObj);
-        } catch (e) {
-            if (typeof e === 'string') {
-                throw new Error(e);
-            }
-            throw e;
-        }
-    }
-    execute().catch(err => {
-        logger.error(err);
-        res.status(500).json({
-            message: err.message
-        });
-    })
-});
-
-router.put('/doc/:id', (req, res) => {
-    async function execute() {
-        try {
-            const id = req.params.id;
-            const payload = req.body;
-            const remarks = payload.remarks;
-            const attachments = payload.attachments;
-            const newData = payload.data;
-            const doc = await workflowModel.findOne({ $and: [{ _id: id }, { status: { $in: ['Draft', 'Rework'] } }] });
-            if (!doc) {
-                return res.status(400).json({ message: 'Workflow to be editted not found' });
-            }
-            doc.status = 'Draft';
-            const data = await commonUtils.simulate(req, newData, {
-                source: `simulate-workflow ${doc.status} edit`,
-                operation: doc.operation
-            });
-            if (doc.documentId) {
-                data._id = doc.documentId;
-            }
-            doc.data.new = data;
-            const auditData = {
-                by: 'user',
-                action: 'Edit',
-                id: req.headers[global.userHeader],
-                remarks: remarks,
-                attachments: attachments,
-                timestamp: Date.now()
-            };
-            doc.audit.push(auditData);
-            const savedData = await doc.save(req);
-            logger.debug(JSON.stringify({ savedData }));
-            return res.status(200).json({ message: 'Edit Successful.' });
-        } catch (e) {
-            if (typeof e === 'string') {
-                throw new Error(e);
-            }
-            throw e;
-        }
-    }
-    execute().catch(err => {
-        logger.error(err);
-        if (err.source) {
-            res.status(500).json(err);
-        } else {
-            res.status(500).json({
-                message: err.message
-            });
-        }
-    });
-});
-
 router.put('/action', (req, res) => {
     async function execute() {
         try {
@@ -264,6 +214,136 @@ router.put('/action', (req, res) => {
     });
 });
 
+router.get('/:id', (req, res) => {
+    async function execute() {
+        try {
+            let doc = await workflowModel.findById(req.params.id).lean();
+            if (!doc) {
+                return res.status(404).json({
+                    message: 'Workflow Not Found'
+                });
+            }
+            res.status(200).json(doc);
+        } catch (e) {
+            if (typeof e === 'string') {
+                throw new Error(e);
+            }
+            throw e;
+        }
+    }
+    execute().catch(err => {
+        logger.error(err);
+        res.status(500).json({
+            message: err.message
+        });
+    })
+});
+
+router.put('/:id', (req, res) => {
+    async function execute() {
+        try {
+            const id = req.params.id;
+            const payload = req.body;
+            const remarks = payload.remarks;
+            const attachments = payload.attachments;
+            const audit = payload.audit;
+            const doc = await workflowModel.findOne({ $and: [{ _id: id }, { status: { $in: ['Pending'] } }] });
+            if (!doc) {
+                return res.status(400).json({ message: 'Workflow to be editted not found' });
+            }
+            if (audit && Array.isArray(audit) && audit.length > 0) {
+                doc.audit = audit;
+            }
+            if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+                doc.attachments = attachments;
+            }
+            if (remarks) {
+                doc.remarks = remarks;
+            }
+            doc._req = req;
+            const savedData = await doc.save();
+            logger.trace('Workflow Doc Updated', JSON.stringify({ savedData }));
+            return res.status(200).json({ message: 'Edit Successful.' });
+        } catch (e) {
+            if (typeof e === 'string') {
+                throw new Error(e);
+            }
+            throw e;
+        }
+    }
+    execute().catch(err => {
+        logger.error(err);
+        if (err.source) {
+            res.status(500).json(err);
+        } else {
+            res.status(500).json({
+                message: err.message
+            });
+        }
+    });
+});
+
+router.put('/doc/:id', (req, res) => {
+    async function execute() {
+        try {
+            const id = req.params.id;
+            const payload = req.body;
+            const remarks = payload.remarks;
+            const attachments = payload.attachments;
+            const newData = payload.data;
+            const doc = await workflowModel.findOne({ $and: [{ _id: id }, { status: { $in: ['Draft', 'Rework'] } }] });
+            if (!doc) {
+                return res.status(400).json({ message: 'Workflow to be editted not found' });
+            }
+            doc.status = 'Draft';
+            const data = await workflowUtils.simulate(req, newData, {
+                source: `simulate-workflow ${doc.status} edit`,
+                operation: doc.operation
+            });
+            if (doc.documentId) {
+                data._id = doc.documentId;
+            }
+            doc.data.new = data;
+            const auditData = {
+                by: 'user',
+                action: 'Edit',
+                id: req.headers[global.userHeader],
+                remarks: remarks,
+                attachments: attachments,
+                timestamp: Date.now()
+            };
+            doc.audit.push(auditData);
+            doc._req = req;
+            const savedData = await doc.save();
+            logger.debug(JSON.stringify({ savedData }));
+            return res.status(200).json({ message: 'Edit Successful.' });
+        } catch (e) {
+            if (typeof e === 'string') {
+                throw new Error(e);
+            }
+            throw e;
+        }
+    }
+    execute().catch(err => {
+        logger.error(err);
+        if (err.source) {
+            res.status(500).json(err);
+        } else {
+            res.status(500).json({
+                message: err.message
+            });
+        }
+    });
+});
+
+function getUsersNameFromMap(userMap, userIds) {
+    return userIds.map(userId => {
+        if (userMap[userId])
+            return { _id: userId, name: userMap[userId] };
+        else
+            return { _id: userId };
+    });
+}
 
 router.get('/group/:app', (req, res) => {
     async function execute() {
@@ -347,7 +427,8 @@ async function discard(req, res) {
         }
         doc.audit.push(event);
         doc.markModified('audit');
-        const savedDoc = await doc.save(req);
+        doc._req = req;
+        const savedDoc = await doc.save();
         if (savedDoc.operation == 'PUT') {
             const status = await serviceModel.findOneAndUpdate({ _id: savedDoc.documentId }, { '_metadata.workflow': null }, { new: true });
             logger.debug('Unlocked Document', status);
@@ -389,7 +470,8 @@ async function submit(req, res) {
         doc.audit.push(event);
         doc.requestedBy = req.headers[global.userHeader];
         doc.markModified('audit');
-        const savedDoc = await doc.save(req);
+        doc._req = req;
+        const savedDoc = await doc.save();
         return res.status(200).json({ message: 'Submission Successful' });
     } catch (e) {
         logger.error(e);
@@ -400,7 +482,7 @@ async function submit(req, res) {
 async function rework(req, res) {
     try {
         const ids = req.body.ids;
-        const docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.headers[global.userHeader] } }] }).toArray();
+        const docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.headers[global.userHeader] } }] });
         if (!docs || docs.length == 0) {
             return res.status(400).json({ message: 'Rework Failed' });
         }
@@ -425,7 +507,8 @@ async function rework(req, res) {
             }
             doc.audit.push(event);
             doc.markModified('audit');
-            return doc.save(req);
+            doc._req = req;
+            return doc.save();
         });
         const savedDoc = await Promise.all(promises);
         return res.status(200).json({ message: 'Sent For Changes.' });
@@ -438,7 +521,7 @@ async function rework(req, res) {
 async function approve(req, res) {
     try {
         const ids = req.body.ids;
-        const docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.headers[global.userHeader] } }] }).toArray();
+        const docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.headers[global.userHeader] } }] });
         if (!docs || docs.length == 0) {
             return res.status(400).json({ message: 'No Documents To Approve' });
         }
@@ -461,28 +544,34 @@ async function approve(req, res) {
                 let serviceDoc;
                 if (doc.operation == 'POST') {
                     serviceDoc = new serviceModel(doc.data.new);
-                    serviceDoc = await serviceDoc.save(req);
+                    serviceDoc._req = req;
+                    serviceDoc = await serviceDoc.save();
                 } else if (doc.operation == 'PUT') {
                     serviceDoc = await serviceModel.findById(doc.documentId);
+                    serviceDoc._req = req;
+                    serviceDoc._oldDoc = serviceDoc.toObject();
                     Object.assign(serviceDoc, doc.data.new);
-                    serviceDoc = await serviceDoc.save(req);
+                    serviceDoc = await serviceDoc.save();
                 } else if (doc.operation == 'DELETE') {
                     serviceDoc = await serviceModel.findById(doc.documentId);
-                    serviceDoc = await serviceDoc.remove(req);
+                    serviceDoc._req = req;
+                    serviceDoc._oldDoc = serviceDoc.toObject();
+                    serviceDoc = await serviceDoc.remove();
                 }
                 doc.status = 'Approved';
             } catch (e) {
                 event.by = 'Entity';
                 event.action = 'Error';
                 event.remarks = typeof e === 'object' ? e.message : e;
-                doc.status = 'Error';
+                doc.status = 'Failed';
             } finally {
                 if (!doc.audit) {
                     doc.audit = [];
                 }
                 doc.audit.push(event);
                 doc.markModified('audit');
-                return await doc.save(req);
+                doc._req = req;
+                return await doc.save();
             }
         });
         const savedDoc = await Promise.all(promises);
@@ -496,7 +585,7 @@ async function approve(req, res) {
 async function reject(req, res) {
     try {
         const ids = req.body.ids;
-        const docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.headers[global.userHeader] } }] }).toArray();
+        const docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.headers[global.userHeader] } }] });
         if (!docs || docs.length == 0) {
             return res.status(400).json({ message: 'No Documents To Reject' });
         }
@@ -525,7 +614,8 @@ async function reject(req, res) {
             }
             doc.audit.push(event);
             doc.markModified('audit');
-            return await doc.save(req);
+            doc._req = req;
+            return await doc.save();
         });
         const savedDoc = await Promise.all(promises);
         return res.status(200).json({ message: 'Documents Rejected' });

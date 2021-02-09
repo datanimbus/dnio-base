@@ -7,7 +7,7 @@ const hooksUtils = require('../utils/hooks.utils');
 const logger = global.logger;
 
 router.post('/', (req, res) => {
-	const txnId = req.get("TxnId")
+	const txnId = req.get(global.txnIdHeader)
   async function execute() {
     try {
       const name = req.query.name;

@@ -20,11 +20,13 @@ require('../../db-factory');
 
 async function execute() {
     const workflowUtils = require('../utils/workflow.utils');
+    const { mergeCustomizer } = require('./../utils/common.utils');
     const authorDB = global.authorDB;
     const workflowModel = authorDB.model('workflow');
     const model = mongoose.model('fileMapper');
     const serviceModel = mongoose.model(config.serviceId);
 
+    logger.level = LOG_LEVEL;
     const fileId = workerData.fileId;
     const data = workerData.data;
     const create = data.create ? data.create : [];
@@ -41,8 +43,9 @@ async function execute() {
         return prev.then(() => {
             let temp = docs.map(async (doc) => {
                 try {
-                    if (workflowUtils.isWorkflowEnabled() && !workflowUtils.hasSkipReview(req)) {
-                        const wfItem = workflowUtils.getWorkflowItem(req, 'POST', doc.data._id, 'Submited', doc.data, null);
+                    const hasSkipReview = await workflowUtils.hasSkipReview(req);
+                    if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
+                        const wfItem = workflowUtils.getWorkflowItem(req, 'POST', doc.data._id, 'Pending', doc.data, null);
                         const wfDoc = new workflowModel(wfItem);
                         wfDoc._req = req;
                         const status = await wfDoc.save();
@@ -77,8 +80,9 @@ async function execute() {
             let temp = docs.map(async (doc) => {
                 try {
                     let temp = await serviceModel.findById(doc.data._id);
-                    if (workflowUtils.isWorkflowEnabled() && !workflowUtils.hasSkipReview(req)) {
-                        const wfItem = workflowUtils.getWorkflowItem(req, 'POST', doc.data._id, 'Submited', doc.data, temp.toObject());
+                    const hasSkipReview = await workflowUtils.hasSkipReview(req);
+                    if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
+                        const wfItem = workflowUtils.getWorkflowItem(req, 'POST', doc.data._id, 'Pending', doc.data, temp.toObject());
                         const wfDoc = new workflowModel(wfItem);
                         wfDoc._req = req;
                         const status = await wfDoc.save();
@@ -89,7 +93,7 @@ async function execute() {
                     } else {
                         temp._oldData = temp.toObject();
                         temp._req = req;
-                        _.merge(temp, doc.data);
+                        _.mergeWith(temp, doc.data, mergeCustomizer);
                         temp = await temp.save();
                     }
                     doc.status = 'Updated';

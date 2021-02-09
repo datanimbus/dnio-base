@@ -208,7 +208,7 @@ function expandStoredRelation(serviceId, document, visitedDocs, selectionObject,
                 promises = _s.relatedSchemas.outgoing.map(_rs => {
                     let selObj = selectionObject.extSelect.find(_es => _es.service == _rs.service && _es.path == _rs.path);
                     if (selObj) {
-                        let newSelectionObject = getSelectionObject(_rs, selObj.field);
+                        let newSelectionObject = e.getSelectionObject(_rs, selObj.field);
                         if (newSelectionObject.querySelect.length > 0 && !newSelectionObject.querySelect.some(_s => ['_id', '_href'].indexOf(_s) == -1)) {
                             return Promise.resolve(document);
                         }
@@ -251,7 +251,7 @@ function enrichForARelationCache(srvcId, path, document, select, documentCache, 
         let newSelectionObject;
         return commonUtils.getStoredServiceDetail(srvcId, serviceDetailsCache, req)
             .then(_sd => {
-                newSelectionObject = getSelectionObject(_sd, select, deepExpand);
+                newSelectionObject = e.getSelectionObject(_sd, select, deepExpand);
                 return fetchExtData(id, srvcId, newSelectionObject.querySelect.join(','), documentCache, serviceDetailsCache, req, options)
             })
             .then(_d => {

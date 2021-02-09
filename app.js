@@ -63,28 +63,33 @@ let masking = [
     { url: `${baseURL}/{id}`, path: secureFields },
     { url: `${baseURL}/utils/experienceHook`, path: secureFields }
 ];
-const logToQueue = dataStackUtils.logToQueue(`${config.app}.${config.serviceId}`, queueMgmt.client, 'dataService', `${config.app}.${config.serviceId}.logs`, masking, config.serviceId);
 
 app.use(bodyParser.json({ limit: config.MaxJSONSize }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(utils.logMiddleware.getLogMiddleware(logger));
 app.use(upload.single('file'));
-app.use(logToQueue);
+app.use(function (req, res, next) {
+    if(config.disableInsights) next();
+	else {
+		const logToQueue = dataStackUtils.logToQueue(`${config.app}.${config.serviceId}`, queueMgmt.client, 'dataService', `${config.app}.${config.serviceId}.logs`, masking, config.serviceId);
+		logToQueue(req, res, next);
+	}
+});
 app.use(function (req, res, next) {
     let allowedExt = config.allowedExt || [];
     if (!req.files) return next();
-    logger.debug(`[${req.get('TxnId')}] File upload in request`);
+    logger.debug(`[${req.get(global.txnIdHeader)}] File upload in request`);
     let flag = Object.keys(req.files).every(file => {
         let filename = req.files[file].name;
-    		logger.debug(`[${req.get('TxnId')}] File upload :: filename :: ${filename}`);
+    		logger.debug(`[${req.get(global.txnIdHeader)}] File upload :: filename :: ${filename}`);
         let fileExt = filename.split('.').pop();
-    		logger.debug(`[${req.get('TxnId')}] File upload :: fileExt :: ${fileExt}`);
+    		logger.debug(`[${req.get(global.txnIdHeader)}] File upload :: fileExt :: ${fileExt}`);
         if (allowedExt.indexOf(fileExt) == -1) {
-        	logger.error(`[${req.get('TxnId')}] File upload :: fileExt :: Not permitted`);
+        	logger.error(`[${req.get(global.txnIdHeader)}] File upload :: fileExt :: Not permitted`);
         	return false
         }
         let isValid = fileValidator({ type: 'Buffer', data: req.files[file].data }, fileExt);
-        logger.info(`[${req.get('TxnId')}] Is file ${filename} valid? ${isValid}`);
+        logger.info(`[${req.get(global.txnIdHeader)}] Is file ${filename} valid? ${isValid}`);
         return isValid;
     });
     if (flag) next();
@@ -93,14 +98,14 @@ app.use(function (req, res, next) {
 
 app.use((req, res, next) => {
     if (req.path.split('/').indexOf('health') == -1) {
-        logger.trace(`[${req.get('TxnId')}] req.path : ${req.path}`);
-        logger.trace(`[${req.get('TxnId')}] req.headers : ${JSON.stringify(req.headers)} `);
+        logger.trace(`[${req.get(global.txnIdHeader)}] req.path : ${req.path}`);
+        logger.trace(`[${req.get(global.txnIdHeader)}] req.headers : ${JSON.stringify(req.headers)} `);
     }
     global.activeRequest++;
     res.on('close', function () {
         global.activeRequest--;
         if (req.path.split('/').indexOf('live') == -1 && req.path.split('/').indexOf('ready') == -1) {
-            logger.debug(`[${req.get('TxnId')}] Request completed for ${req.originalUrl}`);
+            logger.debug(`[${req.get(global.txnIdHeader)}] Request completed for ${req.originalUrl}`);
         }
     });
     next();
@@ -110,9 +115,9 @@ app.use('/' + config.app + config.serviceEndpoint, require('./api/controllers'))
 
 app.use((err, req, res, next) => {
     if (err) {
-        logger.error(`[${req.get('TxnId')}] ${err.message}`);
+        logger.error(`[${req.get(global.txnIdHeader)}] ${err.message}`);
         if (!res.headersSent) {
-        		logger.error(`[${req.get('TxnId')}] Headers sent - ${res.headersSent}`);
+        		logger.error(`[${req.get(global.txnIdHeader)}] Headers sent - ${res.headersSent}`);
             return res.status(500).json({ message: err.message });
         }
     }

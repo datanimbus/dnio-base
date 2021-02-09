@@ -32,7 +32,7 @@ logsDB.on('connected', () => { logger.info(`Connected to ${config.logsDB} DB`); 
 logsDB.on('reconnectFailed', () => { logger.error(` *** ${config.logsDB} FAILED TO RECONNECT *** `); });
 global.logsDB = logsDB;
 
-mongoose.connect(config.mongoUrl, config.mongoLogsOptions, err => {
+mongoose.connect(config.mongoUrl, config.mongoAppCenterOptions, err => {
     if (err) {
         logger.error(err);
     } else {
