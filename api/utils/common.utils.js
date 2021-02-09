@@ -254,21 +254,21 @@ async function getGeoDetails(req, path, address) {
  * @param {*} data The data to send through socket
  */
 async function informThroughSocket(req, data) {
-	let txnId = req.get("TxnId")
-  var options = {
-    url: config.baseUrlGW + '/gw/fileStatus/import',
-    method: 'PUT',
-    headers: {
-      'TxnId': req ? req.get("TxnId") : '',
-      'User': req ? req.headers[global.userHeader] : '',
-      'Authorization': req ? req.headers.authorization : '',
-      'Content-Type': 'application/json',
-    },
-    json: true,
-    body: data
-};
-  logger.trace(`[${txnId}] Update GW :: File import status :: ${JSON.stringify({ options })}`);
-  return httpClient.httpRequest(options);
+    let txnId = req.headers[global.txnIdHeader]
+    var options = {
+        url: config.baseUrlGW + '/gw/fileStatus/import',
+        method: 'PUT',
+        headers: {
+            'TxnId': req ? req.headers[global.txnIdHeader] : '',
+            'User': req ? req.headers[global.userHeader] : '',
+            'Authorization': req ? req.headers.authorization : '',
+            'Content-Type': 'application/json',
+        },
+        json: true,
+        body: data
+    };
+    logger.trace(`[${txnId}] Update GW :: File import status :: ${JSON.stringify({ options })}`);
+    return httpClient.httpRequest(options);
 }
 
 function isExpandAllowed(req, path) {
@@ -311,11 +311,11 @@ e.getServiceDetail = function (serviceId, req) {
     });
 }
 
-e.getStoredServiceDetail = function (serviceId, serviceDetailsObj, req) {   
+e.getStoredServiceDetail = function (serviceId, serviceDetailsObj, req) {
     let txnId = req.headers['txnid'];
     if (serviceDetailsObj[serviceId]) {
         return Promise.resolve(serviceDetailsObj[serviceId]);
-    }  else if (serviceId == 'USER') {
+    } else if (serviceId == 'USER') {
         return Promise.resolve();
     } else {
         var options = {
@@ -633,7 +633,7 @@ function fixForField(field) {
     let updatedArr = [];
     return model.count(filter)
         .then((count) => {
-        		if(count > 0) logger.info(`Secure text fix :: ${count} Documents found for ${field}`);
+            if (count > 0) logger.info(`Secure text fix :: ${count} Documents found for ${field}`);
             let batchSize = 100;
             let totalBatches = count / batchSize;
             let arr = [];
@@ -641,7 +641,7 @@ function fixForField(field) {
                 arr.push(i);
             }
             return arr.reduce((_p, curr) => {
-            		logger.info(`Secure text fix :: batch :: ${JSON.stringify(curr)}`)
+                logger.info(`Secure text fix :: batch :: ${JSON.stringify(curr)}`)
                 return _p
                     .then(() => {
                         return getData(filter, curr, batchSize);
@@ -653,7 +653,7 @@ function fixForField(field) {
 }
 
 e.fixSecureText = function () {
-    if (secureFields.join() != "" ) logger.info(`Fixing Secure Text. Fields - ${secureFields}`);
+    if (secureFields.join() != "") logger.info(`Fixing Secure Text. Fields - ${secureFields}`);
     return secureFields.reduce((acc, curr) => {
         return acc.then(() => {
             return fixForField(curr);
@@ -669,7 +669,7 @@ function decryptData(data, nestedKey, forFile) {
                 let promises = data[keys[0]].map(_d => {
                     return decryptText(_d.value)
                         .then(_decrypted => {
-                            if(forFile)
+                            if (forFile)
                                 _d = _decrypted;
                             else
                                 _d.value = _decrypted;
@@ -684,7 +684,7 @@ function decryptData(data, nestedKey, forFile) {
             } else if (data[keys[0]] && typeof data[keys[0]].value == 'string') {
                 return decryptText(data[keys[0]].value)
                     .then(_d => {
-                        if(forFile)
+                        if (forFile)
                             data[keys[0]] = _d;
                         else
                             data[keys[0]].value = _d;
@@ -721,13 +721,13 @@ e.decryptArrData = function (data, nestedKey, forFile) {
 function getFormattedDate(txnId, dateObj, defaultTimeZone, supportedTimeZones) {
     if (_.isEmpty(dateObj)) return;
     if (dateObj.rawData) {
-        if (dateObj.tzInfo  && dateObj.tzInfo !== defaultTimeZone && supportedTimeZones.length && !supportedTimeZones.includes(dateObj.tzInfo))
+        if (dateObj.tzInfo && dateObj.tzInfo !== defaultTimeZone && supportedTimeZones.length && !supportedTimeZones.includes(dateObj.tzInfo))
             throw new Error('Invalid timezone value ' + dateObj.tzInfo);
         return formatDate(txnId, dateObj.rawData, dateObj.tzInfo || defaultTimeZone, false);
     } else if (dateObj.unix) {
         return formatDate(txnId, dateObj.unix, defaultTimeZone, true);
     } else {
-        logger.error(`[${txnId}] Invalid dateObj in getFormattedDate :: ` , dateObj);
+        logger.error(`[${txnId}] Invalid dateObj in getFormattedDate :: `, dateObj);
         throw new Error('Invalid date time value');
     }
 }
@@ -735,7 +735,7 @@ function getFormattedDate(txnId, dateObj, defaultTimeZone, supportedTimeZones) {
 function formatDate(txnId, rawData, tzInfo, isUnix) {
     try {
         parsedDate = new Date(rawData)
-        if(!tzInfo) tzInfo = global.defaultTimezone;
+        if (!tzInfo) tzInfo = global.defaultTimezone;
         let dt = moment(parsedDate.toISOString())
         return {
             rawData: rawData.toString(),
@@ -751,35 +751,35 @@ function formatDate(txnId, rawData, tzInfo, isUnix) {
 }
 
 e.getGenericHeaders = () => {
-	return {
-		"DataStack-DS-Name" : config.serviceName,
-	}
+    return {
+        "DataStack-DS-Name": config.serviceName,
+    }
 }
 
 e.generateHeaders = (_txnId) => {
-	let headers = require(`../../service.json`).headers
-	let generatedHeaders = e.getGenericHeaders()
-	logger.trace(`[${_txnId}] Service headers :: ${JSON.stringify(headers)}`)
-	headers.forEach(_header => generatedHeaders[_header.header] = _header.value)
-	logger.trace(`[${_txnId}] Generated headers :: ${JSON.stringify(generatedHeaders)}`)
-	return generatedHeaders
+    let headers = require(`../../service.json`).headers
+    let generatedHeaders = e.getGenericHeaders()
+    logger.trace(`[${_txnId}] Service headers :: ${JSON.stringify(headers)}`)
+    headers.forEach(_header => generatedHeaders[_header.header] = _header.value)
+    logger.trace(`[${_txnId}] Generated headers :: ${JSON.stringify(generatedHeaders)}`)
+    return generatedHeaders
 }
 
 e.generateProperties = (_txnId) => {
-	let headers = require(`../../service.json`).headers
-	let properties = {}
-	logger.trace(`[${_txnId}] Service properties :: ${JSON.stringify(headers)}`)
-	headers.forEach(_header => properties[_header.key] = _header.value)
-	logger.trace(`[${_txnId}] Generated properties :: ${JSON.stringify(properties)}`)
-	return properties
+    let headers = require(`../../service.json`).headers
+    let properties = {}
+    logger.trace(`[${_txnId}] Service properties :: ${JSON.stringify(headers)}`)
+    headers.forEach(_header => properties[_header.key] = _header.value)
+    logger.trace(`[${_txnId}] Generated properties :: ${JSON.stringify(properties)}`)
+    return properties
 }
 
 function crudDocuments(_service, method, body, qs, req) {
     let HOST = _service.host;
     let PORT = _service.port;
-    if((!(process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT)) && fs.existsSync("/.dockerenv")){
+    if ((!(process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT)) && fs.existsSync("/.dockerenv")) {
         if (process.env.PLATFORM != 'NIX') HOST = "host.docker.internal";
-    } 
+    }
     var options = {
         url: "http://" + HOST + ":" + PORT + _service.uri,
         method: method.toUpperCase(),
@@ -789,9 +789,9 @@ function crudDocuments(_service, method, body, qs, req) {
             "Authorization": req.headers['authorization'],
             'Cache': req.headers['cache']
         },
-        json:true
+        json: true
     };
-    if(body){
+    if (body) {
         options.body = body;
     }
     if (qs) options.qs = JSON.parse(JSON.stringify(qs));
@@ -807,9 +807,9 @@ function crudDocuments(_service, method, body, qs, req) {
             } else {
                 if (res.statusCode == 200) resolve(body);
                 else {
-                    if(body && body.message) 
+                    if (body && body.message)
                         reject(new Error(body.message));
-                    else 
+                    else
                         reject(new Error(JSON.stringify(body)));
                 }
             }
@@ -817,7 +817,7 @@ function crudDocuments(_service, method, body, qs, req) {
     });
 }
 
-function mergeCustomizer (objValue, srcValue) {
+function mergeCustomizer(objValue, srcValue) {
     if (_.isArray(objValue)) {
         return srcValue;
     }
