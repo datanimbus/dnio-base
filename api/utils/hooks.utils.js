@@ -333,7 +333,7 @@ function callExperienceHook(req, res) {
 		const data = {
 			data: payload.data,
 			docId: docId,
-			txnId: req.headers[global.txnIdHeader],
+			txnId: txnId,
 			user: req.get('User'),
 			type: 'ExperienceHook',
 			service: {
