@@ -88,7 +88,7 @@ function callAllPreHooks(req, data, options) {
 			if (err.response) {
 				preHookLog.status = 'Fail';
 				preHookLog.statusCode = err.response.statusCode;
-				preHookLog.response = {}
+				preHookLog.response = {};
 				preHookLog.response.headers =  err.response.headers;
 				preHookLog.response.body = err.response.body;
 			}
@@ -207,7 +207,7 @@ function constructPayload(req, preHook, data, options) {
 	payload.service =  {
 		id: config.serviceId,
 		name: config.serviceName
-	}
+	};
 	payload.name = preHook.name;
 	payload.app = config.appNamespace;
 	return payload;
