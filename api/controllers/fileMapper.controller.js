@@ -55,8 +55,8 @@ router.get('/:fileId', (req, res) => {
 router.post('/:fileId/create', (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
 	async function execute() {
-		const fileId = req.params.fileId;
 		const data = req.body;
+		const fileId = data.fileId;
 		const fileName = data.fileName;
 		const startTime = Date.now();
 		let endTime;
@@ -105,8 +105,8 @@ router.post('/:fileId/create', (req, res) => {
 router.put('/:fileId/mapping', (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
 	async function execute() {
-		const fileId = req.params.fileId;
 		const data = req.body;
+		const fileId = data.fileId;
 		const fileName = data.fileName;
 		const startTime = Date.now();
 		let endTime;
@@ -170,29 +170,5 @@ router.put('/:fileId/mapping', (req, res) => {
 // 		});
 // 	});
 // });
-
-router.put('/:fileId/readStatus', async (req, res) => {
-	let txnId = req.get(global.txnIdHeader);
-	let fileId = req.params.fileId;
-	// let user = req.headers.user;
-	let isRead = req.body.isRead;
-	try {
-		let doc = await model.findOne({fileId : fileId});
-		if (!doc) {
-			logger.error(`[${txnId}] File status :: ${fileId} ::  Not found`);
-			return res.status(404).json({ message: 'File not found.'});
-		}
-		logger.debug(`[${txnId}] File status :: ${fileId} :: Found`);
-		logger.debug(`[${txnId}] File status :: ${fileId} :: ${JSON.stringify(doc)}`);
-		doc.isRead = isRead;
-		if(doc._metadata) doc._metadata.lastUpdated = new Date();
-		await doc.save();
-		logger.info(`[${txnId}] File status :: ${fileId} :: Success`);
-		res.json({ message : 'File read status updated successfully.' });
-	} catch (err) {
-		logger.error(`[${txnId}] File status :: ${fileId} :: ${err.message}`);
-		res.status(500).json({ message: err.message});
-	}
-});
 
 module.exports = router;

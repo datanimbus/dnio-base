@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 mongoose.set('useFindAndModify', false);
 
 const config = require('../../config');
+const config = require('../../queue');
 
 const log4js = require('log4js');
 const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} v.${config.serviceVersion}] [Worker]` : `[${config.serviceName} v.${config.serviceVersion}] [Worker]`;
@@ -15,6 +16,8 @@ log4js.configure({
 const logger = log4js.getLogger(LOGGER_NAME);
 
 global.logger = logger;
+global.userHeader = 'user';
+global.txnIdHeader = 'txnId';
 
 require('../../db-factory');
 
@@ -27,8 +30,8 @@ async function execute() {
 	const serviceModel = mongoose.model(config.serviceId);
 
 	logger.level = LOG_LEVEL;
-	const fileId = workerData.fileId;
 	const data = workerData.data;
+	const fileId = data.fileId;
 	const create = data.create ? data.create : [];
 	const update = data.update ? data.update : [];
 	const req = workerData.req;

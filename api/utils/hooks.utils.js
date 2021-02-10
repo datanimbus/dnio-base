@@ -67,6 +67,7 @@ function callAllPreHooks(req, data, options) {
 			preHookLog.headers = headers;
 			preHookLog.properties = properties;
 			preHookLog.data.old = oldData;
+			preHookLog.docId = docId;
 			payload = constructPayload(req, curr, _data, options);
 			payload.docId = docId;
 			payload['properties'] = properties;
@@ -74,15 +75,23 @@ function callAllPreHooks(req, data, options) {
 		}).then(_response => {
 			newData = Object.assign({}, oldData, _response.body.data);
 			newData._metadata = oldData._metadata;
-			preHookLog.status = 'Completed';
 			preHookLog.data.new = newData;
+			preHookLog.status = 'Success';
+			preHookLog.statusCode = _response.statusCode;
 			preHookLog.response.headers =  _response.headers;
 			preHookLog.response.body = _response.body;
 			return newData;
 		}).catch(err => {
-			logger.error(`[${txnId}] PreHook :: ${err.message}`);
-			preHookLog.status = 'Error';
+			logger.error(`[${txnId}] PreHook :: ${curr.name} :: ${err.message}`);
 			preHookLog.message = err.message;
+			preHookLog.status = 'Error';
+			if (err.response) {
+				preHookLog.status = 'Fail';
+				preHookLog.statusCode = err.response.statusCode;
+				preHookLog.response = {};
+				preHookLog.response.headers =  err.response.headers;
+				preHookLog.response.body = err.response.body;
+			}
 			throw preHookLog;
 		}).finally(() => {
 			if (!config.disableInsights && preHookLog && preHookLog._id) insertHookLog('PreHook', txnId, preHookLog);
@@ -195,7 +204,10 @@ function constructPayload(req, preHook, data, options) {
 	payload.data = JSON.parse(JSON.stringify(data));
 	payload.trigger.source = options.source;
 	payload.trigger.simulate = options.simulate;
-	payload.dataService = config.serviceId;
+	payload.service =  {
+		id: config.serviceId,
+		name: config.serviceName
+	};
 	payload.name = preHook.name;
 	payload.app = config.appNamespace;
 	return payload;
@@ -219,7 +231,6 @@ function constructHookLog(req, hook, options) {
 		user: req.headers[global.userHeader],
 		txnId: req.headers[global.txnIdHeader],
 		status: 'Initiated',
-		errorMessage: '',
 		retry: 0,
 		docId: null,
 		operation: options.operation,
@@ -274,24 +285,14 @@ function invokeHook(txnId, url, data, customErrMsg, _headers) {
 		options.rejectUnauthorized = false;
 	}
 	return httpClient.httpRequest(options)
-		.then(res => {
-			if (!res) {
-				logger.error(`Error requesting hook :: ${url}`);
-				let message = customErrMsg ? customErrMsg : `Pre-save link ${url} down!Unable to proceed.`;
-				throw new Error(message);
-			} else {
-				if (res.statusCode >= 200 && res.statusCode < 400) return res;
-				else {
-					let errMsg = `Error invoking pre-save link ${url}.Unable to proceed.`;
-					if (res.body && res.body.message) errMsg = res.body.message;
-					throw new Error(errMsg);
-				}
-			}
-		})
+		// .then(res => res)
 		.catch(err => {
 			logger.error(`Error requesting hook :: ${url} :: ${err.message}`);
 			const message = customErrMsg ? customErrMsg : `Pre-save "${data.name}" down! Unable to proceed.`;
-			throw new Error(message);
+			throw ({
+				message: message,
+				response: err.response
+			});
 		});
 }
 
@@ -369,20 +370,35 @@ function callExperienceHook(req, res) {
 						headers: hookResponse.headers,
 						body: hookResponse.body
 					};
+					data.data = {
+						old: payload.data,
+						new: hookResponse.body.data
+					};
 					res.status(200).json(hookResponse.body);
 				}
 			})
 			.catch(err => {
 				logger.error(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: ${err.message}`);
 				let message = 'Error invoking experience hook. Unable to proceed.';
-				if (err.response && err.response.body && err.response.body.message) {
-					message = err.response.body.message;
-					logger.trace(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Body :: ${JSON.stringify(err.response.body)}`);
+				if (err.response && err.response.body) {
+					if(err.response.body.message) {
+						message = err.response.body.message;
+						logger.trace(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Body :: ${JSON.stringify(err.response.body)}`);
+					}
+					data['response'] = {
+						headers: err.response.headers,
+						body: err.response.body
+					};
 				}
 				message = wantedHook.errorMessage || message;
 				logger.error(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Response :: ${err.statusCode}`);
 				data['status'] = 'Fail';
 				data['message'] = message;
+				data['statusCode'] = err.statusCode;
+				data.data = {
+					old: payload.data,
+					new: null
+				};
 				res.status(500).json({ message });
 			})
 			.finally(() => {

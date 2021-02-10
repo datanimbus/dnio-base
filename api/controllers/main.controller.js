@@ -316,7 +316,7 @@ router.get('/', (req, res) => {
 			}
 			if(specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
 				let promises = docs.map(e => specialFields.decryptSecureFields(req, e, null));
-				await Promise.all(promises)
+				await Promise.all(promises);
 				promises = null;
 			}
 			res.status(200).json(docs);
