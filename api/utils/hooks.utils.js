@@ -231,7 +231,6 @@ function constructHookLog(req, hook, options) {
 		user: req.headers[global.userHeader],
 		txnId: req.headers[global.txnIdHeader],
 		status: 'Initiated',
-		errorMessage: '',
 		retry: 0,
 		docId: null,
 		operation: options.operation,
@@ -371,20 +370,35 @@ function callExperienceHook(req, res) {
 						headers: hookResponse.headers,
 						body: hookResponse.body
 					};
+					data.data = {
+						old: payload.data,
+						new: hookResponse.body.data
+					};
 					res.status(200).json(hookResponse.body);
 				}
 			})
 			.catch(err => {
 				logger.error(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: ${err.message}`);
 				let message = 'Error invoking experience hook. Unable to proceed.';
-				if (err.response && err.response.body && err.response.body.message) {
-					message = err.response.body.message;
-					logger.trace(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Body :: ${JSON.stringify(err.response.body)}`);
+				if (err.response && err.response.body) {
+					if(err.response.body.message) {
+						message = err.response.body.message;
+						logger.trace(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Body :: ${JSON.stringify(err.response.body)}`);
+					}
+					data['response'] = {
+						headers: err.response.headers,
+						body: err.response.body
+					};
 				}
 				message = wantedHook.errorMessage || message;
 				logger.error(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Response :: ${err.statusCode}`);
 				data['status'] = 'Fail';
 				data['message'] = message;
+				data['statusCode'] = err.statusCode;
+				data.data = {
+					old: payload.data,
+					new: null
+				};
 				res.status(500).json({ message });
 			})
 			.finally(() => {
