@@ -40,7 +40,7 @@ client.on('reconnect', () => {
  * @returns {Promise<object>}
  */
 function callAllPreHooks(req, data, options) {
-	let txnId = req.headers[global.txnIdHeader];
+	let txnId = req.get(global.txnIdHeader);
 	options['type'] = 'PreHook';
 	logger.debug(`[${txnId}] PreHook :: Options :: ${JSON.stringify(options)}`);
 	logger.trace(`[${txnId}] PreHook :: ${JSON.stringify(data)}`);
@@ -302,7 +302,7 @@ function invokeHook(txnId, url, data, customErrMsg, _headers) {
 * @param {*} res Server response Object
 */
 function callExperienceHook(req, res) {
-	const txnId = req.headers[global.txnIdHeader];
+	const txnId = req.get(global.txnIdHeader);
 	
 	const hookName = req.query.name;
 	const payload = req.body || {};
