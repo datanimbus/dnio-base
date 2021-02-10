@@ -50,7 +50,7 @@ function metadataPlugin() {
 
 
 
-async function generateId(prefix, counterName, suffix, padding, counter) {
+function generateId(prefix, counterName, suffix, padding, counter) {
 	return async function (next) {
 		try {
 			if (this._id) {
