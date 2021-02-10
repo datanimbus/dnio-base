@@ -7,7 +7,7 @@ let lineReader = require('line-reader');
 const crypto = require('crypto');
 const uuid = require('uuid/v1');
 const moment = require('moment');
-const specialFields = require('../utils/special-fields.utils');
+let dateFields = [];
 
 mongoose.set('useFindAndModify', false);
 
@@ -91,7 +91,7 @@ function parseDateField(data, key, dateType, timezone) {
 }
 
 function convertDateToTimezone(doc, timezone) {
-	specialFields.dateFields.forEach(pf => {
+	dateFields.forEach(pf => {
 		// if(!timezone) {
 		//     timezone = pf['defaulTimezone'] || global.defaultTimezone;
 		//     timezone = moment.tz('timezone').utcOffset() * -1;
@@ -288,6 +288,9 @@ async function execute() {
 	const commonUtils = require('../utils/common.utils');
 	const exportUtils = require('./../utils/export.utils');
 	const crudderUtils = require('./../utils/crudder.utils');
+	const specialFields = require('../utils/special-fields.utils');
+	dateFields = specialFields.dateFields ? specialFields.dateFields : [];
+
 	const serviceModel = mongoose.model(config.serviceId);
 	const fileTransfersModel = mongoose.model('fileTransfers');
 
