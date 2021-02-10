@@ -48,6 +48,9 @@ var definition = {
 	},
 	type: {
 		type: 'String',
+	},
+	isRead: {
+		type: 'Boolean',
 	}
 };
 module.exports.definition = definition;

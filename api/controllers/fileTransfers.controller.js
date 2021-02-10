@@ -131,7 +131,7 @@ router.put('/:fileId/readStatus', async (req, res) => {
 	// let user = req.headers.user;
 	let isRead = req.body.isRead;
 	try {
-		let doc = await model.findOne({ fileId: fileId });
+		let doc = await model.findById(fileId);
 		if (!doc) {
 			logger.error(`[${txnId}] File status :: ${fileId} ::  Not found`);
 			return res.status(404).json({ message: 'File not found.' });
