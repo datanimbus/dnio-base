@@ -314,6 +314,11 @@ router.get('/', (req, res) => {
 				docs = await Promise.all(promises);
 				promises = null;
 			}
+			if(specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
+				let promises = docs.map(e => specialFields.decryptSecureFields(req, e, null));
+				docs = await Promise.all(promises)
+				promises = null;
+			}
 			res.status(200).json(docs);
 		} catch (e) {
 			if (typeof e === 'string') {
@@ -342,6 +347,9 @@ router.get('/:id', (req, res) => {
 			const expandLevel = +(req.header('expand-level'));
 			if (req.query.expand && expandLevel < 3) {
 				doc = await specialFields.expandDocument(req, doc);
+			}
+			if(specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
+				doc = await specialFields.decryptSecureFields(req, doc, null);
 			}
 			res.status(200).json(doc);
 		} catch (e) {

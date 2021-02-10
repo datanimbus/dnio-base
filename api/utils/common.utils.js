@@ -158,6 +158,10 @@ async function encryptText(req, data) {
  * @param {*} data The data to decrypt
  */
 async function decryptText(req, data) {
+	if(!data){
+		data = req;
+		req = undefined;
+	}
 	var options = {
 		url: config.baseUrlSEC + '/enc/' + config.app + '/decrypt',
 		method: 'POST',
