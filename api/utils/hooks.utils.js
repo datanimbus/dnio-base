@@ -373,7 +373,7 @@ function callExperienceHook(req, res) {
 					data.data = {
 						old: payload.data,
 						new: hookResponse.body.data
-					}
+					};
 					res.status(200).json(hookResponse.body);
 				}
 			})
@@ -398,7 +398,7 @@ function callExperienceHook(req, res) {
 				data.data = {
 					old: payload.data,
 					new: null
-				}
+				};
 				res.status(500).json({ message });
 			})
 			.finally(() => {
