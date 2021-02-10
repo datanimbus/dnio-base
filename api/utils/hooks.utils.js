@@ -67,6 +67,7 @@ function callAllPreHooks(req, data, options) {
 			preHookLog.headers = headers;
 			preHookLog.properties = properties;
 			preHookLog.data.old = oldData;
+			preHookLog.docId = docId;
 			payload = constructPayload(req, curr, _data, options);
 			payload.docId = docId;
 			payload['properties'] = properties;
@@ -74,15 +75,23 @@ function callAllPreHooks(req, data, options) {
 		}).then(_response => {
 			newData = Object.assign({}, oldData, _response.body.data);
 			newData._metadata = oldData._metadata;
-			preHookLog.status = 'Completed';
 			preHookLog.data.new = newData;
+			preHookLog.status = 'Success';
+			preHookLog.statusCode = _response.statusCode;
 			preHookLog.response.headers =  _response.headers;
 			preHookLog.response.body = _response.body;
 			return newData;
 		}).catch(err => {
-			logger.error(`[${txnId}] PreHook :: ${err.message}`);
-			preHookLog.status = 'Error';
+			logger.error(`[${txnId}] PreHook :: ${curr.name} :: ${err.message}`);
 			preHookLog.message = err.message;
+			preHookLog.status = 'Error';
+			if (err.response) {
+				preHookLog.status = 'Fail';
+				preHookLog.statusCode = err.response.statusCode;
+				preHookLog.response = {};
+				preHookLog.response.headers =  err.response.headers;
+				preHookLog.response.body = err.response.body;
+			}
 			throw preHookLog;
 		}).finally(() => {
 			if (!config.disableInsights && preHookLog && preHookLog._id) insertHookLog('PreHook', txnId, preHookLog);
@@ -195,7 +204,10 @@ function constructPayload(req, preHook, data, options) {
 	payload.data = JSON.parse(JSON.stringify(data));
 	payload.trigger.source = options.source;
 	payload.trigger.simulate = options.simulate;
-	payload.dataService = config.serviceId;
+	payload.service =  {
+		id: config.serviceId,
+		name: config.serviceName
+	};
 	payload.name = preHook.name;
 	payload.app = config.appNamespace;
 	return payload;
@@ -274,24 +286,14 @@ function invokeHook(txnId, url, data, customErrMsg, _headers) {
 		options.rejectUnauthorized = false;
 	}
 	return httpClient.httpRequest(options)
-		.then(res => {
-			if (!res) {
-				logger.error(`Error requesting hook :: ${url}`);
-				let message = customErrMsg ? customErrMsg : `Pre-save link ${url} down!Unable to proceed.`;
-				throw new Error(message);
-			} else {
-				if (res.statusCode >= 200 && res.statusCode < 400) return res;
-				else {
-					let errMsg = `Error invoking pre-save link ${url}.Unable to proceed.`;
-					if (res.body && res.body.message) errMsg = res.body.message;
-					throw new Error(errMsg);
-				}
-			}
-		})
+		// .then(res => res)
 		.catch(err => {
 			logger.error(`Error requesting hook :: ${url} :: ${err.message}`);
 			const message = customErrMsg ? customErrMsg : `Pre-save "${data.name}" down! Unable to proceed.`;
-			throw new Error(message);
+			throw ({
+				message: message,
+				response: err.response
+			});
 		});
 }
 
