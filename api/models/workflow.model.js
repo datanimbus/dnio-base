@@ -17,7 +17,7 @@ const schema = new mongoose.Schema(definition, {
 
 schema.plugin(mongooseUtils.metadataPlugin());
 
-schema.pre('save', utils.counter.getIdGenerator('WF', 'workflow', null, null, 1000));
+schema.pre('save', mongooseUtils.generateId('WF', 'workflow', null, null, 1000));
 
 schema.pre('save', dataStackUtils.auditTrail.getAuditPreSaveHook('workflow'));
 
