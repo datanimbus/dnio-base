@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
-const dataStackUtils = require('@appveen/data.stack-utils');
-const utils = require('@appveen/utils');
+// const dataStackUtils = require('@appveen/data.stack-utils');
 
+const config = require('../../config');
 const queue = require('../../queue');
 const definition = require('../helpers/workflow.definition').definition;
 const mongooseUtils = require('../utils/mongoose.utils');
 
-const client = queue.client;
+// const client = queue.client;
 const logger = global.logger;
 const authorDB = global.authorDB;
 let model;
@@ -19,7 +19,7 @@ schema.plugin(mongooseUtils.metadataPlugin());
 
 schema.pre('save', mongooseUtils.generateId('WF', 'workflow', null, null, 1000));
 
-schema.pre('save', dataStackUtils.auditTrail.getAuditPreSaveHook('workflow'));
+// schema.pre('save', dataStackUtils.auditTrail.getAuditPreSaveHook('workflow'));
 
 schema.pre('save', function (next) {
 	let self = this;
@@ -45,7 +45,7 @@ schema.pre('save', function (next) {
 	if (!(self.isNew)) {
 		self.audit[(self.audit.length) - 1].attachments = self.audit[(self.audit.length) - 1].attachments.map(function (value) {
 			if (!value.href) {
-				value.href = '/api/a/workflow/file/download/' + value.filename;
+				value.href = `/api/c/${config.app}${config.serviceEndpoint}/utils/file/download/${value.filename}`;
 			}
 			return value;
 		});
@@ -69,7 +69,7 @@ schema.pre('save', function (next) {
 	}
 });
 
-schema.post('save', dataStackUtils.auditTrail.getAuditPostSaveHook('workflow.audit', client, 'auditQueue'));
+// schema.post('save', dataStackUtils.auditTrail.getAuditPostSaveHook('workflow.audit', client, 'auditQueue'));
 
 schema.post('save', function (doc) {
 	logger.debug(this.oldStatus + ' ' + doc.status);
