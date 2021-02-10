@@ -51,27 +51,33 @@ function metadataPlugin() {
 
 
 async function generateId(prefix, counterName, suffix, padding, counter) {
-	try {
-		prefix = prefix ? prefix : '';
-		suffix = suffix ? suffix : '';
-		let id = null;
-		if (counter || counter === 0) {
-			const doc = await getCount(counterName);
-			let nextNo = padding ? Math.pow(10, padding) + doc.next : doc.next;
-			nextNo = (nextNo || 0).toString();
-			if (padding && parseInt(nextNo.substr(0, 1)) > 1) {
-				throw new Error('length of _id is exceeding counter');
+	return async function (next) {
+		try {
+			if (this._id) {
+				return next();
 			}
-			id = padding ? prefix + nextNo.substr(1) + suffix : prefix + nextNo + suffix;
-		} else if (padding) {
-			id = prefix + rand(padding) + suffix;
-		} else {
-			const doc = await getCount(counterName);
-			id = prefix + doc.next;
+			prefix = prefix ? prefix : '';
+			suffix = suffix ? suffix : '';
+			let id = null;
+			if (counter || counter === 0) {
+				const doc = await getCount(counterName);
+				let nextNo = padding ? Math.pow(10, padding) + doc.next : doc.next;
+				nextNo = (nextNo || 0).toString();
+				if (padding && parseInt(nextNo.substr(0, 1)) > 1) {
+					throw new Error('length of _id is exceeding counter');
+				}
+				id = padding ? prefix + nextNo.substr(1) + suffix : prefix + nextNo + suffix;
+			} else if (padding) {
+				id = prefix + rand(padding) + suffix;
+			} else {
+				const doc = await getCount(counterName);
+				id = prefix + doc.next;
+			}
+			this._id = id;
+			next();
+		} catch (e) {
+			throw e;
 		}
-		return id;
-	} catch (e) {
-		throw e;
 	}
 }
 
