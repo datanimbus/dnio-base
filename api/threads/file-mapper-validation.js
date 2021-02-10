@@ -15,6 +15,8 @@ log4js.configure({
 const logger = log4js.getLogger(LOGGER_NAME);
 
 global.logger = logger;
+global.userHeader = 'user';
+global.txnIdHeader = 'txnId';
 
 require('../../db-factory');
 global.doNotSubscribe = true;
@@ -28,10 +30,10 @@ async function execute() {
 	const model = mongoose.model('fileMapper');
 	const fileTransfersModel = mongoose.model('fileTransfers');
 
-	const fileId = workerData.fileId;
 	const data = workerData.data;
 	const req = workerData.req;
-	let txnId = workerData.req.headers['TxnId'];
+	const fileId = data.fileId;
+	let txnId = workerData.req.headers[global.txnIdHeader];
 	logger.debug(`[${txnId}] Worker :: ${fileId}`);
 	const isHeaderProvided = Boolean.valueOf(data.headers);
 	const headerMapping = data.headerMapping;
