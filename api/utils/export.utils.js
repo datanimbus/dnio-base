@@ -333,7 +333,6 @@ e.createFilter = function (_sd, filter, req) {
 
 
 e.expandInBatch = function(documents, selectionObject, count, fileName, req,resul, serviceDetailsObj, options) {
-	logger.info('log details in export Utils :: ', logger.level);
 	let serviceId = config.serviceId;
 	let returnDocuments = [];
 	let documentCache = {};  

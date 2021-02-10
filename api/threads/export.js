@@ -323,7 +323,7 @@ async function execute() {
 	let cursor;
 
 	try {
-		let serviceDetails = require('/app/service.json');
+		let serviceDetails = require('./../../service.json');
 		definitionArr = _.cloneDeep(serviceDetails.definition);
 		var cbc = keyvalue(definitionArr, obj, null, null, false);
 		var mapping = keyvalue(definitionArr, obj2, null, null, true);

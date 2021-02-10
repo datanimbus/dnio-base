@@ -319,7 +319,7 @@ e.getStoredServiceDetail = function (serviceId, serviceDetailsObj, req) {
 		return Promise.resolve();
 	} else {
 		var options = {
-			url: 'http://localhost:10003/sm/service/' + serviceId + '?select=port,api,relatedSchemas,app,preHooks,definition',
+			url: config.baseUrlSM + '/service/' + serviceId + '?select=port,api,relatedSchemas,app,preHooks,definition',
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
