@@ -11,6 +11,10 @@ const models = require('./api/models');
 let logger = global.logger;
 const dbName = config.serviceDB;
 
+// For threads to pick txnId and user headers
+global.userHeader = 'user';
+global.txnIdHeader = 'txnId';
+
 // global.logger = logger;
 global.serviceCache = new NodeCache({ stdTTL: 60, checkperiod: 120, useClones: false });
 global.documentCache = new NodeCache({ stdTTL: 60, checkperiod: 120, useClones: false });
