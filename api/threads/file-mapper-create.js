@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 mongoose.set('useFindAndModify', false);
 
 const config = require('../../config');
+const config = require('../../queue');
 
 const log4js = require('log4js');
 const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} v.${config.serviceVersion}] [Worker]` : `[${config.serviceName} v.${config.serviceVersion}] [Worker]`;
