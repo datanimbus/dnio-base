@@ -63,6 +63,9 @@ schema.pre('save', async function (next) {
 			simulate: false,
 			source: 'presave'
 		};
+		if(this._isFromWorflow) {
+			await specialFields.decryptSecureFields(req, this, null);
+		}
 		const data = await hooksUtils.callAllPreHooks(req, this, options);
 		logger.trace(`[${req.headers[global.txnIdHeader]}] Prehook data :: ${JSON.stringify(data)}`);
 		_.assign(this, data);

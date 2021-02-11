@@ -5,6 +5,7 @@ const _ = require('lodash');
 const config = require('../../config');
 const workflowUtils = require('../utils/workflow.utils');
 const crudderUtils = require('../utils/crudder.utils');
+const specialFields = require('../utils/special-fields.utils');
 
 const logger = global.logger;
 const authorDB = global.authorDB;
@@ -162,6 +163,16 @@ router.get('/', (req, res) => {
 				sort = req.query.sort.split(',').join(' ');
 			}
 			const docs = await workflowModel.find(filter).select(select).sort(sort).skip(skip).limit(count).lean();
+			// Decrypting secured fields
+			if(specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
+				let promises = [];
+				docs.forEach(e => 
+					{
+						promises.push(specialFields.decryptSecureFields(req, e.data.old, null), specialFields.decryptSecureFields(req, e.data.new, null))
+					});
+				await Promise.all(promises);
+				promises = null;
+			}
 			res.status(200).json(docs);
 		} catch (e) {
 			if (typeof e === 'string') {
@@ -223,6 +234,10 @@ router.get('/:id', (req, res) => {
 				return res.status(404).json({
 					message: 'Workflow Not Found'
 				});
+			}
+			if(specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
+				await Promise.all([specialFields.decryptSecureFields(req, doc.data.old, null), 
+				specialFields.decryptSecureFields(req, doc.data.new, null)]);
 			}
 			res.status(200).json(doc);
 		} catch (e) {
@@ -546,16 +561,19 @@ async function approve(req, res) {
 				if (doc.operation == 'POST') {
 					serviceDoc = new serviceModel(doc.data.new);
 					serviceDoc._req = req;
+					serviceDoc._isFromWorflow = true;
 					serviceDoc = await serviceDoc.save();
 				} else if (doc.operation == 'PUT') {
 					serviceDoc = await serviceModel.findById(doc.documentId);
 					serviceDoc._req = req;
+					serviceDoc._isFromWorflow = true;
 					serviceDoc._oldDoc = serviceDoc.toObject();
 					Object.assign(serviceDoc, doc.data.new);
 					serviceDoc = await serviceDoc.save();
 				} else if (doc.operation == 'DELETE') {
 					serviceDoc = await serviceModel.findById(doc.documentId);
 					serviceDoc._req = req;
+					serviceDoc._isFromWorflow = true;
 					serviceDoc._oldDoc = serviceDoc.toObject();
 					serviceDoc = await serviceDoc.remove();
 				}
