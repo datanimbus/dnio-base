@@ -40,7 +40,7 @@ client.on('reconnect', () => {
  * @returns {Promise<object>}
  */
 function callAllPreHooks(req, data, options) {
-	let txnId = req.get(global.txnIdHeader);
+	let txnId = req.headers[global.txnIdHeader];
 	options['type'] = 'PreHook';
 	logger.debug(`[${txnId}] PreHook :: Options :: ${JSON.stringify(options)}`);
 	logger.trace(`[${txnId}] PreHook :: ${JSON.stringify(data)}`);
@@ -78,7 +78,7 @@ function callAllPreHooks(req, data, options) {
 			preHookLog.data.new = newData;
 			preHookLog.status = 'Success';
 			preHookLog.statusCode = _response.statusCode;
-			preHookLog.response.headers =  _response.headers;
+			preHookLog.response.headers = _response.headers;
 			preHookLog.response.body = _response.body;
 			return newData;
 		}).catch(err => {
@@ -89,7 +89,7 @@ function callAllPreHooks(req, data, options) {
 				preHookLog.status = 'Fail';
 				preHookLog.statusCode = err.response.statusCode;
 				preHookLog.response = {};
-				preHookLog.response.headers =  err.response.headers;
+				preHookLog.response.headers = err.response.headers;
 				preHookLog.response.body = err.response.body;
 			}
 			throw preHookLog;
@@ -99,7 +99,7 @@ function callAllPreHooks(req, data, options) {
 	}, Promise.resolve(JSON.parse(JSON.stringify(data))));
 }
 
-function prepPostHooks(_data){
+function prepPostHooks(_data) {
 	let txnId = _data.txnId;
 	logger.trace(`[${txnId}] PostHook :: ${JSON.stringify(_data)}`);
 	let postHooks = [];
@@ -111,8 +111,8 @@ function prepPostHooks(_data){
 	}
 	let operation = 'POST';
 	let docId = _data.new._id;
-	if(_data.old && _data.new) operation = 'PUT';
-	if(_data.old && !_data.new) {
+	if (_data.old && _data.new) operation = 'PUT';
+	if (_data.old && !_data.new) {
 		operation = 'DELETE';
 		docId = _data.old._id;
 	}
@@ -155,7 +155,7 @@ function prepPostHooks(_data){
 	};
 	let streamingPayload = {
 		collection: `${config.app}.hook`,
-		txnId: txnId, 
+		txnId: txnId,
 		retry: 0
 	};
 	return postHooks.reduce(function (_prev, _curr) {
@@ -163,22 +163,22 @@ function prepPostHooks(_data){
 			postHookLog['_id'] = crypto.randomBytes(16).toString('hex');
 			postHookLog.callbackUrl = `${postHookLog.callbackUrl}/${postHookLog._id}`;
 			streamingPayload['_id'] = postHookLog['_id'];
-			postHookLog['name']= _curr.name;
-			postHookLog['url']= _curr.url;
+			postHookLog['name'] = _curr.name;
+			postHookLog['url'] = _curr.url;
 			insertHookLog('PostHook', txnId, postHookLog);
 			queueMgmt.sendToQueue(streamingPayload);
 		});
 	}, Promise.resolve());
 }
 
-function insertHookLog(_type, _txnId, _data){
+function insertHookLog(_type, _txnId, _data) {
 	logger.trace(`[${_txnId}] ${_type} log :: ${JSON.stringify(_data)}`);
 	global.logsDB.collection(`${config.app}.hook`).insertOne(_data)
 		.then(() => logger.debug(`[${_txnId}] ${_type} log :: ${_data._id}`))
 		.catch(_e => logger.error(`[${_txnId}] ${_type} log :: ${_data._id} :: ${_e.message}`));
 }
 
-function insertAuditLog(_txnId, _data){
+function insertAuditLog(_txnId, _data) {
 	logger.trace(`[${_txnId}] Audit log :: ${JSON.stringify(_data)}`);
 	global.logsDB.collection(`${_data.colName}`).insertOne(_data)
 		.then(() => logger.debug(`[${_txnId}] Audit log :: ${_data._id}`))
@@ -200,11 +200,11 @@ function constructPayload(req, preHook, data, options) {
 	payload.trigger = {};
 	payload.operation = options.operation;
 	payload.txnId = req.headers[global.txnIdHeader];
-	payload.user = req.get('User');
+	payload.user = req.headers[global.userHeader];
 	payload.data = JSON.parse(JSON.stringify(data));
 	payload.trigger.source = options.source;
 	payload.trigger.simulate = options.simulate;
-	payload.service =  {
+	payload.service = {
 		id: config.serviceId,
 		name: config.serviceName
 	};
@@ -302,20 +302,20 @@ function invokeHook(txnId, url, data, customErrMsg, _headers) {
 * @param {*} res Server response Object
 */
 function callExperienceHook(req, res) {
-	const txnId = req.get(global.txnIdHeader);
-	
+	const txnId = req.headers[global.txnIdHeader];
+	const user = req.headers[global.userHeader];
 	const hookName = req.query.name;
 	const payload = req.body || {};
 	let docId = null;
-	if(payload && payload.data && payload.data._id) docId = payload.data._id;
-	
+	if (payload && payload.data && payload.data._id) docId = payload.data._id;
+
 	let hooks;
 	try {
 		hooks = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'hooks.json'), 'utf-8')).experienceHooks;
 		logger.trace(`[${txnId}] Experience hook :: Hooks :: ${JSON.stringify(hooks)}`);
 	} catch (e) {
 		logger.erorr(`[${txnId}] Experience hook :: Parse error :: ${e.message}`);
-		return res.status(500).json({ message: `Parsing error ${e.message}`});
+		return res.status(500).json({ message: `Parsing error ${e.message}` });
 	}
 	try {
 		const wantedHook = hooks.find(hook => hookName == hook.name);
@@ -324,17 +324,17 @@ function callExperienceHook(req, res) {
 			return res.status(400).json({ message: `Invalid experience hook ${hookName}` });
 		}
 		logger.debug(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url}`);
-		
+
 		let headers = commonUtils.generateHeaders(txnId);
 		headers['Content-Type'] = 'application/json';
 		headers['TxnId'] = txnId;
-		headers['User'] = req.headers[global.userHeader];
+		headers['User'] = user;
 
 		const data = {
 			data: payload.data,
 			docId: docId,
 			txnId: txnId,
-			user: req.get('User'),
+			user: user,
 			type: 'ExperienceHook',
 			service: {
 				id: config.serviceId,
@@ -381,7 +381,7 @@ function callExperienceHook(req, res) {
 				logger.error(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: ${err.message}`);
 				let message = 'Error invoking experience hook. Unable to proceed.';
 				if (err.response && err.response.body) {
-					if(err.response.body.message) {
+					if (err.response.body.message) {
 						message = err.response.body.message;
 						logger.trace(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Body :: ${JSON.stringify(err.response.body)}`);
 					}
@@ -411,7 +411,7 @@ function callExperienceHook(req, res) {
 						release: process.env.RELEASE || 'dev'
 					}
 				};
-				if(!config.disableInsights) insertHookLog('ExperienceHook', txnId, data);
+				if (!config.disableInsights) insertHookLog('ExperienceHook', txnId, data);
 			});
 	} catch (e) {
 		let message;
@@ -463,9 +463,9 @@ async function getHooks() {
 	logger.trace('Get hooks');
 	try {
 		let authorDB = mongoose.connections[1].client.db(config.authorDB);
-		authorDB.collection('services').findOne({_id: config.serviceId}, {projection: {preHooks:1, wizard:1, webHooks:1}})
+		authorDB.collection('services').findOne({ _id: config.serviceId }, { projection: { preHooks: 1, wizard: 1, webHooks: 1 } })
 			.then(_d => {
-				if(!_d) {
+				if (!_d) {
 					logger.error(`Get hooks :: Unable to find ${config.serviceId}`);
 					return;
 				}
