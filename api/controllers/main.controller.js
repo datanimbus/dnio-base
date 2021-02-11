@@ -98,7 +98,8 @@ router.get('/utils/bulkShow', (req, res) => {
 
 router.put('/bulkUpdate', (req, res) => {
 	async function execute() {
-		const workflowModel = global.authorDB.model('workflow');
+		// const workflowModel = global.authorDB.model('workflow');
+		const workflowModel = mongoose.model('workflow');
 		try {
 			const id = req.query.id;
 			if (!id) {
@@ -157,7 +158,8 @@ router.put('/bulkUpdate', (req, res) => {
 
 router.delete('/utils/bulkDelete', (req, res) => {
 	async function execute() {
-		const workflowModel = global.authorDB.model('workflow');
+		// const workflowModel = global.authorDB.model('workflow');
+		const workflowModel = mongoose.model('workflow');
 		try {
 			const ids = req.body.ids;
 			if (!ids || ids.length == 0) {
@@ -369,7 +371,8 @@ router.get('/:id', (req, res) => {
 
 router.post('/', (req, res) => {
 	async function execute() {
-		const workflowModel = global.authorDB.model('workflow');
+		// const workflowModel = global.authorDB.model('workflow');
+		const workflowModel = mongoose.model('workflow');
 		try {
 			const payload = req.body;
 			let promises;
@@ -438,7 +441,8 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
 	async function execute() {
-		const workflowModel = global.authorDB.model('workflow');
+		// const workflowModel = global.authorDB.model('workflow');
+		const workflowModel = mongoose.model('workflow');
 		try {
 			const upsert = req.query.upsert || false;
 			let payload = req.body;
@@ -506,7 +510,8 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
 	async function execute() {
-		const workflowModel = global.authorDB.model('workflow');
+		// const workflowModel = global.authorDB.model('workflow');
+		const workflowModel = mongoose.model('workflow');
 		try {
 			let doc = await model.findById(req.params.id);
 			let status;

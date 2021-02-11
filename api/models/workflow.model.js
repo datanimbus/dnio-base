@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const utils = require('@appveen/utils');
 // const dataStackUtils = require('@appveen/data.stack-utils');
 
 const config = require('../../config');
@@ -8,7 +9,7 @@ const mongooseUtils = require('../utils/mongoose.utils');
 
 // const client = queue.client;
 const logger = global.logger;
-const authorDB = global.authorDB;
+// const authorDB = global.authorDB;
 let model;
 
 const schema = new mongoose.Schema(definition, {
@@ -17,7 +18,8 @@ const schema = new mongoose.Schema(definition, {
 
 schema.plugin(mongooseUtils.metadataPlugin());
 
-schema.pre('save', mongooseUtils.generateId('WF', 'workflow', null, null, 1000));
+schema.pre('save', utils.counter.getIdGenerator('WF', 'workflow', null, null, 1000));
+// schema.pre('save', mongooseUtils.generateId('WF', 'workflow', null, null, 1000));
 
 // schema.pre('save', dataStackUtils.auditTrail.getAuditPreSaveHook('workflow'));
 
@@ -91,4 +93,5 @@ schema.post('save', function (doc) {
 	}
 });
 
-model = authorDB.model('workflow', schema, 'workflow');
+// model = authorDB.model('workflow', schema, 'workflow');
+model = mongoose.model('workflow', schema, `${config.serviceCollection}.workflow`)

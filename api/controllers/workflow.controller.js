@@ -8,8 +8,9 @@ const crudderUtils = require('../utils/crudder.utils');
 
 const logger = global.logger;
 const authorDB = global.authorDB;
-const workflowModel = authorDB.model('workflow');
 const serviceModel = mongoose.model(config.serviceId);
+// const workflowModel = authorDB.model('workflow');
+const workflowModel = mongoose.model('workflow');
 
 /**
  * @deprecated

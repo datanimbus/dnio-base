@@ -24,8 +24,9 @@ require('../../db-factory');
 async function execute() {
 	const workflowUtils = require('../utils/workflow.utils');
 	const { mergeCustomizer } = require('./../utils/common.utils');
-	const authorDB = global.authorDB;
-	const workflowModel = authorDB.model('workflow');
+	// const authorDB = global.authorDB;
+	// const workflowModel = authorDB.model('workflow');
+	const workflowModel = mongoose.model('workflow');
 	const model = mongoose.model('fileMapper');
 	const serviceModel = mongoose.model(config.serviceId);
 
