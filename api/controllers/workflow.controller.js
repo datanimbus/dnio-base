@@ -444,6 +444,7 @@ async function discard(req, res) {
 		doc.audit.push(event);
 		doc.markModified('audit');
 		doc._req = req;
+		doc._isEncrypted = true;
 		const savedDoc = await doc.save();
 		if (savedDoc.operation == 'PUT') {
 			const status = await serviceModel.findOneAndUpdate({ _id: savedDoc.documentId }, { '_metadata.workflow': null }, { new: true });
@@ -487,6 +488,7 @@ async function submit(req, res) {
 		doc.requestedBy = req.headers[global.userHeader];
 		doc.markModified('audit');
 		doc._req = req;
+		doc._isEncrypted = true;
 		await doc.save();
 		return res.status(200).json({ message: 'Submission Successful' });
 	} catch (e) {
@@ -524,6 +526,7 @@ async function rework(req, res) {
 			doc.audit.push(event);
 			doc.markModified('audit');
 			doc._req = req;
+			doc._isEncrypted = true;
 			return doc.save();
 		});
 		await Promise.all(promises);
@@ -590,6 +593,7 @@ async function approve(req, res) {
 				doc.audit.push(event);
 				doc.markModified('audit');
 				doc._req = req;
+				doc._isEncrypted = true;
 				await doc.save();
 			}
 		});
@@ -634,6 +638,7 @@ async function reject(req, res) {
 			doc.audit.push(event);
 			doc.markModified('audit');
 			doc._req = req;
+			doc._isEncrypted = true;
 			return await doc.save();
 		});
 		await Promise.all(promises);
