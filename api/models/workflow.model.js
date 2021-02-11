@@ -22,8 +22,11 @@ const hookSchema = new mongoose.Schema({}, {
 	strict: false,
 });
 
+
 hookSchema.plugin(mongooseUtils.metadataPlugin());
+
 schema.plugin(mongooseUtils.metadataPlugin());
+schema.index({ operation: 1, status: 1, documentId: 1, requestedBy: 1 });
 
 schema.pre('save', utils.counter.getIdGenerator('WF', 'workflow', null, null, 1000));
 // schema.pre('save', mongooseUtils.generateId('WF', 'workflow', null, null, 1000));

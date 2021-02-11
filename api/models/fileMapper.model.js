@@ -9,5 +9,6 @@ const schema = new mongoose.Schema(definition, {
 });
 
 schema.plugin(mongooseUtils.metadataPlugin());
+schema.index({ fileId: 1, sNo: 1, status: 1 });
 
 mongoose.model('fileMapper', schema, `${config.serviceCollection}.bulkCreate`);

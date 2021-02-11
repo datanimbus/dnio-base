@@ -9,5 +9,6 @@ const schema = new mongoose.Schema(definition, {
 });
 
 schema.plugin(mongooseUtils.metadataPlugin());
+schema.index({ user: 1, fileName: 1, status: 1 });
 
 mongoose.model('fileTransfers', schema, `${config.serviceCollection}.fileTransfers`);
