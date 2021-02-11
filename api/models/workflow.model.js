@@ -11,11 +11,18 @@ const mongooseUtils = require('../utils/mongoose.utils');
 const logger = global.logger;
 // const authorDB = global.authorDB;
 let model;
+let hookModel;
 
 const schema = new mongoose.Schema(definition, {
 	usePushEach: true
 });
 
+const hookSchema = new mongoose.Schema({}, {
+	usePushEach: true,
+	strict: false,
+});
+
+hookSchema.plugin(mongooseUtils.metadataPlugin());
 schema.plugin(mongooseUtils.metadataPlugin());
 
 schema.pre('save', utils.counter.getIdGenerator('WF', 'workflow', null, null, 1000));
@@ -73,7 +80,7 @@ schema.pre('save', function (next) {
 
 // schema.post('save', dataStackUtils.auditTrail.getAuditPostSaveHook('workflow.audit', client, 'auditQueue'));
 
-schema.post('save', function (doc) {
+schema.post('save', function (doc, next) {
 	logger.debug(this.oldStatus + ' ' + doc.status);
 	if (!(this.oldStatus === doc.status)) {
 		doc = doc.toObject();
@@ -87,11 +94,18 @@ schema.post('save', function (doc) {
 		};
 		auditData.type = statusMap[doc.status];
 		if (auditData.type) {
-			logger.debug('Sending NE for workflowHook ' + JSON.stringify(auditData));
-			queue.sendToQueue(auditData);
+			const hookDoc = new hookModel(auditData);
+			hookDoc.save().then(status => {
+				logger.debug('Sending NE for workflowHook ' + JSON.stringify({ _id: status._id }));
+				queue.sendToQueue({ _id: status._id });
+			}).catch(err => {
+				logger.error('Worflow Hook', err);
+			});
 		}
 	}
+	next();
 });
 
 // model = authorDB.model('workflow', schema, 'workflow');
-model = mongoose.model('workflow', schema, `${config.serviceCollection}.workflow`)
+model = mongoose.model('workflow', schema, `${config.serviceCollection}.workflow`);
+hookModel = mongoose.model('workflow.hooks', hookSchema, `${config.serviceCollection}.hooks`)
