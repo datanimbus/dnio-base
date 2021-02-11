@@ -6,6 +6,7 @@ const config = require('../../config');
 const queue = require('../../queue');
 const definition = require('../helpers/workflow.definition').definition;
 const mongooseUtils = require('../utils/mongoose.utils');
+const specialFields = require('../utils/special-fields.utils');
 
 // const client = queue.client;
 const logger = global.logger;
@@ -80,6 +81,27 @@ schema.pre('save', function (next) {
 		next();
 	}
 });
+
+schema.pre('save', async function (next) {
+	const newDoc = this.data.new;
+	const oldDoc = this.data.old;
+	const req = this._req;
+	try {
+		if(!this._isEncrypted) {
+			const errors = await specialFields.encryptSecureFields(req, newDoc, oldDoc);
+			if (errors) {
+				next(errors);
+			} else {
+				next();
+			}
+		} else {
+			next();
+		}
+	} catch (e) {
+		next(e);
+	}
+});
+
 
 // schema.post('save', dataStackUtils.auditTrail.getAuditPostSaveHook('workflow.audit', client, 'auditQueue'));
 
