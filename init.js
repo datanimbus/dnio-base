@@ -14,7 +14,7 @@ const logger = global.logger;
 function init() {
 	try {
 		if (!fs.existsSync(path.join(process.cwd(), 'hooks.json'))) {
-			fs.writeFileSync(path.join(process.cwd(), 'hooks.json'), '{"preHooks":[],"experienceHooks":[]}', 'utf-8');
+			fs.writeFileSync(path.join(process.cwd(), 'hooks.json'), '{"preHooks":[],"experienceHooks":[],"wizard":[],"webHooks":[],"workflowHooks":[]}', 'utf-8');
 		}
 	} catch (e) {
 		logger.error(e);
