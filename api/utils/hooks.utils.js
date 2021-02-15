@@ -171,6 +171,77 @@ function prepPostHooks(_data) {
 	}, Promise.resolve());
 }
 
+function prepWorkflowHooks(_data) {
+	const txnId = _data.txnId;
+	const operation = _data.operation;
+	const workFlowId = _data._id;
+	const docId = _data.documentId;
+	const type = _data.type;
+	logger.info(`[${txnId}] WorkflowHooks :: ${workFlowId} :: Status :: ${type.toUpperCase()}`);
+	let workflowHooks = [];
+	try {
+		workflowHooks = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'hooks.json'), 'utf-8')).workflowHooks.postHooks[_data.type];
+	} catch (e) {
+		logger.error(`[${txnId}] WorkflowHooks :: ${workFlowId} :: Parser error :: ${e.message}`);
+		throw e;
+	}
+	logger.info(`[${txnId}] WorkflowHooks :: ${workFlowId} :: ${workflowHooks.length} found`);
+	workflowHooks.forEach(_d => logger.info(`[${txnId}] WorkflowHooks :: ${workFlowId} :: ${_d.name} - ${_d.url} `));
+	let workflowHookLog = {
+		txnId: txnId,
+		user: _data.requestedBy,
+		status: 'Pending',
+		message: null,
+		retry: 0,
+		operation: operation,
+		type: 'WorkflowHook',
+		trigger: {
+			source: type,
+			simulate: false,
+		},
+		service: {
+			id: config.serviceId,
+			name: config.serviceName
+		},
+		callbackUrl: `/api/c/${config.app}${config.serviceEndpoint}/utils/callback`,
+		headers: commonUtils.generateHeaders(txnId),
+		properties: commonUtils.generateProperties(txnId),
+		workFlowId: workFlowId,
+		docId: docId,
+		data: {
+			old: _data.data.old,
+			new: _data.data.new
+		},
+		audit: _data.audit,
+		logs: [],
+		scheduleTime: null,
+		_metadata: {
+			createdAt: new Date(),
+			lastUpdated: new Date(),
+			version: {
+				release: process.env.RELEASE || 'dev'
+			},
+			disableInsights: config.disableInsights
+		}
+	};
+	let streamingPayload = {
+		collection: `${config.app}.hook`,
+		txnId: txnId,
+		retry: 0
+	};
+	return workflowHooks.reduce(function (_prev, _curr) {
+		return _prev.then(() => {
+			workflowHookLog['_id'] = crypto.randomBytes(16).toString('hex');
+			workflowHookLog.callbackUrl = `${workflowHookLog.callbackUrl}/${workflowHookLog._id}`;
+			streamingPayload['_id'] = workflowHookLog['_id'];
+			workflowHookLog['name'] = _curr.name;
+			workflowHookLog['url'] = _curr.url;
+			insertHookLog('WorkflowHook', txnId, workflowHookLog);
+			queueMgmt.sendToQueue(streamingPayload);
+		});
+	}, Promise.resolve());
+}
+
 function insertHookLog(_type, _txnId, _data) {
 	logger.trace(`[${_txnId}] ${_type} log :: ${JSON.stringify(_data)}`);
 	global.logsDB.collection(`${config.app}.hook`).insertOne(_data)
@@ -463,7 +534,7 @@ async function getHooks() {
 	logger.trace('Get hooks');
 	try {
 		let authorDB = mongoose.connections[1].client.db(config.authorDB);
-		authorDB.collection('services').findOne({ _id: config.serviceId }, { projection: { preHooks: 1, wizard: 1, webHooks: 1 } })
+		authorDB.collection('services').findOne({ _id: config.serviceId }, { projection: { preHooks: 1, wizard: 1, webHooks: 1, workflowHooks: 1} })
 			.then(_d => {
 				if (!_d) {
 					logger.error(`Get hooks :: Unable to find ${config.serviceId}`);
@@ -490,6 +561,7 @@ function createExperienceHooksList(data) {
 module.exports = {
 	callAllPreHooks,
 	prepPostHooks,
+	prepWorkflowHooks,
 	callExperienceHook,
 	getHooks,
 	setHooks,

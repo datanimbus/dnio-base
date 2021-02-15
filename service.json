@@ -1,71 +1,79 @@
 {
   "workflowHooks": {
     "postHooks": {
-      "submit": [],
-      "rework": [],
-      "discard": [],
-      "approve": [],
-      "reject": []
+      "submit": [
+        {
+          "_id": "6023faff461dc72fcb09f93c",
+          "name": "Submit Hook",
+          "url": "https://jerrymannel.in.ngrok.io/submit"
+        }
+      ],
+      "rework": [
+        {
+          "_id": "6023faff461dc75ab309f93d",
+          "name": "Send for review hook",
+          "url": "https://jerrymannel.in.ngrok.io/sendForReview"
+        }
+      ],
+      "discard": [
+        {
+          "_id": "6023faff461dc70f4c09f93e",
+          "name": "Discard hook",
+          "url": "https://jerrymannel.in.ngrok.io/discard"
+        }
+      ],
+      "approve": [
+        {
+          "_id": "6023faff461dc74e9b09f93f",
+          "name": "Approve Hook",
+          "url": "https://jerrymannel.in.ngrok.io/approve"
+        }
+      ],
+      "reject": [
+        {
+          "_id": "6023faff461dc7817509f940",
+          "name": "Reject Hook",
+          "url": "https://jerrymannel.in.ngrok.io/"
+        }
+      ]
     }
   },
   "_metadata": {
     "version": {
-      "document": 100,
+      "document": 7,
       "release": "1.0.0"
     },
     "deleted": false,
-    "lastUpdated": "2021-02-04T15:07:55.791Z",
-    "createdAt": "2021-02-01T18:19:49.038Z",
-    "lastUpdatedBy": "admin"
+    "lastUpdated": "2021-02-10T15:25:51.639Z",
+    "createdAt": "2021-02-09T18:59:15.995Z",
+    "lastUpdatedBy": "jerry@appveen.com"
   },
-  "version": 16,
+  "version": 2,
   "instances": 1,
   "permanentDeleteData": true,
-  "disableInsights": true,
-  "status": "Active",
+  "disableInsights": false,
+  "status": "Undeployed",
   "enableSearchIndex": false,
-  "attributeCount": 5,
+  "attributeCount": 3,
   "type": null,
-  "_id": "SRVC2114",
-  "name": "TestPreHook",
+  "_id": "SRVC2120",
+  "name": "MC",
   "description": null,
   "app": "Adam",
-  "api": "/testPreHook",
-  "port": 20011,
+  "versionValidity": {
+    "validityType": "count",
+    "validityValue": -1
+  },
+  "api": "/mc",
+  "port": 20014,
   "wizard": [],
-  "webHooks": [
-    {
-      "_id": "601c0c68181f380837215161",
-      "name": "Posthook",
-      "url": "https://jerrymannel.in.ngrok.io/ds/hook/posthook-200",
-      "failMessage": ""
-    }
-  ],
-  "preHooks": [
-    {
-      "_id": "601c0c68181f3838f5215162",
-      "name": "Prehook - Name",
-      "url": "https://jerrymannel.in.ngrok.io/ds/hook/prehook-name",
-      "failMessage": ""
-    },
-    {
-      "_id": "601c0c68181f386b2b215163",
-      "name": "Prehook - Age",
-      "url": "https://jerrymannel.in.ngrok.io/ds/hook/prehook-age",
-      "failMessage": ""
-    },
-    {
-      "_id": "601c0c68181f385658215164",
-      "name": "Prehook - Phone",
-      "url": "https://jerrymannel.in.ngrok.io/ds/hook/prehook-phone",
-      "failMessage": null
-    }
-  ],
-  "collectionName": "testPreHook",
-  "__v": 17,
+  "webHooks": [],
+  "preHooks": [],
+  "collectionName": "mc",
+  "__v": 3,
   "definition": [
     {
-      "_id": "601c0dcb181f382054215178",
+      "_id": "6023faff461dc7e48509f942",
       "type": "String",
       "key": "name",
       "properties": {
@@ -77,7 +85,7 @@
       }
     },
     {
-      "_id": "601c0dcb181f38a695215179",
+      "_id": "6023faff461dc790cb09f943",
       "type": "String",
       "key": "age",
       "properties": {
@@ -87,54 +95,9 @@
         "dataKey": "age",
         "dataPath": "age"
       }
-    },
-    {
-      "_id": "601c0dcb181f38386f21517a",
-      "type": "String",
-      "key": "phone",
-      "properties": {
-        "name": "Phone",
-        "fieldLength": 10,
-        "_typeChanged": "String",
-        "dataKey": "phone",
-        "dataPath": "phone"
-      }
-    },
-    {
-      "_id": "601c0dcb181f384c1521517b",
-      "type": "String",
-      "key": "somevalue",
-      "properties": {
-        "name": "Somevalue",
-        "fieldLength": 10,
-        "_typeChanged": "String",
-        "dataKey": "somevalue",
-        "dataPath": "somevalue"
-      }
     }
   ],
-  "headers": [
-    {
-      "key": "property1",
-      "value": "value1",
-      "header": "DataStack-DS-property1"
-    },
-    {
-      "key": "p2",
-      "value": "v2",
-      "header": "DataStack-DS-p2"
-    },
-    {
-      "key": "p0123456789",
-      "value": "v0123456789",
-      "header": "DataStack-DS-p0123456789"
-    },
-    {
-      "key": "pp0123456789p0123456789",
-      "value": "vp0123456789p0123456789p0123456789p0123456789p0123456789p0123456789p0123456789p0123456789",
-      "header": "DataStack-DS-pp0123456789p0123456789"
-    }
-  ],
+  "headers": [],
   "relatedSchemas": {
     "internal": {
       "users": []
@@ -142,45 +105,28 @@
     "outgoing": []
   },
   "role": {
-    "_id": "SRVC2114",
+    "_id": "SRVC2120",
     "_metadata": {
       "version": {
         "document": 1,
         "release": "1.0.0"
       },
       "deleted": false,
-      "lastUpdated": "2021-02-01T18:19:49.065Z",
-      "createdAt": "2021-02-01T18:19:49.059Z"
+      "lastUpdated": "2021-02-09T18:59:16.024Z",
+      "createdAt": "2021-02-09T18:59:16.021Z"
     },
     "app": "Adam",
-    "entity": "SRVC2114",
-    "entityName": "TestPreHook",
+    "entity": "SRVC2120",
+    "entityName": "MC",
     "roles": [
       {
         "skipReviewRole": true,
-        "id": "P6017866929",
-        "name": "Skip Review",
+        "id": "P4392585478",
+        "name": "Skip Review MC",
         "operations": [
           {
             "method": "SKIP_REVIEW"
           },
-          {
-            "method": "POST"
-          },
-          {
-            "method": "PUT"
-          },
-          {
-            "method": "DELETE"
-          }
-        ],
-        "description": "This role entitles an authorized user to create, update or delete a record and without any approval"
-      },
-      {
-        "manageRole": true,
-        "id": "P9461224881",
-        "name": "Manage",
-        "operations": [
           {
             "method": "POST"
           },
@@ -194,12 +140,35 @@
             "method": "GET"
           }
         ],
+        "description": "This role entitles an authorized user to create, update or delete a record and without any approval"
+      },
+      {
+        "manageRole": true,
+        "id": "P9130179248",
+        "name": "Manage MC",
+        "operations": [
+          {
+            "method": "POST"
+          },
+          {
+            "method": "PUT"
+          },
+          {
+            "method": "DELETE"
+          },
+          {
+            "method": "GET"
+          },
+          {
+            "method": "REVIEW"
+          }
+        ],
         "description": "This role entitles an authorized user to create, update or delete a record"
       },
       {
         "viewRole": true,
-        "id": "P5805782518",
-        "name": "View",
+        "id": "P4281033823",
+        "name": "View MC",
         "operations": [
           {
             "method": "GET"
@@ -213,58 +182,38 @@
       "_id": {
         "_t": "String",
         "_p": {
-          "P6017866929": "R",
-          "P9461224881": "R",
-          "P5805782518": "R"
+          "P4392585478": "R",
+          "P9130179248": "R",
+          "P4281033823": "R"
         }
       },
       "name": {
         "_t": "String",
         "_p": {
-          "P6017866929": "R",
-          "P9461224881": "R",
-          "P5805782518": "R"
+          "P4392585478": "R",
+          "P9130179248": "R",
+          "P4281033823": "R"
         }
       },
       "age": {
         "_t": "String",
         "_p": {
-          "P6017866929": "R",
-          "P9461224881": "R",
-          "P5805782518": "R"
-        }
-      },
-      "phone": {
-        "_t": "String",
-        "_p": {
-          "P6017866929": "R",
-          "P9461224881": "R",
-          "P5805782518": "R"
-        }
-      },
-      "somevalue": {
-        "_t": "String",
-        "_p": {
-          "P6017866929": "R",
-          "P9461224881": "R",
-          "P5805782518": "R"
+          "P4392585478": "R",
+          "P9130179248": "R",
+          "P4281033823": "R"
         }
       }
     },
     "__v": 0
   },
-  "versionValidity": {
-    "validityType": "count",
-    "validityValue": 0
-  },
   "draftVersion": null,
   "geoJSONFields": [],
   "fileFields": [],
   "idDetails": {
-    "_id": "601c0dcb181f38024f215177",
+    "_id": "6023faff461dc72e9309f941",
     "key": "_id",
     "type": "String",
-    "prefix": "TES",
+    "prefix": "MC",
     "suffix": null,
     "padding": null,
     "counter": 1001,
@@ -286,10 +235,10 @@
   },
   "definitionWithId": [
     {
-      "_id": "601c0dcb181f38024f215177",
+      "_id": "6023faff461dc72e9309f941",
       "key": "_id",
       "type": "String",
-      "prefix": "TES",
+      "prefix": "MC",
       "suffix": null,
       "padding": null,
       "counter": 1001,
@@ -310,7 +259,7 @@
       }
     },
     {
-      "_id": "601c0dcb181f382054215178",
+      "_id": "6023faff461dc7e48509f942",
       "type": "String",
       "key": "name",
       "properties": {
@@ -322,7 +271,7 @@
       }
     },
     {
-      "_id": "601c0dcb181f38a695215179",
+      "_id": "6023faff461dc790cb09f943",
       "type": "String",
       "key": "age",
       "properties": {
@@ -332,34 +281,10 @@
         "dataKey": "age",
         "dataPath": "age"
       }
-    },
-    {
-      "_id": "601c0dcb181f38386f21517a",
-      "type": "String",
-      "key": "phone",
-      "properties": {
-        "name": "Phone",
-        "fieldLength": 10,
-        "_typeChanged": "String",
-        "dataKey": "phone",
-        "dataPath": "phone"
-      }
-    },
-    {
-      "_id": "601c0dcb181f384c1521517b",
-      "type": "String",
-      "key": "somevalue",
-      "properties": {
-        "name": "Somevalue",
-        "fieldLength": 10,
-        "_typeChanged": "String",
-        "dataKey": "somevalue",
-        "dataPath": "somevalue"
-      }
     }
   ],
-  "projectName": "SRVC2114",
-  "path": "./generatedServices/SRVC2114",
+  "projectName": "SRVC2120",
+  "path": "./generatedServices/SRVC2120",
   "createOnlyFields": [],
   "precisionFields": [],
   "secureFields": [],

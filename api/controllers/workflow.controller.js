@@ -167,9 +167,9 @@ router.get('/', (req, res) => {
 			if(specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
 				let promises = [];
 				docs.forEach(e => 
-					{
-						promises.push(specialFields.decryptSecureFields(req, e.data.old, null), specialFields.decryptSecureFields(req, e.data.new, null))
-					});
+				{
+					promises.push(specialFields.decryptSecureFields(req, e.data.old, null), specialFields.decryptSecureFields(req, e.data.new, null));
+				});
 				await Promise.all(promises);
 				promises = null;
 			}
@@ -237,7 +237,7 @@ router.get('/:id', (req, res) => {
 			}
 			if(specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
 				await Promise.all([specialFields.decryptSecureFields(req, doc.data.old, null), 
-				specialFields.decryptSecureFields(req, doc.data.new, null)]);
+					specialFields.decryptSecureFields(req, doc.data.new, null)]);
 			}
 			res.status(200).json(doc);
 		} catch (e) {

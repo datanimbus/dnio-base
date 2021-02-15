@@ -3,28 +3,36 @@ const utils = require('@appveen/utils');
 // const dataStackUtils = require('@appveen/data.stack-utils');
 
 const config = require('../../config');
-const queue = require('../../queue');
 const definition = require('../helpers/workflow.definition').definition;
 const mongooseUtils = require('../utils/mongoose.utils');
+const hooksUtils = require('../utils/hooks.utils');
 const specialFields = require('../utils/special-fields.utils');
 
 // const client = queue.client;
 const logger = global.logger;
 // const authorDB = global.authorDB;
 let model;
-let hookModel;
+// let hookModel;
+
+const statusMap = {
+	Pending: 'submit',
+	Approved: 'approve',
+	Rejected: 'reject',
+	Discarded: 'discard',
+	Rework: 'rework'
+};
 
 const schema = new mongoose.Schema(definition, {
 	usePushEach: true
 });
 
-const hookSchema = new mongoose.Schema({}, {
-	usePushEach: true,
-	strict: false,
-});
+// const hookSchema = new mongoose.Schema({}, {
+// 	usePushEach: true,
+// 	strict: false,
+// });
 
 
-hookSchema.plugin(mongooseUtils.metadataPlugin());
+// hookSchema.plugin(mongooseUtils.metadataPlugin());
 
 schema.plugin(mongooseUtils.metadataPlugin());
 schema.index({ operation: 1, status: 1, documentId: 1, requestedBy: 1 });
@@ -106,31 +114,19 @@ schema.pre('save', async function (next) {
 // schema.post('save', dataStackUtils.auditTrail.getAuditPostSaveHook('workflow.audit', client, 'auditQueue'));
 
 schema.post('save', function (doc, next) {
-	logger.debug(this.oldStatus + ' ' + doc.status);
+	const req = doc._req;
+	const txnid = req.headers[global.txnIdHeader] || req.headers['txnid'];
+	logger.debug(`[${txnid}] Workflow :: ${doc._id} :: Old status - ${this.oldStatus}, New status - ${doc.status}`);
 	if (!(this.oldStatus === doc.status)) {
 		doc = doc.toObject();
-		let auditData = { data: doc, serviceId: doc.serviceId };
-		let statusMap = {
-			Pending: 'submit',
-			Approved: 'approve',
-			Rejected: 'reject',
-			Discarded: 'discard',
-			Rework: 'rework'
-		};
+		let auditData = doc;
 		auditData.type = statusMap[doc.status];
-		if (auditData.type) {
-			const hookDoc = new hookModel(auditData);
-			hookDoc.save().then(status => {
-				logger.debug('Sending NE for workflowHook ' + JSON.stringify({ _id: status._id }));
-				queue.sendToQueue({ _id: status._id });
-			}).catch(err => {
-				logger.error('Worflow Hook', err);
-			});
-		}
+		auditData.txnId = txnid;
+		if (auditData.type) hooksUtils.prepWorkflowHooks(auditData);
 	}
 	next();
 });
 
 // model = authorDB.model('workflow', schema, 'workflow');
 model = mongoose.model('workflow', schema, `${config.serviceCollection}.workflow`);
-hookModel = mongoose.model('workflow.hooks', hookSchema, `${config.serviceCollection}.hooks`)
+// hookModel = mongoose.model('workflow.hooks', hookSchema, `${config.serviceCollection}.hooks`)
