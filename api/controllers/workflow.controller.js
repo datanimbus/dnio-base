@@ -572,7 +572,9 @@ async function approve(req, res) {
 					serviceDoc._isFromWorflow = true;
 					serviceDoc._oldDoc = serviceDoc.toObject();
 					Object.assign(serviceDoc, doc.data.new);
+					serviceDoc._metadata.workflow = null;
 					serviceDoc = await serviceDoc.save();
+
 				} else if (doc.operation == 'DELETE') {
 					serviceDoc = await serviceModel.findById(doc.documentId);
 					serviceDoc._req = req;
