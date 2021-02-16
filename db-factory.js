@@ -13,7 +13,7 @@ const dbName = config.serviceDB;
 
 // For threads to pick txnId and user headers
 global.userHeader = 'user';
-global.txnIdHeader = 'txnId';
+global.txnIdHeader = 'txnid';
 
 // global.logger = logger;
 global.serviceCache = new NodeCache({ stdTTL: 60, checkperiod: 120, useClones: false });
