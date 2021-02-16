@@ -113,8 +113,8 @@ schema.pre('save', async function (next) {
 schema.pre('save', async function (next) {
 	const req = this._req;
 	const txnId = req.headers[global.txnIdHeader] || req.headers['txnid'];
-	if(this.operation == "DELETE") return next()
-	if(this.status != "Pending") return next()
+	if(this.operation == 'DELETE') return next();
+	if(this.status != 'Pending') return next();
 	try {
 		logger.debug(`[${txnId}] Calling Prehook before submit :: ${this._id}`);
 		logger.trace(`[${txnId}] Calling Prehook before submit :: ${JSON.stringify(this.data.new)}`);
@@ -124,7 +124,7 @@ schema.pre('save', async function (next) {
 			source: 'presave'
 		};
 		const data = await hooksUtils.callAllPreHooks(req, this.data.new, options);
-		this.data.new = data
+		this.data.new = data;
 		next();
 	} catch (e) {
 		next(e);
