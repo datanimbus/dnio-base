@@ -431,12 +431,14 @@ function callExperienceHook(req, res) {
 					logger.error(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Link has no power`);
 					data['status'] = 'Fail';
 					data['message'] = message;
+					data['statusCode'] = hookResponse.statusCode;
 					res.status(500).json({ message });
 				} else if (hookResponse.statusCode >= 200 && hookResponse.statusCode < 400) {
 					logger.debug(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Response :: ${hookResponse.statusCode}`);
 					logger.trace(`[${txnId}] Experience hook :: ${hookName} :: URL :: ${wantedHook.url} :: Body :: ${JSON.stringify(hookResponse.body)}`);
 					data['status'] = 'Success';
 					data['message'] = hookResponse.statusCode;
+					data['statusCode'] = hookResponse.statusCode;
 					data['response'] = {
 						headers: hookResponse.headers,
 						body: hookResponse.body
