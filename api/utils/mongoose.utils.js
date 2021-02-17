@@ -37,6 +37,10 @@ function metadataPlugin() {
 			if (self._metadata.version) {
 				self._metadata.version.release = process.env.RELEASE || 'dev';
 			}
+			if (!self._metadata.version.document) {
+				self._metadata.version.document = 0;
+			}
+			self._metadata.version.document++;
 			if (self.isNew) {
 				self._metadata.createdAt = new Date();
 			}
