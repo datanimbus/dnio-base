@@ -596,7 +596,7 @@ async function approve(req, res) {
 				doc.markModified('audit');
 				doc._req = req;
 				doc._isEncrypted = true;
-				await doc.save();
+				return await doc.save();
 			}
 		});
 		const savedDoc = await Promise.all(promises);
