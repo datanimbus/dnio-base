@@ -63,7 +63,7 @@ schema.pre('save', async function (next) {
 			simulate: false,
 			source: 'presave'
 		};
-		if(this._isFromWorflow) {
+		if (this._isFromWorflow) {
 			await specialFields.decryptSecureFields(req, this, null);
 		}
 		const data = await hooksUtils.callAllPreHooks(req, this, options);
@@ -177,7 +177,7 @@ schema.pre('save', function (next) {
 });
 
 
-schema.post('save', function (doc) {
+schema.post('save', function (doc, next) {
 	const req = doc._req;
 	const newData = doc.toObject();
 	const oldData = doc._oldData ? JSON.parse(JSON.stringify(doc._oldData)) : null;
@@ -187,6 +187,7 @@ schema.post('save', function (doc) {
 	webHookData.txnId = req.headers[global.txnIdHeader] || req.headers['txnid'];
 	webHookData.new = newData;
 	webHookData.old = oldData;
+	next();
 	hooksUtils.prepPostHooks(webHookData);
 	// queue.sendToQueue(webHookData);
 	if (config.disableAudits) {
@@ -222,19 +223,19 @@ schema.post('save', function (doc) {
 schema.post('save', function (error, doc, next) {
 	if (!error) return next();
 	if (error.code == 11000) {
-		if(error.errmsg) {
-			if(error.errmsg.indexOf('_id') > -1 && error.errmsg.indexOf('._id') === -1){
-				next(new Error(`ID ${doc._id} already exists.`));   
+		if (error.errmsg) {
+			if (error.errmsg.indexOf('_id') > -1 && error.errmsg.indexOf('._id') === -1) {
+				next(new Error(`ID ${doc._id} already exists.`));
 			} else {
 				var uniqueAttributeFailed = error.errmsg.substring(
-					error.errmsg.lastIndexOf('index:') + 7, 
+					error.errmsg.lastIndexOf('index:') + 7,
 					error.errmsg.lastIndexOf('_1')
 				);
-				if(uniqueAttributeFailed.endsWith('._id'))
+				if (uniqueAttributeFailed.endsWith('._id'))
 					uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -4);
-				if(uniqueAttributeFailed.endsWith('.checksum') && specialFields.secureFields.includes(uniqueAttributeFailed.slice(0, -9)))
+				if (uniqueAttributeFailed.endsWith('.checksum') && specialFields.secureFields.includes(uniqueAttributeFailed.slice(0, -9)))
 					uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -9);
-				next(new Error('Unique check validation failed for '+uniqueAttributeFailed));   
+				next(new Error('Unique check validation failed for ' + uniqueAttributeFailed));
 			}
 		} else {
 			next(new Error('Unique check validation failed'));
