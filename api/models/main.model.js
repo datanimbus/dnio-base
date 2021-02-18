@@ -190,7 +190,7 @@ schema.post('save', function (doc, next) {
 	next();
 	hooksUtils.prepPostHooks(webHookData);
 	// queue.sendToQueue(webHookData);
-	if (config.disableAudits) {
+	if (!config.disableAudits) {
 		let auditData = {};
 		auditData.versionValue = '-1';
 		auditData.user = webHookData.user;
