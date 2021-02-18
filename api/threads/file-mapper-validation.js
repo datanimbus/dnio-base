@@ -99,7 +99,7 @@ async function execute() {
 	let duplicateIds = _.map(duplicateDocs, 'duplicateId');
 	let arr = [];
 	arr.push(model.updateMany({ fileId, 'data._id': { $in: duplicateIds } }, { $set: { status: 'Duplicate', conflict: false } }));
-	arr.push(model.updateMany({ fileId, 'data._id': { $exists: false } }, { $set: { status: 'Validated' } }));
+	arr.push(model.updateMany({ fileId, 'data._id': { $nin: duplicateIds } }, { $set: { status: 'Validated' } }));
 	await Promise.all(arr);
 	duplicateDocs = null;
 	duplicateIds = null;
