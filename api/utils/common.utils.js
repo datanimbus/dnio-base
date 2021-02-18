@@ -753,7 +753,7 @@ function formatDate(txnId, rawData, tzInfo, isUnix) {
 
 e.getGenericHeaders = () => {
 	return {
-		'DataStack-DS-Name': config.serviceName,
+		'Data-Stack-DS-Name': config.serviceName,
 	};
 };
 
