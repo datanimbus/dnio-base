@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 
 const commonUtils = require('../utils/common.utils');
 const threadUtils = require('../utils/thread.utils');
+const crudderUtils = require('../utils/crudder.utils');
 
 const logger = global.logger;
 const model = mongoose.model('fileMapper');
@@ -11,8 +12,15 @@ const fileTransfersModel = mongoose.model('fileTransfers');
 router.get('/:fileId/count', (req, res) => {
 	async function execute() {
 		try {
-			const filter = {};
+			let filter = req.query.filter;
+			if (!filter) {
+				filter = {};
+			}
+			if (typeof filter === 'string') {
+				filter = JSON.parse(filter);
+			}
 			filter.fileId = req.params.fileId;
+			filter = crudderUtils.parseFilter(filter);
 			const count = await model.countDocuments(filter);
 			res.status(200).json(count);
 		} catch (e) {
@@ -33,8 +41,15 @@ router.get('/:fileId/count', (req, res) => {
 router.get('/:fileId', (req, res) => {
 	async function execute() {
 		try {
-			const filter = {};
+			let filter = req.query.filter;
+			if (!filter) {
+				filter = {};
+			}
+			if (typeof filter === 'string') {
+				filter = JSON.parse(filter);
+			}
 			filter.fileId = req.params.fileId;
+			filter = crudderUtils.parseFilter(filter);
 			let docs = await model.find(filter).lean();
 			res.status(200).json(docs);
 		} catch (e) {

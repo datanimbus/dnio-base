@@ -93,9 +93,12 @@ async function execute() {
 		{ $match: { _id: { $ne: null }, count: { $gt: 1 } } },
 		{ $project: { 'duplicateId': '$_id', _id: 0 } },
 	]);
+	logger.trace('=======================================');
+	logger.trace('DUPLICATE DOCS :: ', duplicateDocs);
+	logger.trace('=======================================');
 	let duplicateIds = _.map(duplicateDocs, 'duplicateId');
 	let arr = [];
-	arr.push(model.updateMany({ fileId, 'data._id': { $in: duplicateIds } }, { $set: { status: 'Duplicate' } }));
+	arr.push(model.updateMany({ fileId, 'data._id': { $in: duplicateIds } }, { $set: { status: 'Duplicate', conflict: false } }));
 	arr.push(model.updateMany({ fileId, 'data._id': { $exists: false } }, { $set: { status: 'Validated' } }));
 	await Promise.all(arr);
 	duplicateDocs = null;
@@ -110,12 +113,12 @@ async function execute() {
 		{ $match: { fileId, 'data._id': { $exists: true } } },
 		{
 			$lookup:
-						{
-							from: config.serviceCollection,
-							localField: 'data._id',
-							foreignField: '_id',
-							as: '_foreign'
-						}
+			{
+				from: config.serviceCollection,
+				localField: 'data._id',
+				foreignField: '_id',
+				as: '_foreign'
+			}
 		},
 		{
 			$unwind: '$_foreign'
@@ -123,8 +126,11 @@ async function execute() {
 		{ $project: { duplicateId: '$_foreign._id', _id: 1 } },
 		{ $group: { _id: '$duplicateId', count: { $sum: 1 } } }
 	]);
+	logger.trace('=======================================');
+	logger.trace('CONFLICT DOCS :: ', conflictDocs);
+	logger.trace('=======================================');
 	let conflictIds = _.map(conflictDocs, '_id');
-	await model.updateMany({ fileId, 'data._id': { $in: conflictIds } }, { $set: { conflict: true } });
+	await model.updateMany({ fileId, 'data._id': { $in: conflictIds } }, { $set: { status: 'Duplicate', conflict: true } });
 	conflictDocs = null;
 	conflictIds = null;
 	endTime = Date.now();
