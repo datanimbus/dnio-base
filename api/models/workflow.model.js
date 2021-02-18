@@ -90,31 +90,12 @@ schema.pre('save', function (next) {
 	}
 });
 
-schema.pre('save', async function (next) {
-	const newDoc = this.data.new;
-	const oldDoc = this.data.old;
-	const req = this._req;
-	try {
-		if(!this._isEncrypted) {
-			const errors = await specialFields.encryptSecureFields(req, newDoc, oldDoc);
-			if (errors) {
-				next(errors);
-			} else {
-				next();
-			}
-		} else {
-			next();
-		}
-	} catch (e) {
-		next(e);
-	}
-});
 
 schema.pre('save', async function (next) {
 	const req = this._req;
 	const txnId = req.headers[global.txnIdHeader] || req.headers['txnid'];
-	if(this.operation == 'DELETE') return next();
-	if(this.status != 'Pending') return next();
+	if (this.operation == 'DELETE') return next();
+	if (this.status != 'Pending') return next();
 	try {
 		logger.debug(`[${txnId}] Calling Prehook before submit :: ${this._id}`);
 		logger.trace(`[${txnId}] Calling Prehook before submit :: ${JSON.stringify(this.data.new)}`);
@@ -123,12 +104,37 @@ schema.pre('save', async function (next) {
 			simulate: true,
 			source: 'presave'
 		};
+		if (this._isEncrypted) {
+			await specialFields.decryptSecureFields(req, this.data.new, null);
+		}
 		const data = await hooksUtils.callAllPreHooks(req, this.data.new, options);
 		this.data.new = data;
 		next();
 	} catch (e) {
 		next(e);
 	}
+});
+
+schema.pre('save', async function (next) {
+	const newDoc = this.data.new;
+	const oldDoc = this.data.old;
+	const req = this._req;
+	try {
+		const errors = await specialFields.encryptSecureFields(req, newDoc, oldDoc);
+		if (errors) {
+			next(errors);
+		} else {
+			next();
+		}
+	} catch (e) {
+		next(e);
+	}
+});
+
+schema.pre('save', function (next) {
+	let doc = this.toObject();
+	Object.keys(doc).forEach(el => this.markModified(el));
+	next();
 });
 
 

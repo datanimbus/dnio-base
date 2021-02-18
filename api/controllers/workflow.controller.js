@@ -277,6 +277,7 @@ router.put('/:id', (req, res) => {
 				doc.remarks = remarks;
 			}
 			doc._req = req;
+			doc._isEncrypted = true;
 			const savedData = await doc.save();
 			logger.trace('Workflow Doc Updated', JSON.stringify({ savedData }));
 			return res.status(200).json({ message: 'Edit Successful.' });
