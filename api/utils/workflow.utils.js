@@ -140,7 +140,7 @@ function simulate(req, data, options) {
 		options = {};
 	}
 	options.simulate = true;
-	data = new model(data).toObject(); // Type Casting as per schema.
+	// data = new model(data).toObject(); // Type Casting as per schema.
 	let promise = Promise.resolve(data);
 	let oldData;
 	if (!data._id && options.generateId) {
