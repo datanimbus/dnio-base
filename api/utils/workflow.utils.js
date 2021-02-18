@@ -169,6 +169,8 @@ function simulate(req, data, options) {
 	}).then(() => {
 		return createOnlyValidation(req, data, oldData).catch(err => modifyError(err, 'createOnly'));
 	}).then(() => {
+		return dateValidation(req, data, oldData).catch(err => modifyError(err, 'date'));
+	}).then(() => {
 		return relationValidation(req, data, oldData).catch(err => modifyError(err, 'relation'));
 	}).then(() => {
 		return enrichGeojson(req, data, oldData).catch(err => modifyError(err, 'geojson'));
@@ -213,6 +215,25 @@ async function schemaValidation(req, newData, oldData) {
 		return modelData.toObject();
 	} catch (e) {
 		logger.error('schemaValidation', e);
+		throw e;
+	}
+}
+
+/**
+ * 
+ * @param {*} req The Incoming Request Object
+ * @param {*} newData The Data to validate against schema
+ * @param {*} [oldData] Old Data if PUT request
+ */
+async function dateValidation(req, newData, oldData) {
+	try {
+		const errors = await specialFields.validateDateFields(req, newData, oldData);
+		if (errors) {
+			throw errors;
+		}
+		return null;
+	} catch (e) {
+		logger.error('date', e);
 		throw e;
 	}
 }
