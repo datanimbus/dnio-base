@@ -160,7 +160,17 @@ async function execute() {
 					doc.status = 'Error';
 					if (err.source) {
 						doc.errorSource = err.source;
-						doc.message = err.error.message;
+						if (err.error.message) {
+							doc.message = err.error.message;
+						} else {
+							let message = '';
+							if (typeof err.error === 'object') {
+								Object.keys(err.error).forEach(key => {
+									message += key + ' : ' + err.error[key].message + '\n';
+								});
+							}
+							doc.message = message ? message : JSON.stringify(err.error);
+						}
 					} else {
 						doc.errorSource = 'Logic';
 						doc.message = err.message;
