@@ -73,7 +73,7 @@ function callAllPreHooks(req, data, options) {
 			payload['properties'] = properties;
 			return invokeHook(txnId, curr.url, payload, curr.failMessage, headers);
 		}).then(_response => {
-			newData = Object.assign({}, oldData, _response.body.data);
+			newData = _.mergeWith(oldData, _response.body.data, commonUtils.mergeCustomizer);
 			newData._metadata = oldData._metadata;
 			preHookLog.data.new = newData;
 			preHookLog.status = 'Success';
