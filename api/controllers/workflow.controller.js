@@ -564,12 +564,12 @@ async function approve(req, res) {
 				if (doc.operation == 'POST') {
 					serviceDoc = new serviceModel(doc.data.new);
 					serviceDoc._req = req;
-					serviceDoc._isFromWorflow = true;
+					serviceDoc._isFromWorkflow = true;
 					serviceDoc = await serviceDoc.save();
 				} else if (doc.operation == 'PUT') {
 					serviceDoc = await serviceModel.findById(doc.documentId);
 					serviceDoc._req = req;
-					serviceDoc._isFromWorflow = true;
+					serviceDoc._isFromWorkflow = true;
 					serviceDoc._oldDoc = serviceDoc.toObject();
 					Object.assign(serviceDoc, doc.data.new);
 					serviceDoc._metadata.workflow = null;
@@ -578,7 +578,7 @@ async function approve(req, res) {
 				} else if (doc.operation == 'DELETE') {
 					serviceDoc = await serviceModel.findById(doc.documentId);
 					serviceDoc._req = req;
-					serviceDoc._isFromWorflow = true;
+					serviceDoc._isFromWorkflow = true;
 					serviceDoc._oldDoc = serviceDoc.toObject();
 					serviceDoc = await serviceDoc.remove();
 				}

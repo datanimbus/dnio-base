@@ -63,7 +63,7 @@ schema.pre('save', async function (next) {
 			simulate: false,
 			source: 'presave'
 		};
-		if (this._isFromWorflow) {
+		if (this._isFromWorkflow) {
 			await specialFields.decryptSecureFields(req, this, null);
 		}
 		const data = await hooksUtils.callAllPreHooks(req, this, options);
