@@ -7,6 +7,7 @@ const utils = require('@appveen/utils');
 const config = require('../../config');
 const hooksUtils = require('./hooks.utils');
 const specialFields = require('./special-fields.utils');
+const commonUtils = require('./common.utils');
 
 const logger = global.logger;
 const configDB = global.authorDB;
@@ -201,7 +202,8 @@ function modifyError(err, source) {
 async function schemaValidation(req, newData, oldData) {
 	const model = mongoose.model(config.serviceId);
 	if (oldData) {
-		newData = Object.assign(oldData, newData);
+		newData = _.mergeWith(oldData, newData, commonUtils.mergeCustomizer);
+		// newData = Object.assign(oldData, newData);
 	}
 	let modelData = new model(newData);
 	modelData.isNew = false;
