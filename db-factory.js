@@ -18,7 +18,8 @@ global.txnIdHeader = 'txnid';
 // global.logger = logger;
 global.serviceCache = new NodeCache({ stdTTL: 60, checkperiod: 120, useClones: false });
 global.documentCache = new NodeCache({ stdTTL: 60, checkperiod: 120, useClones: false });
-global.trueBooleanValues = ['y', 'yes', 'true', 'yeah', 'affirmative', 'ok'];
+global.trueBooleanValues = ['y', 'yes', 'true', '1'];
+global.falseBooleanValues = ['n', 'no', 'false', '0'];
 
 const authorDB = mongoose.createConnection(config.mongoAuthorUrl, config.mongoAuthorOptions);
 authorDB.on('connecting', () => { logger.info(` *** ${config.authorDB} CONNECTING *** `); });
