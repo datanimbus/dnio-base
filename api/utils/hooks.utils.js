@@ -180,7 +180,8 @@ function prepWorkflowHooks(_data) {
 	logger.info(`[${txnId}] WorkflowHooks :: ${workFlowId} :: Status :: ${type.toUpperCase()}`);
 	let workflowHooks = [];
 	try {
-		workflowHooks = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'hooks.json'), 'utf-8')).workflowHooks.postHooks[_data.type];
+		const hooks = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'hooks.json'), 'utf-8'));
+		workflowHooks = hooks.workflowHooks && hooks.workflowHooks.postHooks ? hooks.workflowHooks.postHooks[_data.type] : [];
 	} catch (e) {
 		logger.error(`[${txnId}] WorkflowHooks :: ${workFlowId} :: Parser error :: ${e.message}`);
 		throw e;
