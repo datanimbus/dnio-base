@@ -36,7 +36,7 @@ router.get('/doc', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -55,7 +55,7 @@ router.get('/utils/securedFields', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -90,7 +90,7 @@ router.get('/utils/bulkShow', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -150,7 +150,7 @@ router.put('/bulkUpdate', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -210,7 +210,7 @@ router.delete('/utils/bulkDelete', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -257,7 +257,7 @@ router.get('/utils/count', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -331,7 +331,7 @@ router.get('/', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -363,7 +363,7 @@ router.get('/:id', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -433,7 +433,7 @@ router.post('/', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -501,7 +501,7 @@ router.put('/:id', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -555,7 +555,7 @@ router.delete('/:id', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -574,7 +574,7 @@ router.put('/:id/math', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -609,7 +609,7 @@ router.post('/hook', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
