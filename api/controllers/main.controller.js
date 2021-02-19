@@ -308,7 +308,9 @@ router.get('/', (req, res) => {
 				select = req.query.select.split(',').join(' ');
 			}
 			if (req.query.sort && req.query.sort.trim()) {
-				sort = req.query.sort.split(',').join(' ');
+				sort = req.query.sort.split(',').join(' ') + ' _metadata.lastUpdated';
+			} else {
+				sort = '_metadata.lastUpdated';
 			}
 			let docs = await model.find(filter).select(select).sort(sort).skip(skip).limit(count).lean();
 			if (req.query.expand) {

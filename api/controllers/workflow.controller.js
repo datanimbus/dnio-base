@@ -157,7 +157,9 @@ router.get('/', (req, res) => {
 				skip = count * ((+req.query.page) - 1);
 			}
 			if (req.query.select && req.query.select.trim()) {
-				select = req.query.select.split(',').join(' ');
+				select = req.query.select.split(',').join(' ') + ' _metadata.lastUpdated';
+			} else {
+				sort = '_metadata.lastUpdated';
 			}
 			if (req.query.sort && req.query.sort.trim()) {
 				sort = req.query.sort.split(',').join(' ');
