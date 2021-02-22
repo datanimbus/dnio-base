@@ -348,7 +348,7 @@ router.get('/:id', (req, res) => {
 					message: 'Data Model Not Found'
 				});
 			}
-			const expandLevel = +(req.header('expand-level'));
+			const expandLevel = (req.header('expand-level') || 0) + 1;
 			if (req.query.expand && expandLevel < 3) {
 				doc = await specialFields.expandDocument(req, doc);
 			}
