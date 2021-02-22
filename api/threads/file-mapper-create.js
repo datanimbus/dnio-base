@@ -110,8 +110,7 @@ async function execute() {
 			});
 			return Promise.all(temp);
 		});
-	});
-	docsToUpdate = await Promise.all(docsToUpdate);
+	}, Promise.resolve());
 	const finalData = await model.aggregate([{
 		$facet: {
 			createdCount: [{ $match: { fileId: fileId, status: 'Created' } }, { $count: 'count' }],
@@ -126,7 +125,7 @@ async function execute() {
 		status: 'Created',
 		'_metadata.lastUpdated': new Date()
 	};
-	if (result.createdCount == 0) {
+	if (!(result.createdCount || result.updatedCount)) {
 		result.status = 'Error';
 	}
 	mongoose.disconnect();
