@@ -106,6 +106,7 @@ schema.pre('save', async function (next) {
 		};
 		if (this._isEncrypted) {
 			await specialFields.decryptSecureFields(req, this.data.new, null);
+			this._isEncrypted = false;
 		}
 		const data = await hooksUtils.callAllPreHooks(req, this.data.new, options);
 		this.data.new = data;
@@ -120,7 +121,7 @@ schema.pre('save', async function (next) {
 	const oldDoc = this.data.old;
 	const req = this._req;
 	try {
-		if (this.operation != 'DELETE' && this.status == 'Pending') {
+		if (this.operation != 'DELETE' && this.status == 'Pending' && !this._isEncrypted) {
 			const errors = await specialFields.encryptSecureFields(req, newDoc, oldDoc);
 			if (errors) {
 				next(errors);
