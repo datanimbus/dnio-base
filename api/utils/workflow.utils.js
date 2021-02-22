@@ -207,6 +207,15 @@ async function schemaValidation(req, newData, oldData) {
 		newData = _.mergeWith(oldData, newData, commonUtils.mergeCustomizer);
 		// newData = Object.assign(oldData, newData);
 	}
+	try {
+		const errors = await specialFields.fixBoolean(req, newData, oldData);
+		if (errors) {
+			throw errors;
+		}
+	} catch (e) {
+		logger.error('schemaValidation', e);
+		throw e;
+	}
 	let modelData = new model(newData);
 	modelData.isNew = false;
 	logger.debug(JSON.stringify({ modelData }));
