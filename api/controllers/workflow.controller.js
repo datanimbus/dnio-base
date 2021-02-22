@@ -42,7 +42,7 @@ router.get('/count', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -94,7 +94,7 @@ router.get('/users', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -121,7 +121,7 @@ router.get('/serviceList', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -160,19 +160,13 @@ router.get('/', (req, res) => {
 				select = req.query.select.split(',').join(' ');
 			}
 			if (req.query.sort && req.query.sort.trim()) {
-				sort = req.query.sort.split(',').join(' ');
+				sort = req.query.sort.split(',').join(' ') + ' -_metadata.lastUpdated';
+			} else {
+				sort = '-_metadata.lastUpdated';
 			}
-			const docs = await workflowModel.find(filter).select(select).sort(sort).skip(skip).limit(count).lean();
-			// Decrypting secured fields
-			if(specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
-				let promises = [];
-				docs.forEach(e => 
-				{
-					promises.push(specialFields.decryptSecureFields(req, e.data.old, null), specialFields.decryptSecureFields(req, e.data.new, null));
-				});
-				await Promise.all(promises);
-				promises = null;
-			}
+			let docs = await workflowModel.find(filter).select(select).sort(sort).skip(skip).limit(count).lean();
+
+			docs = await decryptAndExpandWFItems(docs, req);
 			res.status(200).json(docs);
 		} catch (e) {
 			if (typeof e === 'string') {
@@ -183,7 +177,7 @@ router.get('/', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -217,9 +211,9 @@ router.put('/action', (req, res) => {
 	execute().catch(err => {
 		logger.error(err);
 		if (err.source) {
-			res.status(500).json(err);
+			res.status(400).json(err);
 		} else {
-			res.status(500).json({
+			res.status(400).json({
 				message: err.message
 			});
 		}
@@ -235,10 +229,7 @@ router.get('/:id', (req, res) => {
 					message: 'Workflow Not Found'
 				});
 			}
-			if(specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
-				await Promise.all([specialFields.decryptSecureFields(req, doc.data.old, null), 
-					specialFields.decryptSecureFields(req, doc.data.new, null)]);
-			}
+			doc = await decryptAndExpandWFItems(doc, req);
 			res.status(200).json(doc);
 		} catch (e) {
 			if (typeof e === 'string') {
@@ -249,7 +240,7 @@ router.get('/:id', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -277,6 +268,7 @@ router.put('/:id', (req, res) => {
 				doc.remarks = remarks;
 			}
 			doc._req = req;
+			doc._isEncrypted = true;
 			const savedData = await doc.save();
 			logger.trace('Workflow Doc Updated', JSON.stringify({ savedData }));
 			return res.status(200).json({ message: 'Edit Successful.' });
@@ -290,9 +282,9 @@ router.put('/:id', (req, res) => {
 	execute().catch(err => {
 		logger.error(err);
 		if (err.source) {
-			res.status(500).json(err);
+			res.status(400).json(err);
 		} else {
-			res.status(500).json({
+			res.status(400).json({
 				message: err.message
 			});
 		}
@@ -343,9 +335,9 @@ router.put('/doc/:id', (req, res) => {
 	execute().catch(err => {
 		logger.error(err);
 		if (err.source) {
-			res.status(500).json(err);
+			res.status(400).json(err);
 		} else {
-			res.status(500).json({
+			res.status(400).json({
 				message: err.message
 			});
 		}
@@ -414,7 +406,7 @@ router.get('/group/:app', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error(err);
-		res.status(500).json({
+		res.status(400).json({
 			message: err.message
 		});
 	});
@@ -453,7 +445,7 @@ async function discard(req, res) {
 		return res.status(200).json({ message: 'Discard Successful' });
 	} catch (e) {
 		logger.error(e);
-		return res.status(500).json({ message: e.message });
+		return res.status(400).json({ message: e.message });
 	}
 }
 
@@ -493,7 +485,7 @@ async function submit(req, res) {
 		return res.status(200).json({ message: 'Submission Successful' });
 	} catch (e) {
 		logger.error(e);
-		return res.status(500).json({ message: e.message });
+		return res.status(400).json({ message: e.message });
 	}
 }
 
@@ -533,7 +525,7 @@ async function rework(req, res) {
 		return res.status(200).json({ message: 'Sent For Changes.' });
 	} catch (e) {
 		logger.error(e);
-		return res.status(500).json({ message: e.message });
+		return res.status(400).json({ message: e.message });
 	}
 }
 
@@ -599,11 +591,12 @@ async function approve(req, res) {
 				return await doc.save();
 			}
 		});
-		const savedDoc = await Promise.all(promises);
-		return res.status(200).json(savedDoc);
+		let savedDocs = await Promise.all(promises);
+		savedDocs = await decryptAndExpandWFItems(savedDocs, req);
+		return res.status(200).json(savedDocs);
 	} catch (e) {
 		logger.error(e);
-		return res.status(500).json({ message: e.message });
+		return res.status(400).json({ message: e.message });
 	}
 }
 
@@ -647,7 +640,35 @@ async function reject(req, res) {
 		return res.status(200).json({ message: 'Documents Rejected' });
 	} catch (e) {
 		logger.error(e);
-		return res.status(500).json({ message: e.message });
+		return res.status(400).json({ message: e.message });
+	}
+}
+
+async function decryptAndExpandWFItems(wfItems, req) {
+	if(wfItems && Array.isArray(wfItems)) {
+		// Decrypting secured fields
+		if(specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
+			let promises = [];
+			wfItems.forEach(e => 
+			{
+				promises.push(specialFields.decryptSecureFields(req, e.data.old, null), specialFields.decryptSecureFields(req, e.data.new, null));
+			});
+			await Promise.all(promises);
+			promises = null;
+		}
+		// Expanding Relations
+		if(req.query.expand) {
+			let promises = [];
+			wfItems.forEach(e => {
+				promises.push(specialFields.expandDocument(req, e.data.old, null), specialFields.expandDocument(req, e.data.new, null));
+			});
+			await Promise.all(promises);
+			promises = null;
+		}
+		return wfItems;
+	} else {
+		wfItems = await decryptAndExpandWFItems([wfItems], req);
+		return wfItems[0]
 	}
 }
 

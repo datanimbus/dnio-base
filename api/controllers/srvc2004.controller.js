@@ -11,7 +11,7 @@ const helperUtil = require("../helpers/util.js");
 const schema = new mongoose.Schema(definition);
 const exportSchema = new mongoose.Schema(exportDefinition);
 const crypto = require('crypto');
-const streamifier = require('streamifier');
+// const streamifier = require('streamifier');
 const uuid = require("uuid/v1");
 const BATCH = 500;
 const logger = global.logger;
@@ -1004,24 +1004,24 @@ e.doc = (_req, _res)=>{
         })
 }
 
-e.fileUpload = (_req, _res) => {
-    let sampleFile = _req.files.file;
-    let fileName = sampleFile.name;
-    streamifier.createReadStream(sampleFile.data).
-        pipe(global.gfsBucket.openUploadStream(crypto.createHash('md5').update(uuid() + global.serverStartTime).digest("hex"), {
-            contentType: sampleFile.mimetype,
-            metadata: {
-                filename: fileName
-            }
-        })).
-        on('error', function (error) {
-            logger.error(error);
-        }).
-        on('finish', function (file) {
-            logger.debug('File uploaded to gridFS');
-            _res.json(file);
-        });
-}
+// e.fileUpload = (_req, _res) => {
+//     let sampleFile = _req.files.file;
+//     let fileName = sampleFile.name;
+//     streamifier.createReadStream(sampleFile.data).
+//         pipe(global.gfsBucket.openUploadStream(crypto.createHash('md5').update(uuid() + global.serverStartTime).digest("hex"), {
+//             contentType: sampleFile.mimetype,
+//             metadata: {
+//                 filename: fileName
+//             }
+//         })).
+//         on('error', function (error) {
+//             logger.error(error);
+//         }).
+//         on('finish', function (file) {
+//             logger.debug('File uploaded to gridFS');
+//             _res.json(file);
+//         });
+// }
 
 e.fileView = (_req, _res) => {
     var id = _req.swagger.params.id.value;

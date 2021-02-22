@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const streamifier = require('streamifier');
+const fs = require('fs');
 const uuid = require('uuid/v1');
 const crypto = require('crypto');
 
@@ -82,7 +82,7 @@ router.post('/upload', (req, res) => {
 		try {
 			const sampleFile = req.file;
 			const filename = sampleFile.originalname;
-			streamifier.createReadStream(sampleFile.destination + '/' + sampleFile.filename).
+			fs.createReadStream(sampleFile.path).
 				pipe(global.gfsBucket.openUploadStream(crypto.createHash('md5').update(uuid() + global.serverStartTime).digest('hex'), {
 					contentType: sampleFile.mimetype,
 					metadata: { filename }
