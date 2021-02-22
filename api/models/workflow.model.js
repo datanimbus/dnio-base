@@ -120,11 +120,13 @@ schema.pre('save', async function (next) {
 	const oldDoc = this.data.old;
 	const req = this._req;
 	try {
-		const errors = await specialFields.encryptSecureFields(req, newDoc, oldDoc);
-		if (errors) {
-			next(errors);
-		} else {
-			next();
+		if (this.operation != 'DELETE' && this.status == 'Pending') {
+			const errors = await specialFields.encryptSecureFields(req, newDoc, oldDoc);
+			if (errors) {
+				next(errors);
+			} else {
+				next();
+			}
 		}
 	} catch (e) {
 		next(e);
