@@ -75,7 +75,7 @@ async function execute() {
 	}, Promise.resolve());
 
 	let docsToUpdate = await model.find({ fileId, sNo: { $in: update } });
-	let updateBatch = [docsToCreate];
+	let updateBatch = [docsToUpdate];
 	if (docsToUpdate.length > 2500) {
 		updateBatch = _.chunk(docsToUpdate, 2500);
 	}
