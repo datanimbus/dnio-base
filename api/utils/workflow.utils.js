@@ -204,7 +204,7 @@ function modifyError(err, source) {
 async function schemaValidation(req, newData, oldData) {
 	const model = mongoose.model(config.serviceId);
 	if (oldData) {
-		newData = _.mergeWith(oldData, newData, commonUtils.mergeCustomizer);
+		newData = _.mergeWith({}, oldData, newData, commonUtils.mergeCustomizer);
 		// newData = Object.assign(oldData, newData);
 	}
 	try {

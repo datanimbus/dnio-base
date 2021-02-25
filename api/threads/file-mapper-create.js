@@ -95,7 +95,7 @@ async function execute() {
 						}
 						doc._metadata.workflow = status._id;
 					} else {
-						temp._oldData = temp.toObject();
+						temp._oldDoc = temp.toObject();
 						temp._req = req;
 						_.mergeWith(temp, doc.data, mergeCustomizer);
 						temp = await temp.save();
