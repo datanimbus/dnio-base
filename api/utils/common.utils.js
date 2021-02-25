@@ -72,47 +72,52 @@ async function getServiceDoc(req, serviceId, documentId) {
 	const key = serviceId + '_' + documentId + '_' + req.headers[global.userHeader];
 	let service = serviceCache.get(serviceId);
 	let document = documentCache.get(key);
-	if (!service) {
-		service = httpClient.httpRequest({
-			url: config.baseUrlSM + '/service/' + serviceId,
-			method: 'GET',
-			headers: {
-				'txnId': req ? req.headers[global.txnIdHeader] : '',
-				'user': req ? req.headers[global.userHeader] : '',
-				'Content-Type': 'application/json'
-			},
-			qs: {
-				select: 'api,app,definition,attributeList,collectionName'
-			},
-			json: true
-		}).then(res => res.body);
-		serviceCache.set(serviceId, service);
+	try {
+		if (!service) {
+			service = httpClient.httpRequest({
+				url: config.baseUrlSM + '/service/' + serviceId,
+				method: 'GET',
+				headers: {
+					'txnId': req ? req.headers[global.txnIdHeader] : '',
+					'user': req ? req.headers[global.userHeader] : '',
+					'Content-Type': 'application/json'
+				},
+				qs: {
+					select: 'api,app,definition,attributeList,collectionName'
+				},
+				json: true
+			}).then(res => res.body);
+			serviceCache.set(serviceId, service);
+		}
+		service = await service;
+		const dataServiceUrl = '/api/c/' + service.app + service.api + '/' + documentId;
+		let api = config.baseUrlGW + dataServiceUrl + '?expand=true';
+		// if (expandLevel < 2) {
+		//     api += '?expand=true';
+		// }
+		if (!document) {
+			document = httpClient.httpRequest({
+				url: api,
+				method: 'GET',
+				headers: {
+					'txnId': req ? req.headers[global.txnIdHeader] : '',
+					'authorization': req ? req.headers.authorization : '',
+					'Content-Type': 'application/json',
+					'Expand-Level': expandLevel
+				},
+				json: true
+			}).then(res => {
+				const temp = res.body;
+				temp._href = dataServiceUrl;
+				return temp;
+			});
+			documentCache.set(key, document);
+		}
+		return await document;
+	} catch(e) {
+		logger.error('Error in getServiceDoc :: ', e);
+		throw e;
 	}
-	service = await service;
-	const dataServiceUrl = '/api/c/' + service.app + service.api + '/' + documentId;
-	let api = config.baseUrlGW + dataServiceUrl + '?expand=true';
-	// if (expandLevel < 2) {
-	//     api += '?expand=true';
-	// }
-	if (!document) {
-		document = httpClient.httpRequest({
-			url: api,
-			method: 'GET',
-			headers: {
-				'txnId': req ? req.headers[global.txnIdHeader] : '',
-				'authorization': req ? req.headers.authorization : '',
-				'Content-Type': 'application/json',
-				'Expand-Level': expandLevel
-			},
-			json: true
-		}).then(res => {
-			const temp = res.body;
-			temp._href = dataServiceUrl;
-			return temp;
-		});
-		documentCache.set(key, document);
-	}
-	return await document;
 }
 
 /**
@@ -185,7 +190,7 @@ async function decryptText(req, data) {
 			throw new Error('Error decrypting text');
 		}
 	} catch (e) {
-		logger.error('Error requesting Security service');
+		logger.error('Error requesting Security service :: ', e);
 		throw e;
 	}
 }
