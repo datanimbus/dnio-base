@@ -166,7 +166,7 @@ async function execute() {
 							let message = '';
 							if (typeof err.error === 'object') {
 								Object.keys(err.error).forEach(key => {
-									message += key + ' : ' + err.error[key].message + '\n';
+									message += key + ' : ' + err.error[key] + '\n';
 								});
 							}
 							doc.message = message ? message : JSON.stringify(err.error);
