@@ -345,7 +345,7 @@ router.get('/:id', (req, res) => {
 			let doc = await model.findById(req.params.id).lean();
 			if (!doc) {
 				return res.status(404).json({
-					message: 'Data Model Not Found'
+					message: `Record With ID  ${req.params.id} Not Found.`
 				});
 			}
 			const expandLevel = (req.header('expand-level') || 0) + 1;
@@ -519,7 +519,7 @@ router.delete('/:id', (req, res) => {
 			let status;
 			if (!doc) {
 				return res.status(404).json({
-					message: 'Data Model Not Found'
+					message: `Record With ID  ${req.params.id} Not Found`
 				});
 			}
 			if (doc._metadata.workflow) {
