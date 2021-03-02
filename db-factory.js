@@ -21,6 +21,23 @@ global.documentCache = new NodeCache({ stdTTL: 60, checkperiod: 120, useClones: 
 global.trueBooleanValues = ['y', 'yes', 'true', '1'];
 global.falseBooleanValues = ['n', 'no', 'false', '0'];
 
+function setIsTransactionAllowed() {
+	global.isTransactionAllowed = false;
+	try {
+		mongoose.connection.db.admin().command({"replSetGetStatus":1 }, async function (err, replicaSetStatus) {
+			logger.trace('Replica Status :: ', replicaSetStatus);
+			if(replicaSetStatus) {
+				let dbVersion = (await mongoose.connection.db.admin().serverInfo()).version;
+				logger.debug('Appcenter Db Version :: ', dbVersion);
+				global.isTransactionAllowed = dbVersion && dbVersion >= '4.2.0'
+			}
+			logger.info('Are MongoDb Transactions Allowed :: ', global.isTransactionAllowed);
+		});
+	} catch(e) {
+		logger.error('Error in setIsTransactionAllowed :: ', e);
+	}
+}
+
 const authorDB = mongoose.createConnection(config.mongoAuthorUrl, config.mongoAuthorOptions);
 authorDB.on('connecting', () => { logger.info(` *** ${config.authorDB} CONNECTING *** `); });
 authorDB.on('disconnected', () => { logger.error(` *** ${config.authorDB} LOST CONNECTION *** `); });
@@ -45,6 +62,7 @@ mongoose.connect(config.mongoUrl, config.mongoAppCenterOptions, err => {
 		global.gfsBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}` });
 		global.gfsBucketExport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.exportedFile` });
 		global.gfsBucketImport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.fileImport` });
+		setIsTransactionAllowed();
 	}
 });
 

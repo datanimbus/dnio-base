@@ -10,7 +10,7 @@ const specialFields = require('../utils/special-fields.utils');
 const hooksUtils = require('../utils/hooks.utils');
 const crudderUtils = require('../utils/crudder.utils');
 const workflowUtils = require('../utils/workflow.utils');
-const { mergeCustomizer, getDiff} = require('./../utils/common.utils');
+const { mergeCustomizer, getDiff } = require('./../utils/common.utils');
 
 const logger = global.logger;
 const model = mongoose.model(config.serviceId);
@@ -318,7 +318,7 @@ router.get('/', (req, res) => {
 				docs = await Promise.all(promises);
 				promises = null;
 			}
-			if(specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
+			if (specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
 				let promises = docs.map(e => specialFields.decryptSecureFields(req, e, null));
 				await Promise.all(promises);
 				promises = null;
@@ -352,7 +352,7 @@ router.get('/:id', (req, res) => {
 			if (req.query.expand && expandLevel < 3) {
 				doc = await specialFields.expandDocument(req, doc);
 			}
-			if(specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
+			if (specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
 				await specialFields.decryptSecureFields(req, doc, null);
 			}
 			res.status(200).json(doc);
@@ -375,6 +375,7 @@ router.post('/', (req, res) => {
 	async function execute() {
 		// const workflowModel = global.authorDB.model('workflow');
 		const workflowModel = mongoose.model('workflow');
+		let txnId = req.get(global.txnIdHeader);
 		try {
 			const payload = req.body;
 			let promises;
@@ -409,16 +410,40 @@ router.post('/', (req, res) => {
 				res.status(200).json(promises);
 			} else {
 				if (Array.isArray(payload)) {
-					promises = payload.map(async (data) => {
-						const doc = new model(data);
-						doc._req = req;
+					let abortOnError = req.query.abortOnError;
+					if (abortOnError) {
+						if (!global.isTransactionAllowed)
+							throw new Error('Transactions are not supported for your Mongo Db server configuration.');
+						logger.debug(`[${txnId}] :: Starting transaction for bulk post.`);
+						let session;
 						try {
-							return (await doc.save()).toObject();
-						} catch (e) {
-							return { message: e.message };
+							await mongoose.connection.transaction(async function abcd(sess) {
+								session = sess;
+								promises = payload.map(async (data) => {
+									let doc = new model(data);
+									doc._req = req;
+									return (await doc.save({ session })).toObject();	
+								}, config.transactionOptions);
+								return await Promise.all(promises);
+							})
+						} catch(err) {
+							logger.error(`[${txnId}] : Error while bulk post with transaction :: `, err);
+							throw err;
+						} finally {
+							if(session) session.endSession();
 						}
-					});
-					promises = await Promise.all(promises);
+					} else {
+						promises = payload.map(async (data) => {
+							const doc = new model(data);
+							doc._req = req;
+							try {
+								return (await doc.save()).toObject();
+							} catch (e) {
+								return { message: e.message };
+							}
+						});
+						promises = await Promise.all(promises);
+					}
 				} else {
 					const doc = new model(payload);
 					doc._req = req;
