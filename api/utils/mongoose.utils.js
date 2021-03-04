@@ -25,6 +25,12 @@ function metadataPlugin() {
 				},
 			}
 		});
+		schema.index({
+			'_metadata.lastUpdated': 1
+		});
+		schema.index({
+			'_metadata.createdAt': 1
+		});
 		schema.pre('save', function (next) {
 			const self = this;
 			if (!self._metadata) {
