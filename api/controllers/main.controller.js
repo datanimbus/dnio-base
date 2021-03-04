@@ -628,7 +628,7 @@ router.post('/hook', (req, res) => {
 	});
 });
 
-function createDocuments(req, session) {
+async function createDocuments(req, session) {
 	const payload = req.body;
 	let upsert = req.query.upsert;
 	let oldDocs = [];
