@@ -377,7 +377,7 @@ router.post('/', (req, res) => {
 		const workflowModel = mongoose.model('workflow');
 		let txnId = req.get(global.txnIdHeader);
 		try {
-			const payload = req.body;
+			let payload = req.body;
 			let promises;
 			const hasSkipReview = await workflowUtils.hasSkipReview(req);
 			if ((workflowUtils.isWorkflowEnabled() && !hasSkipReview) || req.query.draft) {
@@ -431,6 +431,12 @@ router.post('/', (req, res) => {
 						promises = await createDocuments(req);
 					}
 				} else {
+					let upsert = req.query.upsert;
+					if(upsert && payload._id) {
+						let oldDoc = await model.findById(payload._id);
+						logger.debug(`[${txnId}] : Updating Existing Record With ID ${payload._id}`);
+						payload = _.mergeWith(oldDoc, payload, mergeCustomizer);
+					}
 					const doc = new model(payload);
 					doc._req = req;
 					promises = (await doc.save()).toObject();
