@@ -139,7 +139,7 @@ function flatten(obj, deep, parent) {
 
 function getUserDocuments(select, filter) {
 	var options = {
-		url: `${config.get('user')}/rbac/usr`,
+		url: `${config.baseUrlUSR}/usr`,
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
