@@ -126,8 +126,7 @@ async function getServiceDoc(req, serviceId, documentId) {
  * @param {*} data The data to encrypt
  */
 async function encryptText(req, data) {
-	// data = data.toString();
-	logger.info('typeof data ::: ', typeof data);
+	data = data.toString();
 	var options = {
 		url: config.baseUrlSEC + '/enc/' + config.app + '/encrypt',
 		method: 'POST',
