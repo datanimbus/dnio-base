@@ -426,7 +426,7 @@ function removeDocument(doc, relatedService) {
 			if (data.allowed) {
 				return posthook(data)
 					.then(() => {
-						return mongoose.connection.db.collection('def2406').remove({ _id: doc._id });
+						return mongoose.connection.db.collection(config.serviceCollection).remove({ _id: doc._id });
 					})
 					.then(() => {
 						return removeAudit(doc);
