@@ -367,7 +367,7 @@ e.bulkDelete = function (relatedService) {
 	const DELETEBATCH = 30;
 	let rmDocs = [];
 	let ids = [];
-	return mongoose.connection.db.collection('def2406').find({}).toArray()
+	return mongoose.connection.db.collection(config.serviceCollection).find({}).toArray()
 		.then(docs => {
 			let arr = [];
 			docs.map(doc => ids.push(doc._id));
@@ -389,7 +389,7 @@ e.bulkDelete = function (relatedService) {
 		})
 		.then(() => {
 			var options = {
-				url: config.baseUrlSM + '/service/' + (process.env.SERVICE_ID || 'SRVC2004') + '/statusChangeFromMaintenance',
+				url: config.baseUrlSM + '/service/' + (process.env.SERVICE_ID) + '/statusChangeFromMaintenance',
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json'
