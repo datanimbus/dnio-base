@@ -126,6 +126,8 @@ async function getServiceDoc(req, serviceId, documentId) {
  * @param {*} data The data to encrypt
  */
 async function encryptText(req, data) {
+	// data = data.toString();
+	logger.info('typeof data ::: ', typeof data);
 	var options = {
 		url: config.baseUrlSEC + '/enc/' + config.app + '/encrypt',
 		method: 'POST',
@@ -149,10 +151,12 @@ async function encryptText(req, data) {
 				checksum: crypto.createHash('md5').update(data).digest('hex')
 			};
 		} else {
+			logger.error('Error response code from security service :: ', res.statusCode);
+			logger.error('Error response from security service :: ', res.body);
 			throw new Error('Error encrypting text');
 		}
 	} catch (e) {
-		logger.error('Error requesting Security service');
+		logger.error('Error requesting Security service', e);
 		throw e;
 	}
 }
