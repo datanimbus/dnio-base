@@ -387,8 +387,11 @@ e.bulkDelete = function (relatedService) {
 						data.map(doc => rmDocs.push(doc));
 					});
 			}, Promise.resolve());
-		})
-		.then(() => {
+		}).then(() => {
+			var collectionsToDrop = ['bulkCreate', 'exportedFile.chunks', 'exportedFile.files', 'exports', 'fileImport.chunks', 'fileImport.files', 'fileTransfers', 'workflow']
+			collectionsToDrop = collectionsToDrop.map(coll => `${config.serviceCollection}.${coll}`);
+			return dropCollections(collectionsToDrop);
+		}).then(() => {
 			var options = {
 				url: config.baseUrlSM + '/service/' + (process.env.SERVICE_ID) + '/statusChangeFromMaintenance',
 				method: 'PUT',
@@ -434,6 +437,17 @@ function removeDocument(doc, relatedService) {
 					});
 			}
 		});
+}
+
+function dropCollections(collections) {
+	var promises = collections.map((coll) => {
+		return mongoose.connection.db.dropCollection(coll).then(() => {
+			logger.debug('Dropped collection :: ', coll);
+		}).catch((err) => {
+			logger.error(`Error dropping collection :: ${coll} : `, err)
+		})
+	});
+	return Promise.all(promises)
 }
 
 function getRelationCheckObj(obj) {
