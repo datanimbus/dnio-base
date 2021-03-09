@@ -114,7 +114,7 @@ async function getServiceDoc(req, serviceId, documentId) {
 			documentCache.set(key, document);
 		}
 		return await document;
-	} catch(e) {
+	} catch (e) {
 		logger.error('Error in getServiceDoc :: ', e);
 		throw e;
 	}
@@ -141,7 +141,7 @@ async function encryptText(req, data) {
 	try {
 		const res = await httpClient.httpRequest(options);
 		if (!res) {
-			logger.error('Security service down');
+			logger.error(`[${req.headers[global.txnIdHeader]}] Security service down`);
 			throw new Error('Security service down');
 		}
 		if (res.statusCode === 200) {
@@ -150,12 +150,12 @@ async function encryptText(req, data) {
 				checksum: crypto.createHash('md5').update(data).digest('hex')
 			};
 		} else {
-			logger.error('Error response code from security service :: ', res.statusCode);
-			logger.error('Error response from security service :: ', res.body);
+			logger.error(`[${req.headers[global.txnIdHeader]}] Error response code from security service :: `, res.statusCode);
+			logger.error(`[${req.headers[global.txnIdHeader]}] Error response from security service :: `, res.body);
 			throw new Error('Error encrypting text');
 		}
 	} catch (e) {
-		logger.error('Error requesting Security service', e);
+		logger.error(`[${req.headers[global.txnIdHeader]}] Error requesting Security service`, e);
 		throw e;
 	}
 }
@@ -166,7 +166,7 @@ async function encryptText(req, data) {
  * @param {*} data The data to decrypt
  */
 async function decryptText(req, data) {
-	if(!data){
+	if (!data) {
 		data = req;
 		req = undefined;
 	}
@@ -184,7 +184,7 @@ async function decryptText(req, data) {
 	try {
 		const res = await httpClient.httpRequest(options);
 		if (!res) {
-			logger.error('Security service down');
+			logger.error(`[${req.headers[global.txnIdHeader]}] Security service down`);
 			throw new Error('Security service down');
 		}
 		if (res.statusCode === 200) {
@@ -193,7 +193,7 @@ async function decryptText(req, data) {
 			throw new Error('Error decrypting text');
 		}
 	} catch (e) {
-		logger.error('Error requesting Security service :: ', e);
+		logger.error(`[${req.headers[global.txnIdHeader]}] Error requesting Security service :: `, e);
 		throw e;
 	}
 }
@@ -217,7 +217,7 @@ async function getGeoDetails(req, path, address) {
 	try {
 		const res = await httpClient.httpRequest(options);
 		if (!res) {
-			logger.error('Google API service is down');
+			logger.error(`[${req.headers[global.txnIdHeader]}] Google API service is down`);
 			throw new Error('Google API service is down');
 		}
 		if (res.statusCode === 200) {
@@ -252,10 +252,11 @@ async function getGeoDetails(req, path, address) {
 				return resObj;
 			}
 		} else {
+			logger.error(`[${req.headers[global.txnIdHeader]}] Goolgle Maps API returned 400`, res.body.error_message);
 			return { key: path, geoObj: { userInput: address } };
 		}
 	} catch (e) {
-		logger.error('Error requesting Security service');
+		logger.error(`[${req.headers[global.txnIdHeader]}] Error requesting Goolgle Maps API`);
 		throw e;
 	}
 }
