@@ -864,7 +864,7 @@ function doRoundMathAPI(req) {
 				})
 				.then(() => {
 					if (!req.simulateFlag)
-						return crudderUtils.simulateDocs(globalDoc, generateId, req, 'PUT');
+						return workflowUtils.simulate(req, globalDoc, { generateId, operation: 'PUT' });
 					return globalDoc;
 				})
 				.then((_d) => {

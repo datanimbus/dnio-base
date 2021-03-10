@@ -151,7 +151,7 @@ function simulate(req, data, options) {
 	} else if (data._id && options.operation == 'PUT') {
 		promise = model.findOne({ _id: data._id }).lean(true).then(_d => {
 			oldData = _d;
-			return _.assign(JSON.parse(JSON.stringify(_d)), data);
+			return _.mergeWith(JSON.parse(JSON.stringify(_d)), data, commonUtils.mergeCustomizer);
 		});
 	}
 	return promise.then((newData) => {
