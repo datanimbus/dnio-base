@@ -888,6 +888,29 @@ function getDiff(a, b, oldData, newData) {
 	}
 }
 
+function modifySecureFieldsFilter(filter, secureFields, secureFlag) {
+    if (filter instanceof RegExp) return filter;
+    let newSecurefield = secureFields.map(field=> field+'.value');
+    if (Array.isArray(filter)) return filter.map(_f => modifySecureFieldsFilter(_f, secureFields, secureFlag));
+    if (filter != null && typeof filter == 'object' && filter.constructor == {}.constructor) {
+        let newFilter = {};
+        Object.keys(filter).forEach(_k => {
+            let newKey = _k;
+            if (newSecurefield.indexOf(_k) > -1) {
+                newKey = _k.split('.');
+                newKey.pop();
+                newKey = newKey.join('.');                
+                newKey = newKey.startsWith('$') ? newKey : newKey + '.checksum';
+                newFilter[newKey] = modifySecureFieldsFilter(filter[_k], secureFields, true);
+            } else {
+                newFilter[newKey] = modifySecureFieldsFilter(filter[_k], secureFields, secureFlag);
+            }
+        });
+        return newFilter;
+    }
+    return secureFlag && typeof filter == 'string' ? crypto.createHash('md5').update(filter).digest("hex") : filter;
+}
+
 e.getDocumentIds = getDocumentIds;
 e.getServiceDoc = getServiceDoc;
 e.encryptText = encryptText;
@@ -899,4 +922,5 @@ e.getFormattedDate = getFormattedDate;
 e.crudDocuments = crudDocuments;
 e.mergeCustomizer = mergeCustomizer;
 e.getDiff = getDiff;
+e.modifySecureFieldsFilter = modifySecureFieldsFilter;
 module.exports = e;

@@ -360,6 +360,7 @@ async function execute() {
 			filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
 			// intFilter = JSON.parse(JSON.stringify(filter));
 			filter = await exportUtils.createFilter(definitionArr, filter, reqData);
+			filter = modifySecureFieldsFilter(filter, specialFields.secureFields,false);
 			filter = crudderUtils.parseFilter(filter);
 		}
 		logger.debug(`[${txnId}] Filter for export :: ${JSON.stringify(filter)}`);

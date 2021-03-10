@@ -10,7 +10,7 @@ const specialFields = require('../utils/special-fields.utils');
 const hooksUtils = require('../utils/hooks.utils');
 const crudderUtils = require('../utils/crudder.utils');
 const workflowUtils = require('../utils/workflow.utils');
-const { mergeCustomizer, getDiff } = require('./../utils/common.utils');
+const { mergeCustomizer, getDiff, modifySecureFieldsFilter } = require('./../utils/common.utils');
 
 const logger = global.logger;
 const model = mongoose.model(config.serviceId);
@@ -233,6 +233,7 @@ router.get('/utils/count', (req, res) => {
 					} else if (tempFilter) {
 						filter = tempFilter;
 					}
+					filter = modifySecureFieldsFilter(filter, specialFields.secureFields,false);
 				}
 			} catch (e) {
 				logger.error(e);
@@ -277,6 +278,7 @@ router.get('/', (req, res) => {
 					} else if (tempFilter) {
 						filter = tempFilter;
 					}
+					filter = modifySecureFieldsFilter(filter, specialFields.secureFields,false);
 				}
 			} catch (e) {
 				logger.error(e);
