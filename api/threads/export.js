@@ -389,6 +389,7 @@ async function execute() {
 			arr.push(i);
 		}
 		reqData.query.batchSize = reqData.query.batchSize ? reqData.query.batchSize : BATCH;
+		reqData.query.filter = filter;
 		cursor = crudderUtils.cursor(reqData, serviceModel);
 		/********** Fetching documents from DB *********/
 		await arr.reduce(async (_p, curr, i) => {
