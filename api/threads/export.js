@@ -360,8 +360,9 @@ async function execute() {
 			filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
 			// intFilter = JSON.parse(JSON.stringify(filter));
 			filter = await exportUtils.createFilter(definitionArr, filter, reqData);
+			filter = crudderUtils.parseFilter(filter);
 		}
-		logger.debug(`[${txnId}] Filter for export :: ${filter}`);
+		logger.debug(`[${txnId}] Filter for export :: ${JSON.stringify(filter)}`);
 
 		let count = await serviceModel.countDocuments(filter);
 		totalRecords = count;
