@@ -433,6 +433,7 @@ async function discard(req, res) {
 		if (!doc.audit) {
 			doc.audit = [];
 		}
+		doc.respondedBy = req.headers[global.userHeader];
 		doc.audit.push(event);
 		doc.markModified('audit');
 		doc._req = req;
@@ -512,6 +513,7 @@ async function rework(req, res) {
 		};
 		const promises = docs.map(doc => {
 			doc.status = 'Rework';
+			doc.respondedBy = req.headers[global.userHeader];
 			if (!doc.audit) {
 				doc.audit = [];
 			}
@@ -575,6 +577,7 @@ async function approve(req, res) {
 					serviceDoc = await serviceDoc.remove();
 				}
 				doc.status = 'Approved';
+				doc.respondedBy = req.headers[global.userHeader];
 			} catch (e) {
 				event.by = 'Entity';
 				event.action = 'Error';
@@ -627,6 +630,7 @@ async function reject(req, res) {
 				logger.debug('Unlocked Document', status);
 			}
 			doc.status = 'Rejected';
+			doc.respondedBy = req.headers[global.userHeader];
 			if (!doc.audit) {
 				doc.audit = [];
 			}
