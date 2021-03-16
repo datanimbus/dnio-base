@@ -9,14 +9,20 @@ const path = require('path');
 const express = require('express');
 const bluebird = require('bluebird');
 const multer = require('multer');
-const bodyParser = require('body-parser');
 const log4js = require('log4js');
+const pprof = require('pprof');
 const mongoose = require('mongoose');
 mongoose.set('useFindAndModify', false);
 const utils = require('@appveen/utils');
 const dataStackUtils = require('@appveen/data.stack-utils');
 
 const config = require('./config');
+
+// The average number of bytes between samples.
+const intervalBytes = 512 * 1024;
+// The maximum stack depth for samples collected.
+const stackDepth = 64;
+pprof.heap.start(intervalBytes, stackDepth);
 
 let baseImageVersion = require('./package.json').version;
 const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} v.${config.serviceVersion}]` : `[${config.serviceName} v.${config.serviceVersion}]`;
@@ -64,12 +70,12 @@ let masking = [
 	{ url: `${baseURL}/utils/experienceHook`, path: secureFields }
 ];
 
-app.use(bodyParser.json({ limit: config.MaxJSONSize }));
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json({ limit: config.MaxJSONSize }));
+app.use(express.urlencoded({ extended: true }));
 app.use(utils.logMiddleware.getLogMiddleware(logger));
 app.use(upload.single('file'));
 app.use(function (req, res, next) {
-	if(config.disableInsights) next();
+	if (config.disableInsights) next();
 	else {
 		const logToQueue = dataStackUtils.logToQueue(`${config.app}.${config.serviceId}`, queueMgmt.client, 'dataService', `${config.app}.${config.serviceId}.logs`, masking, config.serviceId);
 		logToQueue(req, res, next);
@@ -109,6 +115,14 @@ app.use((req, res, next) => {
 		}
 	});
 	next();
+});
+
+app.get('/' + config.app + config.serviceEndpoint + '/utils/tools/pprof', async (req, res) => {
+	const profile = await pprof.heap.profile();
+	const buf = await pprof.encode(profile);
+	res.setHeader('Content-Disposition', `attachment;filename="pprof_${config.serviceId}.pb.gz"`);
+	res.write(buf);
+	res.status(200).end();
 });
 
 app.use('/' + config.app + config.serviceEndpoint, require('./api/controllers'));
