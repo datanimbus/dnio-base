@@ -53,7 +53,7 @@ function convertToTimezone(dateObj, dateType, timezone = 0) {
 	if(dateObj) {
 		try {
 			return {
-				tzData : dateType == 'date' ? moment(dateObj.tzData).format('MMM DD, YYYY') : dateObj.tzData,
+				tzData : dateType == 'date' ? moment(dateObj.tzData).tz(dateObj.tzInfo).format('MMM DD, YYYY') : dateObj.tzData,
 				tzInfo: dateObj.tzInfo
 			};
 		} catch(e) {
