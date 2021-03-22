@@ -238,7 +238,7 @@ function keyvalue(data, obj, keys, values, flag) {
 			keys = ''; values = '';
 		}
 
-		if (item && item['properties'] && item['properties']['relatedTo']) {
+		if (item && item['properties'] && (item['properties']['relatedTo'] || item['type'] == 'User')) {
 			let newkeys = keys + item.key + '.';
 			let newValues = values + item['properties']['name'] + '.';
 			let newObj = getRelationVF(newkeys, newValues, item['properties'].relatedViewFields);
@@ -327,7 +327,7 @@ async function execute() {
 
 	try {
 		let serviceDetails = require('./../../service.json');
-		definitionArr = _.cloneDeep(serviceDetails.definition);
+		definitionArr = _.cloneDeep(serviceDetails.definitionWithId);
 		var cbc = keyvalue(definitionArr, obj, null, null, false);
 		var mapping = keyvalue(definitionArr, obj2, null, null, true);
 
