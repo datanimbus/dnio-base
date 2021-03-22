@@ -134,6 +134,22 @@ schema.pre('save', async function (next) {
 	}
 });
 
+schema.pre('save', async function (next) {
+    const newDoc = this.data.new;
+    const oldDoc = this.data.old;
+    const req = this._req;
+    try {
+        const errors = await specialFields.validateUnique(req, newDoc, oldDoc);
+        if (errors) {
+            next(errors);
+        } else {
+            next();
+        }
+    } catch (e) {
+        next(e);
+    }
+});
+
 schema.pre('save', function (next) {
 	let doc = this.toObject();
 	Object.keys(doc).forEach(el => this.markModified(el));
