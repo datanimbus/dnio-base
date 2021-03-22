@@ -65,7 +65,11 @@ async function execute() {
 					doc.status = 'Created';
 				} catch (e) {
 					doc.status = 'Error';
-					doc.message = e.message;
+					if(e.message) {
+						doc.message = e.message;
+					} else {
+						doc.message = Object.values(e).join();
+					}
 				} finally {
 					await doc.save();
 				}
@@ -103,7 +107,11 @@ async function execute() {
 					doc.status = 'Updated';
 				} catch (e) {
 					doc.status = 'Error';
-					doc.message = e.message;
+					if(e.message) {
+						doc.message = e.message;
+					} else {
+						doc.message = Object.values(e).join();
+					}
 				} finally {
 					await doc.save();
 				}

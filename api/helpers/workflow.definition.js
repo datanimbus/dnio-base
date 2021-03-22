@@ -29,6 +29,9 @@ var definition = {
 		type: 'String',
 		required: true
 	},
+	respondedBy: {
+		type: 'String'
+	},
 	comments: {
 		type: 'String'
 	},
