@@ -455,7 +455,7 @@ router.post('/', (req, res) => {
 	execute().catch(err => {
 		logger.error(err);
 		res.status(400).json({
-			message: err.message
+			message: err.message ? err.message : Object.values(err).join()
 		});
 	});
 });

@@ -64,6 +64,40 @@ async function getDocumentIds(req, serviceId, filter) {
 /**
  * 
  * @param {*} req The Incoming Request Object
+ * @param {*} userId User Id used in relation
+ */
+ async function getUserDoc(req, userId) {
+	let key = 'USER_' + userId + '_' + req.headers[global.userHeader];
+	let user = documentCache.get(key);
+	const userUrl = `/api/a/rbac/usr/${userId}`;
+	try {
+		if(!user) {
+			user = await httpClient.httpRequest({
+				url: `${config.baseUrlUSR}/usr/${userId}`,
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				json: true
+			}).then(res => {
+				const temp = res.body;
+				temp._href = userUrl;
+				return temp;
+			})
+			documentCache.set(key, user);
+		}
+		return user;
+	} catch (err) {
+		logger.error(`[${req.headers[global.txnIdHeader]}] : Error in getUserDoc :: `, err.message);
+		if(err.message && err.message.includes(404))
+			throw new Error(`${userId} User not found.`)
+		throw err;
+	}
+}
+
+/**
+ * 
+ * @param {*} req The Incoming Request Object
  * @param {string} serviceId The Service ID for whose docs needs to be fetched
  * @param {string} documentId The Document ID that needs to be fetched
  */
@@ -96,7 +130,7 @@ async function getServiceDoc(req, serviceId, documentId) {
 		//     api += '?expand=true';
 		// }
 		if (!document) {
-			document = httpClient.httpRequest({
+			document = await httpClient.httpRequest({
 				url: api,
 				method: 'GET',
 				headers: {
@@ -113,7 +147,7 @@ async function getServiceDoc(req, serviceId, documentId) {
 			});
 			documentCache.set(key, document);
 		}
-		return await document;
+		return document;
 	} catch (e) {
 		logger.error('Error in getServiceDoc :: ', e);
 		throw e;
@@ -914,6 +948,7 @@ function modifySecureFieldsFilter(filter, secureFields, secureFlag) {
 
 e.getDocumentIds = getDocumentIds;
 e.getServiceDoc = getServiceDoc;
+e.getUserDoc = getUserDoc;
 e.encryptText = encryptText;
 e.decryptText = decryptText;
 e.getGeoDetails = getGeoDetails;
