@@ -245,6 +245,7 @@ async function getGeoDetails(req, path, address) {
 						if (temp) geoObj[typeMapping[key]] = temp.long_name;
 					});
 					geoObj.geometry.coordinates = [aptLocation.geometry.location.lng, aptLocation.geometry.location.lat];
+					geoObj.formattedAddress = aptLocation.formatted_address;
 				}
 				const resObj = {};
 				resObj.key = path;
