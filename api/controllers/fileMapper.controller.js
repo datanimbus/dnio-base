@@ -53,7 +53,9 @@ router.get('/:fileId', (req, res) => {
 			filter = crudderUtils.parseFilter(filter);
 			let docs = await model.find(filter).lean();
 			if (specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
-				await specialFields.decryptSecureFields(req, doc, null);
+				let promises = docs.map(e => specialFields.decryptSecureFields(req, e, null));
+				await Promise.all(promises);
+				promises = null;
 			}
 			res.status(200).json(docs);
 		} catch (e) {
