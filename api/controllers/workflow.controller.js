@@ -655,7 +655,10 @@ async function decryptAndExpandWFItems(wfItems, req) {
 			let promises = [];
 			wfItems.forEach(e => 
 			{
-				promises.push(specialFields.decryptSecureFields(req, e.data.old, null), specialFields.decryptSecureFields(req, e.data.new, null));
+				if(e && e.data && e.data.old)
+					promises.push(specialFields.decryptSecureFields(req, e.data.old, null));
+				if(e && e.data && e.data.new)
+					promises.push(specialFields.decryptSecureFields(req, e.data.new, null));
 			});
 			await Promise.all(promises);
 			promises = null;
@@ -664,7 +667,10 @@ async function decryptAndExpandWFItems(wfItems, req) {
 		if(req.query.expand) {
 			let promises = [];
 			wfItems.forEach(e => {
-				promises.push(specialFields.expandDocument(req, e.data.old, null), specialFields.expandDocument(req, e.data.new, null));
+				if(e && e.data && e.data.old)
+					promises.push(specialFields.expandDocument(req, e.data.old, null));
+				if(e && e.data && e.data.new)
+					promises.push(specialFields.expandDocument(req, e.data.new, null));
 			});
 			await Promise.all(promises);
 			promises = null;
