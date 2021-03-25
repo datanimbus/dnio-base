@@ -59,7 +59,8 @@ router.post('/simulate', (req, res) => {
 	async function execute() {
 		try {
 			const payload = req.body;
-			const data = await workflowUtils.simulate(req, payload, { simulate: true, source: 'simulate', trigger: 'form-submit' });
+			const operation = req.query.operation;
+			const data = await workflowUtils.simulate(req, payload, { simulate: true, source: 'simulate', trigger: 'form-submit', operation: operation });
 			res.status(200).json(data);
 		} catch (e) {
 			if (typeof e === 'string') {
