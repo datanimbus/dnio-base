@@ -215,7 +215,7 @@ function getRelationVF(key, value, VFArray) {
 			obj[key + _o.key + '.md5'] = value + _o.name + '.md5';
 		}
 		else {
-			obj[key + _o.key] = value + _o.name;
+			obj[key + _o.key] = value + _o.properties.name;
 		}
 	});
 	if (_.isEmpty(obj)) {

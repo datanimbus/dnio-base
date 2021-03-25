@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const commonUtils = require('../utils/common.utils');
 const threadUtils = require('../utils/thread.utils');
 const crudderUtils = require('../utils/crudder.utils');
+const specialFields = require('../utils/special-fields.utils');
 
 const logger = global.logger;
 const model = mongoose.model('fileMapper');
@@ -51,6 +52,9 @@ router.get('/:fileId', (req, res) => {
 			filter.fileId = req.params.fileId;
 			filter = crudderUtils.parseFilter(filter);
 			let docs = await model.find(filter).lean();
+			if (specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
+				await specialFields.decryptSecureFields(req, doc, null);
+			}
 			res.status(200).json(docs);
 		} catch (e) {
 			if (typeof e === 'string') {
