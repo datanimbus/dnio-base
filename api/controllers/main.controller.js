@@ -502,8 +502,7 @@ router.put('/:id', (req, res) => {
 				const wfDoc = new workflowModel(wfItem);
 				wfDoc._req = req;
 				status = await wfDoc.save();
-				doc._metadata.workflow = status._id;
-				status = await doc.save();
+				status = await model.findByIdAndUpdate(doc._id, { '_metadata.workflow': status._id });
 				return res.status(200).json({
 					_workflow: doc._metadata.workflow,
 					message: 'Workflow has been created'
