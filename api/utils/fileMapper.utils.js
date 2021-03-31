@@ -72,6 +72,7 @@ function objectMapping(sheetJson, mapping) {
 					return objectMapping(sheetJson, _o);
 				});
 				newDoc[key] = newDoc[key].filter(_d => _d);
+				if(newDoc[key].length == 0) delete newDoc[key];
 			} else {
 				newDoc[key] = objectMapping(sheetJson, mapping[key]);
 			}
