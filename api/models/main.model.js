@@ -68,6 +68,7 @@ schema.pre('save', async function (next) {
 		}
 		const data = await hooksUtils.callAllPreHooks(req, this, options);
 		logger.trace(`[${req.headers[global.txnIdHeader]}] Prehook data :: ${JSON.stringify(data)}`);
+		delete data._metadata;
 		_.assign(this, data);
 		next();
 	} catch (e) {
