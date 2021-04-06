@@ -5,6 +5,15 @@ e.isK8sEnv = function () {
 	return process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT;
 };
 
+function parseBoolean(val) {
+	if (typeof val === 'boolean') return val;
+	else if (typeof val === 'string') {
+		return val.toLowerCase() === 'true';
+	} else {
+		return false;
+	}
+}
+
 e.hookConnectionTimeout = parseInt(process.env.HOOK_CONNECTION_TIMEOUT) || 30;
 e.mongoUrl = process.env.MONGO_APPCENTER_URL || 'mongodb://localhost';
 e.authorDB = process.env.MONGO_AUTHOR_DBNAME || 'datastackConfig';
