@@ -187,7 +187,8 @@ router.delete('/utils/bulkDelete', (req, res) => {
 					return await doc.save();
 				} else {
 					if (!config.permanentDelete) {
-						let softDeletedDoc = softDeletedModel(doc);
+						let softDeletedDoc = new softDeletedModel(doc);
+						softDeletedDoc.isNew = true;
 						await softDeletedDoc.save();
 					}
 					return new Promise((resolve) => { doc.remove().then(resolve).catch(() => resolve(null)); });
@@ -557,7 +558,8 @@ router.delete('/:id', (req, res) => {
 				status = await doc.save();
 			} else {
 				if (!config.permanentDelete) {
-					let softDeletedDoc = softDeletedModel(doc);
+					let softDeletedDoc = new softDeletedModel(doc);
+					softDeletedDoc.isNew = true;
 					await softDeletedDoc.save();
 				}
 				status = await doc.remove();

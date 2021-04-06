@@ -10,6 +10,8 @@ const specialFields = require('../utils/special-fields.utils');
 const logger = global.logger;
 const authorDB = global.authorDB;
 const serviceModel = mongoose.model(config.serviceId);
+let softDeletedModel;
+if (!config.permanentDelete) softDeletedModel = mongoose.model(config.serviceId + '.deleted');
 // const workflowModel = authorDB.model('workflow');
 const workflowModel = mongoose.model('workflow');
 
@@ -574,6 +576,11 @@ async function approve(req, res) {
 					serviceDoc._req = req;
 					serviceDoc._isFromWorkflow = true;
 					serviceDoc._oldDoc = serviceDoc.toObject();
+					if (!config.permanentDelete) {
+						let softDeletedDoc = new softDeletedModel(doc);
+						softDeletedDoc.isNew = true;
+						await softDeletedDoc.save();
+					}
 					serviceDoc = await serviceDoc.remove();
 				}
 				doc.status = 'Approved';
