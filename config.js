@@ -61,7 +61,7 @@ e.serviceVersion = process.env.SERVICE_VERSION;
 e.serviceDB = process.env.DATA_STACK_NAMESPACE + '-' + process.env.DATA_STACK_APP;
 e.serviceEndpoint = process.env.SERVICE_ENDPOINT;
 e.serviceCollection = process.env.SERVICE_COLLECTION;
-e.permanentDelete = process.env.PERMANENT_DELETE || true;
+e.permanentDelete = process.env.PERMANENT_DELETE === false ? false : true;
 e.MaxJSONSize = process.env.MAX_JSON_SIZE || '1mb';
 e.dataStackDefaultTimezone = process.env.TZ_DEFAULT || 'Zulu';
 e.disableInsights = serviceJSON.disableInsights;
