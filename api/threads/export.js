@@ -223,7 +223,7 @@ function getRelationVF(key, value, VFArray) {
 		obj[key + '_href'] = value + '_href';
 	}
 	else if (!idInclude) {
-		obj[key + '_id'] = value + '_id';
+		obj[key + '_id'] = value + 'ID';
 	}
 	return obj;
 }
