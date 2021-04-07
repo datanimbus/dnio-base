@@ -94,6 +94,7 @@ async function execute() {
 						const wfDoc = new workflowModel(wfItem);
 						wfDoc._req = req;
 						const status = await wfDoc.save();
+						await serviceModel.findByIdAndUpdate(temp._id, { '_metadata.workflow': status._id });
 						if (!doc._metadata) {
 							doc._metadata = {};
 						}
