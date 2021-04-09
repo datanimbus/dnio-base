@@ -244,7 +244,7 @@ async function getGeoDetails(req, path, address) {
 		method: 'GET',
 		json: true,
 		qs: {
-			address,
+			address: typeof address === 'string'? address : address.userInput,
 			key: config.googleKey
 		}
 	};
@@ -291,7 +291,7 @@ async function getGeoDetails(req, path, address) {
 			return { key: path, geoObj: { userInput: address } };
 		}
 	} catch (e) {
-		logger.error(`[${req.headers[global.txnIdHeader]}] Error requesting Goolgle Maps API`);
+		logger.error(`[${req.headers[global.txnIdHeader]}] Error requesting Goolgle Maps API :: `, e.message);
 		throw e;
 	}
 }

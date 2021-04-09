@@ -156,6 +156,8 @@ function simulate(req, data, options) {
 	}
 	return promise.then((newData) => {
 		data = newData;
+		return enrichGeojson(req, data, oldData).catch(err => modifyError(err, 'geojson'));
+	}).then(() => {
 		return schemaValidation(req, data, oldData).catch(err => modifyError(err, 'schema'));
 	}).then((newData) => {
 		data = newData;
@@ -172,8 +174,6 @@ function simulate(req, data, options) {
 		return dateValidation(req, data, oldData).catch(err => modifyError(err, 'date'));
 	}).then(() => {
 		return relationValidation(req, data, oldData).catch(err => modifyError(err, 'relation'));
-	}).then(() => {
-		return enrichGeojson(req, data, oldData).catch(err => modifyError(err, 'geojson'));
 	}).then(() => {
 		return data;
 	}).catch(err => {
