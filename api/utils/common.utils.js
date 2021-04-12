@@ -947,6 +947,18 @@ function modifySecureFieldsFilter(filter, secureFields, secureFlag) {
     return secureFlag && typeof filter == 'string' ? crypto.createHash('md5').update(filter).digest("hex") : filter;
 }
 
+function removeNullForUniqueAttribute(obj, key) {
+    let keyArr = key.split('.');
+    return keyArr.reduce((acc, curr, i) => {
+        if (!acc) return null;
+        if (i === keyArr.length - 1 && acc[curr] === null) {
+            acc[curr] = undefined;
+            return acc;
+        }
+        return acc[curr];
+    }, obj);
+}
+
 e.getDocumentIds = getDocumentIds;
 e.getServiceDoc = getServiceDoc;
 e.getUserDoc = getUserDoc;
@@ -960,4 +972,6 @@ e.crudDocuments = crudDocuments;
 e.mergeCustomizer = mergeCustomizer;
 e.getDiff = getDiff;
 e.modifySecureFieldsFilter = modifySecureFieldsFilter;
+e.removeNullForUniqueAttribute = removeNullForUniqueAttribute;
+
 module.exports = e;
