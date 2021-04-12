@@ -239,12 +239,13 @@ async function decryptText(req, data) {
  * @param {string} address The details of user input to search for
  */
 async function getGeoDetails(req, path, address) {
+	address = typeof address === 'string'? address : address.userInput;
 	const options = {
 		url: 'https://maps.googleapis.com/maps/api/geocode/json',
 		method: 'GET',
 		json: true,
 		qs: {
-			address: typeof address === 'string'? address : address.userInput,
+			address,
 			key: config.googleKey
 		}
 	};
@@ -259,7 +260,7 @@ async function getGeoDetails(req, path, address) {
 			const geoObj = {};
 			geoObj.geometry = {};
 			geoObj.geometry.type = 'Point';
-			geoObj.userInput = typeof address === 'string'? address : address.userInput;
+			geoObj.userInput = address;
 			let aptLocation = null;
 			if (_.isEmpty(body.results[0])) {
 				return { key: path, geoObj: { userInput: address } };
