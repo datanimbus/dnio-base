@@ -259,7 +259,7 @@ async function getGeoDetails(req, path, address) {
 			const geoObj = {};
 			geoObj.geometry = {};
 			geoObj.geometry.type = 'Point';
-			geoObj.userInput = address;
+			geoObj.userInput = typeof address === 'string'? address : address.userInput;
 			let aptLocation = null;
 			if (_.isEmpty(body.results[0])) {
 				return { key: path, geoObj: { userInput: address } };
