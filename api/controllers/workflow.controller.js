@@ -12,6 +12,7 @@ const authorDB = global.authorDB;
 const serviceModel = mongoose.model(config.serviceId);
 let softDeletedModel;
 if (!config.permanentDelete) softDeletedModel = mongoose.model(config.serviceId + '.deleted');
+const { modifySecureFieldsFilter } = require('./../utils/common.utils');
 // const workflowModel = authorDB.model('workflow');
 const workflowModel = mongoose.model('workflow');
 
@@ -26,6 +27,7 @@ router.get('/count', (req, res) => {
 				if (req.query.filter) {
 					filter = JSON.parse(req.query.filter);
 					filter = crudderUtils.parseFilter(filter);
+					filter = modifySecureFieldsFilter(filter, specialFields.secureFields,false, true);
 				}
 			} catch (e) {
 				logger.error(e);
@@ -137,6 +139,7 @@ router.get('/', (req, res) => {
 				if (req.query.filter) {
 					filter = JSON.parse(req.query.filter);
 					filter = crudderUtils.parseFilter(filter);
+					filter = modifySecureFieldsFilter(filter, specialFields.secureFields,false, true);
 				}
 			} catch (e) {
 				logger.error(e);

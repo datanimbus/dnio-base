@@ -924,22 +924,22 @@ function getDiff(a, b, oldData, newData) {
 	}
 }
 
-function modifySecureFieldsFilter(filter, secureFields, secureFlag) {
+function modifySecureFieldsFilter(filter, secureFields, secureFlag, isWorkflowFilter) {
     if (filter instanceof RegExp) return filter;
     let newSecurefield = secureFields.map(field=> field+'.value');
-    if (Array.isArray(filter)) return filter.map(_f => modifySecureFieldsFilter(_f, secureFields, secureFlag));
+    if (Array.isArray(filter)) return filter.map(_f => modifySecureFieldsFilter(_f, secureFields, secureFlag, isWorkflowFilter));
     if (filter != null && typeof filter == 'object' && filter.constructor == {}.constructor) {
         let newFilter = {};
         Object.keys(filter).forEach(_k => {
             let newKey = _k;
-            if (newSecurefield.indexOf(_k) > -1) {
+            if (newSecurefield.indexOf(_k) > -1 || (isWorkflowFilter && newSecurefield.indexOf(_k) > -1 && (_k.startsWith('data.new')|| _k.startsWith('data.old')))) {
                 newKey = _k.split('.');
                 newKey.pop();
                 newKey = newKey.join('.');                
                 newKey = newKey.startsWith('$') ? newKey : newKey + '.checksum';
-                newFilter[newKey] = modifySecureFieldsFilter(filter[_k], secureFields, true);
+                newFilter[newKey] = modifySecureFieldsFilter(filter[_k], secureFields, true, isWorkflowFilter);
             } else {
-                newFilter[newKey] = modifySecureFieldsFilter(filter[_k], secureFields, secureFlag);
+                newFilter[newKey] = modifySecureFieldsFilter(filter[_k], secureFields, secureFlag, isWorkflowFilter);
             }
         });
         return newFilter;
