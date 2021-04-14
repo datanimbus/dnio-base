@@ -7,22 +7,20 @@ function metadataPlugin() {
 	return function (schema) {
 		schema.add({
 			_metadata: {
-				type: {
-					deleted: {
-						type: Boolean,
-						default: false
-					},
-					lastUpdated: {
-						type: Date,
-						default: Date.now()
-					},
-					createdAt: {
-						type: Date
-					},
-					version: {
-						type: Object
-					}
+				deleted: {
+					type: Boolean,
+					default: false
 				},
+				lastUpdated: {
+					type: Date,
+					default: Date.now()
+				},
+				createdAt: {
+					type: Date
+				},
+				version: {
+					type: Object
+				}
 			}
 		});
 		schema.index({
