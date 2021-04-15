@@ -227,7 +227,7 @@ async function decryptText(req, data) {
 			throw new Error('Error decrypting text');
 		}
 	} catch (e) {
-		logger.error(`[${req ? req.headers[global.txnIdHeader]: ''}] Error requesting Security service :: `, e);
+		logger.error(`[${req ? req.headers[global.txnIdHeader]: ''}] Error requesting Security service :: `, e.message ? e.message : (e.body ? e.body : e));
 		throw e;
 	}
 }

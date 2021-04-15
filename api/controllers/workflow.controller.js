@@ -12,7 +12,7 @@ const authorDB = global.authorDB;
 const serviceModel = mongoose.model(config.serviceId);
 let softDeletedModel;
 if (!config.permanentDelete) softDeletedModel = mongoose.model(config.serviceId + '.deleted');
-const { modifySecureFieldsFilter } = require('./../utils/common.utils');
+const { modifySecureFieldsFilter, mergeCustomizer } = require('./../utils/common.utils');
 // const workflowModel = authorDB.model('workflow');
 const workflowModel = mongoose.model('workflow');
 
@@ -561,7 +561,7 @@ async function approve(req, res) {
 			try {
 				let serviceDoc;
 				if (doc.operation == 'POST') {
-					serviceDoc = new serviceModel(doc.data.new);
+					serviceDoc = new serviceModel(_.cloneDeep(doc.data.new));
 					serviceDoc._req = req;
 					serviceDoc._isFromWorkflow = true;
 					serviceDoc = await serviceDoc.save();
@@ -570,7 +570,7 @@ async function approve(req, res) {
 					serviceDoc._req = req;
 					serviceDoc._isFromWorkflow = true;
 					serviceDoc._oldDoc = serviceDoc.toObject();
-					Object.assign(serviceDoc, doc.data.new);
+					_.mergeWith(serviceDoc, doc.data.new, mergeCustomizer);
 					serviceDoc._metadata.workflow = null;
 					serviceDoc = await serviceDoc.save();
 
