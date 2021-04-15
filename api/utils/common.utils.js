@@ -932,7 +932,7 @@ function modifySecureFieldsFilter(filter, secureFields, secureFlag, isWorkflowFi
         let newFilter = {};
         Object.keys(filter).forEach(_k => {
             let newKey = _k;
-            if (newSecurefield.indexOf(_k) > -1 || (isWorkflowFilter && newSecurefield.indexOf(_k) > -1 && (_k.startsWith('data.new')|| _k.startsWith('data.old')))) {
+            if (newSecurefield.indexOf(_k) > -1 || (isWorkflowFilter && newSecurefield.indexOf(_k.substring(9)) > -1 && (_k.startsWith('data.new')|| _k.startsWith('data.old')))) {
                 newKey = _k.split('.');
                 newKey.pop();
                 newKey = newKey.join('.');                
