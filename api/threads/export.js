@@ -219,7 +219,7 @@ function getRelationVF(key, value, VFArray) {
 		}
 	});
 	if (_.isEmpty(obj)) {
-		obj[key + '_id'] = value + '_id';
+		obj[key + '_id'] = value + 'ID';
 		obj[key + '_href'] = value + '_href';
 	}
 	else if (!idInclude) {

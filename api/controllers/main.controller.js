@@ -434,7 +434,7 @@ router.post('/', (req, res) => {
 						promises = await createDocuments(req);
 					}
 				} else {
-					let upsert = req.query.upsert;
+					let upsert = req.query.upsert == 'true';
 					if(upsert && payload._id) {
 						let oldDoc = await model.findById(payload._id);
 						logger.debug(`[${txnId}] : Updating Existing Record With ID ${payload._id}`);
@@ -466,7 +466,7 @@ router.put('/:id', (req, res) => {
 		// const workflowModel = global.authorDB.model('workflow');
 		const workflowModel = mongoose.model('workflow');
 		try {
-			const upsert = req.query.upsert || false;
+			const upsert = req.query.upsert == 'true';
 			let payload = req.body;
 			let status;
 			let isNewDoc = false;
@@ -639,7 +639,7 @@ router.post('/hook', (req, res) => {
 
 async function createDocuments(req, session) {
 	const payload = req.body;
-	let upsert = req.query.upsert;
+	let upsert = req.query.upsert == 'true';
 	let oldDocs = [];
 	let oldIds = [];
 	let txnId = req.get(global.txnIdHeader);
