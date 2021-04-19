@@ -469,6 +469,7 @@ router.put('/:id', (req, res) => {
 			const upsert = req.query.upsert == 'true';
 			let payload = req.body;
 			let status;
+			let wfId;
 			let isNewDoc = false;
 			let doc = await model.findById(req.params.id);
 			if (!doc && !upsert) {
@@ -503,9 +504,10 @@ router.put('/:id', (req, res) => {
 				const wfDoc = new workflowModel(wfItem);
 				wfDoc._req = req;
 				status = await wfDoc.save();
+				wfId = status._id;
 				status = await model.findByIdAndUpdate(doc._id, { '_metadata.workflow': status._id });
 				return res.status(200).json({
-					_workflow: status._id,
+					_workflow: wfId,
 					message: 'Workflow has been created'
 				});
 			} else {
@@ -555,9 +557,9 @@ router.delete('/:id', (req, res) => {
 				const wfDoc = new workflowModel(wfItem);
 				wfDoc._req = req;
 				status = await wfDoc.save();
+				wfId = status._id;
 				doc._metadata.workflow = status._id;
 				status = await doc.save();
-				wfId = status._id;
 			} else {
 				if (!config.permanentDelete) {
 					let softDeletedDoc = new softDeletedModel(doc);
