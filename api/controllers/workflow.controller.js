@@ -27,7 +27,7 @@ router.get('/count', (req, res) => {
 				if (req.query.filter) {
 					filter = JSON.parse(req.query.filter);
 					filter = crudderUtils.parseFilter(filter);
-					filter = modifySecureFieldsFilter(filter, specialFields.secureFields,false, true);
+					filter = modifySecureFieldsFilter(filter, specialFields.secureFields, false, true);
 				}
 			} catch (e) {
 				logger.error(e);
@@ -139,7 +139,7 @@ router.get('/', (req, res) => {
 				if (req.query.filter) {
 					filter = JSON.parse(req.query.filter);
 					filter = crudderUtils.parseFilter(filter);
-					filter = modifySecureFieldsFilter(filter, specialFields.secureFields,false, true);
+					filter = modifySecureFieldsFilter(filter, specialFields.secureFields, false, true);
 				}
 			} catch (e) {
 				logger.error(e);
@@ -635,8 +635,8 @@ async function reject(req, res) {
 			timestamp: Date.now()
 		};
 		const promises = docs.map(async (doc) => {
-			if (doc.operation == 'PUT') {
-				const status = await serviceModel.findOneAndUpdate({ _id: doc.documentId }, { '_metadata.workflow': null }, { new: true });
+			if (doc.operation == 'PUT' || doc.operation == 'DELETE') {
+				const status = await serviceModel.findOneAndUpdate({ _id: doc.documentId }, { $unset: { '_metadata.workflow': 1 } }, { new: true });
 				logger.debug('Unlocked Document', status);
 			}
 			doc.status = 'Rejected';
@@ -659,27 +659,26 @@ async function reject(req, res) {
 }
 
 async function decryptAndExpandWFItems(wfItems, req) {
-	if(wfItems && Array.isArray(wfItems)) {
+	if (wfItems && Array.isArray(wfItems)) {
 		// Decrypting secured fields
-		if(specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
+		if (specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
 			let promises = [];
-			wfItems.forEach(e => 
-			{
-				if(e && e.data && e.data.old)
+			wfItems.forEach(e => {
+				if (e && e.data && e.data.old)
 					promises.push(specialFields.decryptSecureFields(req, e.data.old, null));
-				if(e && e.data && e.data.new)
+				if (e && e.data && e.data.new)
 					promises.push(specialFields.decryptSecureFields(req, e.data.new, null));
 			});
 			await Promise.all(promises);
 			promises = null;
 		}
 		// Expanding Relations
-		if(req.query.expand) {
+		if (req.query.expand) {
 			let promises = [];
 			wfItems.forEach(e => {
-				if(e && e.data && e.data.old)
+				if (e && e.data && e.data.old)
 					promises.push(specialFields.expandDocument(req, e.data.old, null));
-				if(e && e.data && e.data.new)
+				if (e && e.data && e.data.new)
 					promises.push(specialFields.expandDocument(req, e.data.new, null));
 			});
 			await Promise.all(promises);
