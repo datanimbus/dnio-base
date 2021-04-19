@@ -234,7 +234,7 @@ router.get('/utils/count', (req, res) => {
 					} else if (tempFilter) {
 						filter = tempFilter;
 					}
-					filter = modifySecureFieldsFilter(filter, specialFields.secureFields,false);
+					filter = modifySecureFieldsFilter(filter, specialFields.secureFields, false);
 				}
 			} catch (e) {
 				logger.error(e);
@@ -279,7 +279,7 @@ router.get('/', (req, res) => {
 					} else if (tempFilter) {
 						filter = tempFilter;
 					}
-					filter = modifySecureFieldsFilter(filter, specialFields.secureFields,false);
+					filter = modifySecureFieldsFilter(filter, specialFields.secureFields, false);
 				}
 			} catch (e) {
 				logger.error(e);
@@ -424,18 +424,18 @@ router.post('/', (req, res) => {
 								session = sess;
 								return createDocuments(req, session);
 							}, config.transactionOptions)
-						} catch(err) {
+						} catch (err) {
 							logger.error(`[${txnId}] : Error while bulk post with transaction :: `, err);
 							throw err;
 						} finally {
-							if(session) session.endSession();
+							if (session) session.endSession();
 						}
 					} else {
 						promises = await createDocuments(req);
 					}
 				} else {
 					let upsert = req.query.upsert == 'true';
-					if(upsert && payload._id) {
+					if (upsert && payload._id) {
 						let oldDoc = await model.findById(payload._id);
 						logger.debug(`[${txnId}] : Updating Existing Record With ID ${payload._id}`);
 						payload = _.mergeWith(oldDoc, payload, mergeCustomizer);
@@ -469,6 +469,7 @@ router.put('/:id', (req, res) => {
 			const upsert = req.query.upsert == 'true';
 			let payload = req.body;
 			let status;
+			let wfId;
 			let isNewDoc = false;
 			let doc = await model.findById(req.params.id);
 			if (!doc && !upsert) {
@@ -503,9 +504,10 @@ router.put('/:id', (req, res) => {
 				const wfDoc = new workflowModel(wfItem);
 				wfDoc._req = req;
 				status = await wfDoc.save();
+				wfId = status._id;
 				status = await model.findByIdAndUpdate(doc._id, { '_metadata.workflow': status._id });
 				return res.status(200).json({
-					_workflow: doc._metadata.workflow,
+					_workflow: wfId,
 					message: 'Workflow has been created'
 				});
 			} else {
@@ -549,11 +551,13 @@ router.delete('/:id', (req, res) => {
 			doc._req = req;
 			doc._oldDoc = doc.toObject();
 			const hasSkipReview = await workflowUtils.hasSkipReview(req);
+			let wfId;
 			if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
 				const wfItem = workflowUtils.getWorkflowItem(req, 'DELETE', doc._id, 'Pending', null, doc.toObject());
 				const wfDoc = new workflowModel(wfItem);
 				wfDoc._req = req;
 				status = await wfDoc.save();
+				wfId = status._id;
 				doc._metadata.workflow = status._id;
 				status = await model.findByIdAndUpdate(doc._id, { '_metadata.workflow': status._id });
 			} else {
@@ -566,6 +570,7 @@ router.delete('/:id', (req, res) => {
 			}
 			logger.trace(`[${txnId}] Delete doc :: ${req.params.id} :: ${status}`);
 			res.status(200).json({
+				_workflow: wfId,
 				message: 'Document Deleted'
 			});
 		} catch (e) {
@@ -643,20 +648,20 @@ async function createDocuments(req, session) {
 	let oldDocs = [];
 	let oldIds = [];
 	let txnId = req.get(global.txnIdHeader);
-	if(upsert) {
+	if (upsert) {
 		var newIds = payload.map(data => data._id).filter(_id => _id);
-		oldDocs = await model.find({_id : { $in : newIds }});
+		oldDocs = await model.find({ _id: { $in: newIds } });
 		oldIds = oldDocs.map(data => data._id);
 		logger.debug(`[${txnId}] : Existing Record Ids :: `, oldIds);
 	}
 	promises = payload.map(async (data) => {
-		if(upsert && data._id && oldIds.includes(data._id)) {
+		if (upsert && data._id && oldIds.includes(data._id)) {
 			let oldDoc = oldDocs.find(doc => doc._id == data._id);
 			data = _.mergeWith(oldDoc, data, mergeCustomizer);
 		}
 		let doc = new model(data);
 		doc._req = req;
-		if(session) {
+		if (session) {
 			return (await doc.save({ session })).toObject();
 		} else {
 			try {
