@@ -127,7 +127,7 @@ router.put('/bulkUpdate', (req, res) => {
 					wfDoc._req = req;
 					let status = await wfDoc.save();
 					doc._metadata.workflow = status._id;
-					await doc.save();
+					return await model.findByIdAndUpdate(doc._id, { '_metadata.workflow': status._id });;
 				} else {
 					_.mergeWith(doc, req.body, mergeCustomizer);
 					return new Promise((resolve) => { doc.save().then(resolve).catch(resolve); });
@@ -184,7 +184,7 @@ router.delete('/utils/bulkDelete', (req, res) => {
 					wfDoc._req = req;
 					let status = await wfDoc.save();
 					doc._metadata.workflow = status._id;
-					return await doc.save();
+					return await model.findByIdAndUpdate(doc._id, { '_metadata.workflow': status._id });
 				} else {
 					if (!config.permanentDelete) {
 						let softDeletedDoc = new softDeletedModel(doc);
@@ -555,7 +555,7 @@ router.delete('/:id', (req, res) => {
 				wfDoc._req = req;
 				status = await wfDoc.save();
 				doc._metadata.workflow = status._id;
-				status = await doc.save();
+				status = await model.findByIdAndUpdate(doc._id, { '_metadata.workflow': status._id });
 			} else {
 				if (!config.permanentDelete) {
 					let softDeletedDoc = new softDeletedModel(doc);
