@@ -24,7 +24,6 @@ const intervalBytes = 512 * 1024;
 const stackDepth = 64;
 pprof.heap.start(intervalBytes, stackDepth);
 
-let baseImageVersion = require('./package.json').version;
 const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} v.${config.serviceVersion}]` : `[${config.serviceName} v.${config.serviceVersion}]`;
 
 const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
@@ -41,7 +40,7 @@ const upload = multer({ dest: path.join(process.cwd(), 'uploads') });
 const fileValidator = utils.fileValidator;
 const logger = log4js.getLogger(LOGGER_NAME);
 logger.info(`Service version : ${config.serviceVersion}`);
-logger.info(`Base image version : ${baseImageVersion}`);
+logger.info(`Base image version : ${process.env.IMAGE_TAG}`);
 logger.info(`Disable data history : ${config.disableAudits} `);
 logger.info(`Disable insights : ${config.disableInsights} `);
 

@@ -23,3 +23,5 @@ COPY queue.js /app
 COPY service.json /app
 
 COPY api /app/api
+
+ENV IMAGE_TAG=__image_tag__
