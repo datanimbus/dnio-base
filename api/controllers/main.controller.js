@@ -1191,7 +1191,7 @@ async function doRoundMathAPI(req, res, oldNewData) {
 			{ $set: updateData, $inc: { '_metadata.version.document': 1 } },
 			{ new: true }
 		);
-		oldNewData.old = status.toObject();
+		oldNewData.new = status.toObject();
 		return status;
 	} catch (err) {
 		logger.error(err);
