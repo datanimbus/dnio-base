@@ -686,249 +686,408 @@ function addAuthHeader(paths, jwt) {
 	});
 }
 
-/******************************* Math API Logic *************************/
+/******************************* OLD Math API Logic *************************/
 
-function processMathQueue(obj, cb) {
-	obj.req.simulateFlag = false;
-	let webHookData = null;
-	let id = obj.req.params.id;
-	let resData = null;
-	obj.req.query.source = 'presave';
-	obj.req.simulate = false;
-	return doRoundMathAPI(obj.req, obj.res)
-		.then(resBody => {
-			resData = resBody;
-			obj.res.json(resBody);
-			cb();
-		})
-		.then(() => {
-			return getWebHookAndAuditData(obj.req, id, false);
-		})
-		.then(_d => {
-			webHookData = _d;
-			pushWebHookAndAuditData(webHookData, resData);
-		})
-		.catch(err => {
-			logger.error(err.message);
-			cb();
-			if (err.message == 'CUSTOM_READ_CONFLICT' || (err.errmsg === 'WriteConflict' && err.errorLabels && err.errorLabels.indexOf('TransientTransactionError') > -1)) {
-				logger.error('=================');
-				obj.req.simulateFlag = true;
-				if (!obj.res.headersSent) {
-					mathQueue.push({ req: obj.req, res: obj.res });
-				}
-			} else {
-				let status = err.name == 'ValidationError' ? 400 : 500;
-				obj.res.status(status).json({ message: err.message });
-			}
-		});
-}
+// function processMathQueue(obj, cb) {
+// 	obj.req.simulateFlag = false;
+// 	let webHookData = null;
+// 	let id = obj.req.params.id;
+// 	let resData = null;
+// 	obj.req.query.source = 'presave';
+// 	obj.req.simulate = false;
+// 	return doRoundMathAPI(obj.req, obj.res)
+// 		.then(resBody => {
+// 			resData = resBody;
+// 			obj.res.json(resBody);
+// 			cb();
+// 		})
+// 		.then(() => {
+// 			return getWebHookAndAuditData(obj.req, id, false);
+// 		})
+// 		.then(_d => {
+// 			webHookData = _d;
+// 			pushWebHookAndAuditData(webHookData, resData);
+// 		})
+// 		.catch(err => {
+// 			logger.error(err.message);
+// 			cb();
+// 			if (err.message == 'CUSTOM_READ_CONFLICT' || (err.errmsg === 'WriteConflict' && err.errorLabels && err.errorLabels.indexOf('TransientTransactionError') > -1)) {
+// 				logger.error('=================');
+// 				obj.req.simulateFlag = true;
+// 				if (!obj.res.headersSent) {
+// 					mathQueue.push({ req: obj.req, res: obj.res });
+// 				}
+// 			} else {
+// 				let status = err.name == 'ValidationError' ? 400 : 500;
+// 				obj.res.status(status).json({ message: err.message });
+// 			}
+// 		});
+// }
 
-function getWebHookAndAuditData(req, id, isNew) {
-	let data = {};
-	data.serviceId = id;
-	data.operation = req.method;
-	data.user = req.headers[global.userHeader];
-	data.txnId = req.headers[global.txnIdHeader];
-	data.timeStamp = new Date();
-	data.data = {};
-	if (id) {
-		let promise = isNew ? Promise.resolve(null) : model.findOne({ _id: id });
-		return promise
-			.then(doc => {
-				if (doc) {
-					data.operation = data.operation == 'DELETE' ? data.operation : 'PUT';
-					data.data.old = JSON.stringify(doc.toJSON());
-				}
-				else {
-					data.data.old = null;
-				}
-				return data;
-			});
-	}
-	return Promise.resolve(data);
-}
+// function getWebHookAndAuditData(req, id, isNew) {
+// 	let data = {};
+// 	data.serviceId = id;
+// 	data.operation = req.method;
+// 	data.user = req.headers[global.userHeader];
+// 	data.txnId = req.headers[global.txnIdHeader];
+// 	data.timeStamp = new Date();
+// 	data.data = {};
+// 	if (id) {
+// 		let promise = isNew ? Promise.resolve(null) : model.findOne({ _id: id });
+// 		return promise
+// 			.then(doc => {
+// 				if (doc) {
+// 					data.operation = data.operation == 'DELETE' ? data.operation : 'PUT';
+// 					data.data.old = JSON.stringify(doc.toJSON());
+// 				}
+// 				else {
+// 					data.data.old = null;
+// 				}
+// 				return data;
+// 			});
+// 	}
+// 	return Promise.resolve(data);
+// }
 
-function pushWebHookAndAuditData(webHookData, newData) {
-	webHookData._id = newData._id;
-	webHookData.data.new = JSON.stringify(newData);
-	queue.sendToQueue(webHookData);
-	let auditData = {};
-	auditData.versionValue = '-1';
-	auditData.user = webHookData.user;
-	auditData.txnId = webHookData.txnId;
-	auditData.timeStamp = webHookData.timeStamp;
-	auditData.data = {};
-	auditData.data.old = {};
-	auditData.data.new = {};
-	auditData._metadata = {};
-	auditData.colName = 'Adam.complex.audit';
-	auditData._metadata.lastUpdated = new Date();
-	auditData._metadata.createdAt = new Date();
-	auditData._metadata.deleted = false;
-	auditData.data._id = JSON.parse(webHookData.data.new)._id;
-	auditData.data._version = JSON.parse(webHookData.data.new)._metadata.version.document;
-	getDiff(JSON.parse(webHookData.data.old), JSON.parse(webHookData.data.new), auditData.data.old, auditData.data.new);
-	let oldLastUpdated = auditData.data.old && auditData.data.old._metadata ? auditData.data.old._metadata.lastUpdated : null;
-	let newLastUpdated = auditData.data.new && auditData.data.new._metadata ? auditData.data.new._metadata.lastUpdated : null;
-	if (oldLastUpdated) delete auditData.data.old._metadata.lastUpdated;
-	if (newLastUpdated) delete auditData.data.new._metadata.lastUpdated;
+// function pushWebHookAndAuditData(webHookData, newData) {
+// 	webHookData._id = newData._id;
+// 	webHookData.data.new = JSON.stringify(newData);
+// 	queue.sendToQueue(webHookData);
+// 	let auditData = {};
+// 	auditData.versionValue = '-1';
+// 	auditData.user = webHookData.user;
+// 	auditData.txnId = webHookData.txnId;
+// 	auditData.timeStamp = webHookData.timeStamp;
+// 	auditData.data = {};
+// 	auditData.data.old = {};
+// 	auditData.data.new = {};
+// 	auditData._metadata = {};
+// 	auditData.colName = 'Adam.complex.audit';
+// 	auditData._metadata.lastUpdated = new Date();
+// 	auditData._metadata.createdAt = new Date();
+// 	auditData._metadata.deleted = false;
+// 	auditData.data._id = JSON.parse(webHookData.data.new)._id;
+// 	auditData.data._version = JSON.parse(webHookData.data.new)._metadata.version.document;
+// 	getDiff(JSON.parse(webHookData.data.old), JSON.parse(webHookData.data.new), auditData.data.old, auditData.data.new);
+// 	let oldLastUpdated = auditData.data.old && auditData.data.old._metadata ? auditData.data.old._metadata.lastUpdated : null;
+// 	let newLastUpdated = auditData.data.new && auditData.data.new._metadata ? auditData.data.new._metadata.lastUpdated : null;
+// 	if (oldLastUpdated) delete auditData.data.old._metadata.lastUpdated;
+// 	if (newLastUpdated) delete auditData.data.new._metadata.lastUpdated;
 
-	if (!_.isEqual(auditData.data.old, auditData.data.new)) {
-		if (oldLastUpdated) auditData.data.old._metadata.lastUpdated = oldLastUpdated;
-		if (newLastUpdated) auditData.data.new._metadata.lastUpdated = newLastUpdated;
-		if (auditData.versionValue != 0) {
-			client.publish('auditQueue', JSON.stringify(auditData));
+// 	if (!_.isEqual(auditData.data.old, auditData.data.new)) {
+// 		if (oldLastUpdated) auditData.data.old._metadata.lastUpdated = oldLastUpdated;
+// 		if (newLastUpdated) auditData.data.new._metadata.lastUpdated = newLastUpdated;
+// 		if (auditData.versionValue != 0) {
+// 			client.publish('auditQueue', JSON.stringify(auditData));
+// 		}
+
+// 	}
+// }
+
+// function getUpdatedDoc(doc, updateObj) {
+// 	Object.keys(updateObj).forEach(_k => {
+// 		let keyArr = _k.split('.');
+// 		keyArr.reduce((acc, curr, i) => {
+// 			if (i == keyArr.length - 1) {
+// 				acc[curr] = updateObj[_k];
+// 			}
+// 			if (acc) {
+// 				return acc[curr];
+// 			}
+// 		}, doc);
+// 	});
+// }
+
+// function doRoundMathAPI(req) {
+// 	let id = req.params.id;
+// 	let body = req.body;
+// 	let updateBody = { '$inc': { '_metadata.version.document': 1 } };
+// 	let session = null;
+// 	let resBody = null;
+// 	let prevVersion = null;
+// 	let promise = Promise.resolve();
+// 	if (body['$inc']) {
+// 		promise = Object.keys(body['$inc']).reduce((acc, curr) => {
+// 			return acc.then(() => {
+// 				let pField = specialFields.precisionFields.find(_p => _p.field == curr);
+// 				if (pField && (pField.precision || pField.precision == 0)) {
+// 					return roundMath(id, session, body['$inc'][curr], '$add', curr, pField.precision, prevVersion)
+// 						.then(_val => {
+// 							logger.debug({ _val });
+// 							if (_val) {
+// 								prevVersion = _val.prevVersion;
+// 								if (!updateBody['$set']) {
+// 									updateBody['$set'] = {};
+// 								}
+// 								updateBody['$set'][curr] = _val.val;
+// 							}
+// 							return Promise.resolve();
+// 						});
+// 				} else {
+// 					if (!updateBody['$inc']) {
+// 						updateBody['$inc'] = {};
+// 					}
+// 					updateBody['$inc'][curr] = body['$inc'][curr];
+// 					return Promise.resolve();
+// 				}
+// 			});
+// 		}, promise);
+// 	}
+// 	if (body['$mul']) {
+// 		promise = Object.keys(body['$mul']).reduce((acc, curr) => {
+// 			return acc.then(() => {
+// 				let pField = specialFields.precisionFields.find(_p => _p.field == curr);
+// 				if (pField && (pField.precision || pField.precision == 0)) {
+// 					return roundMath(id, session, body['$mul'][curr], '$multiply', curr, pField.precision, prevVersion)
+// 						.then(_val => {
+// 							if (_val) {
+// 								prevVersion = _val.prevVersion;
+// 								if (!updateBody['$set']) {
+// 									updateBody['$set'] = {};
+// 								}
+// 								updateBody['$set'][curr] = _val.val;
+// 							}
+// 							return Promise.resolve();
+// 						});
+// 				} else {
+// 					if (!updateBody['$mul']) {
+// 						updateBody['$mul'] = {};
+// 					}
+// 					updateBody['$mul'][curr] = body['$mul'][curr];
+// 					return Promise.resolve();
+// 				}
+// 			});
+// 		}, promise);
+// 	}
+// 	const opts = { new: true };
+// 	let generateId = false;
+// 	let globalDoc = null;
+// 	return promise.then(() => {
+// 		if (updateBody['$set']) {
+// 			return model.findOne({ _id: id })
+// 				.then((_doc) => {
+// 					getUpdatedDoc(_doc, updateBody['$set']);
+// 					globalDoc = _doc;
+// 					return _doc.validate();
+// 				})
+// 				.then(() => {
+// 					if (!req.simulateFlag)
+// 						return workflowUtils.simulate(req, globalDoc, { generateId, operation: 'PUT' });
+// 					return globalDoc;
+// 				})
+// 				.then((_d) => {
+// 					logger.debug({ _id: id, '_metadata.version.document': prevVersion });
+// 					return model.findOneAndUpdate({ _id: id, '_metadata.version.document': prevVersion }, _d, opts);
+// 				});
+// 		}
+// 	}).then(_newBody => {
+// 		resBody = _newBody;
+// 		if (!_newBody) {
+// 			logger.debug({ _newBody });
+// 			throw new Error('CUSTOM_READ_CONFLICT');
+// 		}
+// 		logger.debug(JSON.stringify({ resBody }));
+// 	}).then(() => {
+// 		return resBody;
+// 	});
+// }
+
+// function roundMath(id, session, value, operation, field, precision, prevVersion) {
+// 	let precisionFactor = Math.pow(10, precision);
+// 	return model.aggregate([
+// 		{ $match: { _id: id } },
+// 		{
+// 			$project: {
+// 				_id: 0,
+// 				docVersion: '$_metadata.version.document',
+// 				y: {
+// 					$divide: [
+// 						{
+// 							$subtract: [
+// 								{
+// 									$add: [{ $multiply: [{ [operation]: [`$${field}`, value] }, precisionFactor] }, 0.5]
+// 								},
+// 								{
+// 									$abs: { $mod: [{ $add: [{ $multiply: [{ [operation]: [`$${field}`, value] }, precisionFactor] }, 0.5] }, 1] }
+// 								}
+// 							]
+// 						}, precisionFactor]
+// 				}
+// 			}
+// 		}
+// 	]).then(_a => {
+// 		logger.debug(JSON.stringify({ _a, prevVersion }));
+// 		if (!_a || !_a[0]) {
+// 			throw new Error('Document not found');
+// 		}
+// 		if (_a && _a[0] && (prevVersion || prevVersion == 0) && prevVersion != _a[0]['docVersion']) {
+// 			throw new Error('CUSTOM_READ_CONFLICT');
+// 		}
+// 		if (_a && _a[0]) {
+// 			prevVersion = _a[0]['docVersion'];
+// 		}
+// 		logger.debug('new ' + JSON.stringify({ _a, prevVersion }));
+// 		return _a && _a[0] && (_a[0].y || _a[0].y === 0) ? { val: parseFloat(_a[0].y.toFixed(precision)), prevVersion } : null;
+// 	});
+// }
+
+
+
+/******************************* NEW Math API Logic *************************/
+
+async function processMathQueue(obj, callback) {
+	try {
+	  const req = obj.req;
+	  const res = obj.res;
+	  const id = req.params.id;
+	  const oldNewData = {};
+  
+	  req.simulateFlag = false;
+	  req.query.source = "presave";
+	  req.simulate = false;
+  
+	  const updatedBody = await doRoundMathAPI(req, res, oldNewData);
+	  res.json(updatedBody);
+	  callback();
+	  pushWebHookAndAuditData(req, webHookData);
+	} catch (err) {
+	  logger.error(err.message);
+	  callback();
+	  if (
+		err.message == "CUSTOM_READ_CONFLICT" ||
+		(err.errmsg === "WriteConflict" &&
+		  err.errorLabels &&
+		  err.errorLabels.indexOf("TransientTransactionError") > -1)
+	  ) {
+		logger.error("=================");
+		req.simulateFlag = true;
+		if (!res.headersSent) {
+		  mathQueue.push({ req: req, res: res });
 		}
-
+	  } else {
+		let status = err.name == "ValidationError" ? 400 : 500;
+		res.status(status).json({ message: err.message });
+	  }
 	}
-}
-
-function getUpdatedDoc(doc, updateObj) {
-	Object.keys(updateObj).forEach(_k => {
-		let keyArr = _k.split('.');
-		keyArr.reduce((acc, curr, i) => {
-			if (i == keyArr.length - 1) {
-				acc[curr] = updateObj[_k];
-			}
-			if (acc) {
-				return acc[curr];
-			}
-		}, doc);
-	});
-}
-
-function doRoundMathAPI(req) {
-	let id = req.params.id;
-	let body = req.body;
-	let updateBody = { '$inc': { '_metadata.version.document': 1 } };
-	let session = null;
-	let resBody = null;
-	let prevVersion = null;
-	let promise = Promise.resolve();
-	if (body['$inc']) {
-		promise = Object.keys(body['$inc']).reduce((acc, curr) => {
-			return acc.then(() => {
-				let pField = specialFields.precisionFields.find(_p => _p.field == curr);
-				if (pField && (pField.precision || pField.precision == 0)) {
-					return roundMath(id, session, body['$inc'][curr], '$add', curr, pField.precision, prevVersion)
-						.then(_val => {
-							logger.debug({ _val });
-							if (_val) {
-								prevVersion = _val.prevVersion;
-								if (!updateBody['$set']) {
-									updateBody['$set'] = {};
-								}
-								updateBody['$set'][curr] = _val.val;
-							}
-							return Promise.resolve();
-						});
-				} else {
-					if (!updateBody['$inc']) {
-						updateBody['$inc'] = {};
-					}
-					updateBody['$inc'][curr] = body['$inc'][curr];
-					return Promise.resolve();
-				}
-			});
-		}, promise);
+  }
+  
+  function pushWebHookAndAuditData(req, webHookData) {
+	webHookData.user = req.headers[global.userHeader];
+	webHookData.txnId = req.headers[global.txnIdHeader] || req.headers["txnid"];
+	hooksUtils.prepPostHooks(webHookData);
+	if (!config.disableAudits) {
+	  let auditData = {};
+	  auditData.versionValue = "-1";
+	  auditData.user = webHookData.user;
+	  auditData.txnId = webHookData.txnId;
+	  auditData.timeStamp = new Date();
+	  auditData.data = {};
+	  auditData.data.old = {};
+	  auditData.data.new = {};
+	  auditData._metadata = {};
+	  auditData.colName = `${config.app}.${config.serviceCollection}.audit`;
+	  auditData._metadata.lastUpdated = new Date();
+	  auditData._metadata.createdAt = new Date();
+	  auditData._metadata.deleted = false;
+	  auditData.data._id = webHookData.new._id;
+	  auditData.data._version = webHookData.new._metadata.version.document;
+	  getDiff(
+		webHookData.old,
+		webHookData.new,
+		auditData.data.old,
+		auditData.data.new
+	  );
+	  let oldLastUpdated =
+		auditData.data.old && auditData.data.old._metadata
+		  ? auditData.data.old._metadata.lastUpdated
+		  : null;
+	  let newLastUpdated =
+		auditData.data.new && auditData.data.new._metadata
+		  ? auditData.data.new._metadata.lastUpdated
+		  : null;
+	  if (oldLastUpdated) delete auditData.data.old._metadata.lastUpdated;
+	  if (newLastUpdated) delete auditData.data.new._metadata.lastUpdated;
+	  if (!_.isEqual(auditData.data.old, auditData.data.new)) {
+		if (oldLastUpdated)
+		  auditData.data.old._metadata.lastUpdated = oldLastUpdated;
+		if (newLastUpdated)
+		  auditData.data.new._metadata.lastUpdated = newLastUpdated;
+		// client.publish('auditQueue', JSON.stringify(auditData))
+		hooksUtils.insertAuditLog(webHookData.txnId, auditData);
+	  }
 	}
-	if (body['$mul']) {
-		promise = Object.keys(body['$mul']).reduce((acc, curr) => {
-			return acc.then(() => {
-				let pField = specialFields.precisionFields.find(_p => _p.field == curr);
-				if (pField && (pField.precision || pField.precision == 0)) {
-					return roundMath(id, session, body['$mul'][curr], '$multiply', curr, pField.precision, prevVersion)
-						.then(_val => {
-							if (_val) {
-								prevVersion = _val.prevVersion;
-								if (!updateBody['$set']) {
-									updateBody['$set'] = {};
-								}
-								updateBody['$set'][curr] = _val.val;
-							}
-							return Promise.resolve();
-						});
-				} else {
-					if (!updateBody['$mul']) {
-						updateBody['$mul'] = {};
-					}
-					updateBody['$mul'][curr] = body['$mul'][curr];
-					return Promise.resolve();
-				}
-			});
-		}, promise);
-	}
-	const opts = { new: true };
-	let generateId = false;
-	let globalDoc = null;
-	return promise.then(() => {
-		if (updateBody['$set']) {
-			return model.findOne({ _id: id })
-				.then((_doc) => {
-					getUpdatedDoc(_doc, updateBody['$set']);
-					globalDoc = _doc;
-					return _doc.validate();
-				})
-				.then(() => {
-					if (!req.simulateFlag)
-						return workflowUtils.simulate(req, globalDoc, { generateId, operation: 'PUT' });
-					return globalDoc;
-				})
-				.then((_d) => {
-					logger.debug({ _id: id, '_metadata.version.document': prevVersion });
-					return model.findOneAndUpdate({ _id: id, '_metadata.version.document': prevVersion }, _d, opts);
-				});
+  }
+  
+  async function doRoundMathAPI(req, res, oldNewData) {
+	try {
+	  const id = req.params.id;
+	  const body = req.body;
+	  let prevVersion;
+
+	  // Fetching Existing Record to store document version.
+	  const doc = await model.findOne({ _id: id });
+	  oldNewData.old = doc.toObject();
+	  oldNewData._id = id;
+	  prevVersion = doc.toObject()._metadata.version.document;
+  
+	  // Grouping math operations for each field.
+	  const fields = {};
+	  body.forEach((item) => {
+		const key = Object.keys(item)[0];
+		const field = Object.keys(item[key])[0];
+		if (!fields[field]) {
+		  fields[field] = [];
 		}
-	}).then(_newBody => {
-		resBody = _newBody;
-		if (!_newBody) {
-			logger.debug({ _newBody });
-			throw new Error('CUSTOM_READ_CONFLICT');
-		}
-		logger.debug(JSON.stringify({ resBody }));
-	}).then(() => {
-		return resBody;
-	});
-}
-
-function roundMath(id, session, value, operation, field, precision, prevVersion) {
-	let precisionFactor = Math.pow(10, precision);
-	return model.aggregate([
-		{ $match: { _id: id } },
+		fields[field].push(item);
+	  });
+  
+	  // Creating a $project query of each field.
+	  const project = {};
+	  Object.keys(fields).forEach((key) => {
+		const query = fields[key].reduce((prev, curr) => {
+		  const temp = {};
+		  const operation = Object.keys(curr)[0];
+		  const projectOperation = operation === "$inc" ? "$add" : "$multiply";
+		  temp[projectOperation] = [
+			Object.values(curr[operation])[0],
+			prev ? prev : "$" + Object.keys(curr[operation])[0],
+		  ];
+		  return temp;
+		}, null);
+		project[key] = query;
+	  });
+  
+	  const docs = await model.aggregate([
+		{ $match: { _id: id, "_metadata.version.document": prevVersion } },
 		{
-			$project: {
-				_id: 0,
-				docVersion: '$_metadata.version.document',
-				y: {
-					$divide: [
-						{
-							$subtract: [
-								{
-									$add: [{ $multiply: [{ [operation]: [`$${field}`, value] }, precisionFactor] }, 0.5]
-								},
-								{
-									$abs: { $mod: [{ $add: [{ $multiply: [{ [operation]: [`$${field}`, value] }, precisionFactor] }, 0.5] }, 1] }
-								}
-							]
-						}, precisionFactor]
-				}
-			}
+		  $project: project,
+		},
+	  ]);
+	  if (!docs || !docs[0]) {
+		throw new Error("CUSTOM_READ_CONFLICT");
+	  }
+	  const updateData = docs[0];
+	  delete updateData._id;
+	  specialFields.precisionFields.forEach((item) => {
+		if (updateData[item.field]) {
+		  // let precisionFactor = Math.pow(10, precision);
+		  updateData[item.field] = parseFloat(
+			updateData[item.field].toFixed(item.precision)
+		  );
 		}
-	]).then(_a => {
-		logger.debug(JSON.stringify({ _a, prevVersion }));
-		if (!_a || !_a[0]) {
-			throw new Error('Document not found');
-		}
-		if (_a && _a[0] && (prevVersion || prevVersion == 0) && prevVersion != _a[0]['docVersion']) {
-			throw new Error('CUSTOM_READ_CONFLICT');
-		}
-		if (_a && _a[0]) {
-			prevVersion = _a[0]['docVersion'];
-		}
-		logger.debug('new ' + JSON.stringify({ _a, prevVersion }));
-		return _a && _a[0] && (_a[0].y || _a[0].y === 0) ? { val: parseFloat(_a[0].y.toFixed(precision)), prevVersion } : null;
-	});
-}
+	  });
+	  
+	  const status = await model.findOneAndUpdate(
+		{ _id: id, "_metadata.version.document": prevVersion },
+		{ $set: updateData, $inc: { "_metadata.version.document": 1 } },
+		{ new: true }
+	  );
+	  oldNewData.old = status.toObject();
+	  return status;
+	} catch (err) {
+	  logger.error(err);
+	  throw err;
+	}
+  }
 
 module.exports = router;
