@@ -5,19 +5,22 @@ const async = require('async');
 const _ = require('lodash');
 
 const config = require('../../config');
-const queue = require('../../queue');
 const specialFields = require('../utils/special-fields.utils');
 const hooksUtils = require('../utils/hooks.utils');
 const crudderUtils = require('../utils/crudder.utils');
 const workflowUtils = require('../utils/workflow.utils');
-const { mergeCustomizer, getDiff, modifySecureFieldsFilter } = require('./../utils/common.utils');
+const {
+	mergeCustomizer,
+	getDiff,
+	modifySecureFieldsFilter,
+} = require('./../utils/common.utils');
 
 const logger = global.logger;
 const model = mongoose.model(config.serviceId);
 let softDeletedModel;
-if (!config.permanentDelete) softDeletedModel = mongoose.model(config.serviceId + '.deleted');
+if (!config.permanentDelete)
+	softDeletedModel = mongoose.model(config.serviceId + '.deleted');
 const mathQueue = async.priorityQueue(processMathQueue);
-const client = queue.client;
 
 router.get('/doc', (req, res) => {
 	async function execute() {
@@ -34,10 +37,10 @@ router.get('/doc', (req, res) => {
 			throw e;
 		}
 	}
-	execute().catch(err => {
+	execute().catch((err) => {
 		logger.error(err);
 		res.status(400).json({
-			message: err.message
+			message: err.message,
 		});
 	});
 });
@@ -53,10 +56,10 @@ router.get('/utils/securedFields', (req, res) => {
 			throw e;
 		}
 	}
-	execute().catch(err => {
+	execute().catch((err) => {
 		logger.error(err);
 		res.status(400).json({
-			message: err.message
+			message: err.message,
 		});
 	});
 });
@@ -66,10 +69,10 @@ router.get('/utils/bulkShow', (req, res) => {
 		try {
 			const ids = req.query.id ? req.query.id.split(',') : [];
 			const filter = {
-				'_id': {
-					'$in': ids
+				_id: {
+					$in: ids,
 				},
-				'_metadata.deleted': false
+				'_metadata.deleted': false,
 			};
 			let select = '';
 			let sort = '';
@@ -88,10 +91,10 @@ router.get('/utils/bulkShow', (req, res) => {
 			throw e;
 		}
 	}
-	execute().catch(err => {
+	execute().catch((err) => {
 		logger.error(err);
 		res.status(400).json({
-			message: err.message
+			message: err.message,
 		});
 	});
 });
@@ -104,15 +107,15 @@ router.put('/bulkUpdate', (req, res) => {
 			const id = req.query.id;
 			if (!id) {
 				return res.status(400).json({
-					message: 'Invalid IDs'
+					message: 'Invalid IDs',
 				});
 			}
 			const ids = id.split(',');
 			const filter = {
-				'_id': {
-					'$in': ids
+				_id: {
+					$in: ids,
 				},
-				'_metadata.deleted': false
+				'_metadata.deleted': false,
 			};
 			const docs = await model.find(filter);
 			const promises = docs.map(async (doc) => {
@@ -122,21 +125,32 @@ router.put('/bulkUpdate', (req, res) => {
 				_.mergeWith(payload, req.body, mergeCustomizer);
 				const hasSkipReview = await workflowUtils.hasSkipReview(req);
 				if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
-					const wfItem = workflowUtils.getWorkflowItem(req, 'PUT', doc._id, 'Pending', payload, doc.toObject());
+					const wfItem = workflowUtils.getWorkflowItem(
+						req,
+						'PUT',
+						doc._id,
+						'Pending',
+						payload,
+						doc.toObject()
+					);
 					const wfDoc = new workflowModel(wfItem);
 					wfDoc._req = req;
 					let status = await wfDoc.save();
 					doc._metadata.workflow = status._id;
-					return await model.findByIdAndUpdate(doc._id, { '_metadata.workflow': status._id });;
+					return await model.findByIdAndUpdate(doc._id, {
+						'_metadata.workflow': status._id,
+					});
 				} else {
 					_.mergeWith(doc, req.body, mergeCustomizer);
-					return new Promise((resolve) => { doc.save().then(resolve).catch(resolve); });
+					return new Promise((resolve) => {
+						doc.save().then(resolve).catch(resolve);
+					});
 				}
 			});
 			const allResult = await Promise.all(promises);
-			if (allResult.every(e => e._id)) {
+			if (allResult.every((e) => e._id)) {
 				return res.status(200).json(allResult);
-			} else if (allResult.every(e => !e._id)) {
+			} else if (allResult.every((e) => !e._id)) {
 				return res.status(400).json(allResult);
 			} else {
 				return res.status(207).json(allResult);
@@ -148,10 +162,10 @@ router.put('/bulkUpdate', (req, res) => {
 			throw e;
 		}
 	}
-	execute().catch(err => {
+	execute().catch((err) => {
 		logger.error(err);
 		res.status(400).json({
-			message: err.message
+			message: err.message,
 		});
 	});
 });
@@ -164,14 +178,14 @@ router.delete('/utils/bulkDelete', (req, res) => {
 			const ids = req.body.ids;
 			if (!ids || ids.length == 0) {
 				return res.status(400).json({
-					message: 'Invalid IDs'
+					message: 'Invalid IDs',
 				});
 			}
 			const filter = {
-				'_id': {
-					'$in': ids
+				_id: {
+					$in: ids,
 				},
-				'_metadata.deleted': false
+				'_metadata.deleted': false,
 			};
 			const docs = await model.find(filter);
 			const promises = docs.map(async (doc) => {
@@ -179,28 +193,46 @@ router.delete('/utils/bulkDelete', (req, res) => {
 				doc._oldDoc = doc.toObject();
 				const hasSkipReview = await workflowUtils.hasSkipReview(req);
 				if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
-					const wfItem = workflowUtils.getWorkflowItem(req, 'DELETE', doc._id, 'Pending', null, doc.toObject());
+					const wfItem = workflowUtils.getWorkflowItem(
+						req,
+						'DELETE',
+						doc._id,
+						'Pending',
+						null,
+						doc.toObject()
+					);
 					const wfDoc = new workflowModel(wfItem);
 					wfDoc._req = req;
 					let status = await wfDoc.save();
 					doc._metadata.workflow = status._id;
-					return await model.findByIdAndUpdate(doc._id, { '_metadata.workflow': status._id });
+					return await model.findByIdAndUpdate(doc._id, {
+						'_metadata.workflow': status._id,
+					});
 				} else {
 					if (!config.permanentDelete) {
 						let softDeletedDoc = new softDeletedModel(doc);
 						softDeletedDoc.isNew = true;
 						await softDeletedDoc.save();
 					}
-					return new Promise((resolve) => { doc.remove().then(resolve).catch(() => resolve(null)); });
+					return new Promise((resolve) => {
+						doc
+							.remove()
+							.then(resolve)
+							.catch(() => resolve(null));
+					});
 				}
 			});
 			const allResult = await Promise.all(promises);
-			const removedIds = allResult.filter(doc => doc != null).map(doc => doc._id);
+			const removedIds = allResult
+				.filter((doc) => doc != null)
+				.map((doc) => doc._id);
 			const docsNotRemoved = _.difference(_.uniq(ids), removedIds);
 			if (_.isEmpty(docsNotRemoved)) {
 				return res.status(200).json({});
 			} else {
-				return res.status(400).json({ message: 'Could not delete document with id ' + docsNotRemoved });
+				return res.status(400).json({
+					message: 'Could not delete document with id ' + docsNotRemoved,
+				});
 			}
 		} catch (e) {
 			if (typeof e === 'string') {
@@ -209,10 +241,10 @@ router.delete('/utils/bulkDelete', (req, res) => {
 			throw e;
 		}
 	}
-	execute().catch(err => {
+	execute().catch((err) => {
 		logger.error(err);
 		res.status(400).json({
-			message: err.message
+			message: err.message,
 		});
 	});
 });
@@ -228,18 +260,26 @@ router.get('/utils/count', (req, res) => {
 			try {
 				if (req.query.filter) {
 					filter = JSON.parse(req.query.filter);
-					const tempFilter = await specialFields.patchRelationInFilter(req, filter, errors);
+					const tempFilter = await specialFields.patchRelationInFilter(
+						req,
+						filter,
+						errors
+					);
 					if (Array.isArray(tempFilter) && tempFilter.length > 0) {
 						filter = tempFilter[0];
 					} else if (tempFilter) {
 						filter = tempFilter;
 					}
-					filter = modifySecureFieldsFilter(filter, specialFields.secureFields, false);
+					filter = modifySecureFieldsFilter(
+						filter,
+						specialFields.secureFields,
+						false
+					);
 				}
 			} catch (e) {
 				logger.error(e);
 				return res.status(400).json({
-					message: e
+					message: e,
 				});
 			}
 			if (filter) {
@@ -257,10 +297,10 @@ router.get('/utils/count', (req, res) => {
 			throw e;
 		}
 	}
-	execute().catch(err => {
+	execute().catch((err) => {
 		logger.error(err);
 		res.status(400).json({
-			message: err.message
+			message: err.message,
 		});
 	});
 });
@@ -273,18 +313,26 @@ router.get('/', (req, res) => {
 			try {
 				if (req.query.filter) {
 					filter = JSON.parse(req.query.filter);
-					const tempFilter = await specialFields.patchRelationInFilter(req, filter, errors);
+					const tempFilter = await specialFields.patchRelationInFilter(
+						req,
+						filter,
+						errors
+					);
 					if (Array.isArray(tempFilter) && tempFilter.length > 0) {
 						filter = tempFilter[0];
 					} else if (tempFilter) {
 						filter = tempFilter;
 					}
-					filter = modifySecureFieldsFilter(filter, specialFields.secureFields, false);
+					filter = modifySecureFieldsFilter(
+						filter,
+						specialFields.secureFields,
+						false
+					);
 				}
 			} catch (e) {
 				logger.error(e);
 				return res.status(400).json({
-					message: e
+					message: e,
 				});
 			}
 			if (filter) {
@@ -301,11 +349,11 @@ router.get('/', (req, res) => {
 			let count = 30;
 			let select = '';
 			let sort = '';
-			if (req.query.count && (+req.query.count) > 0) {
+			if (req.query.count && +req.query.count > 0) {
 				count = +req.query.count;
 			}
-			if (req.query.page && (+req.query.page) > 0) {
-				skip = count * ((+req.query.page) - 1);
+			if (req.query.page && +req.query.page > 0) {
+				skip = count * (+req.query.page - 1);
 			}
 			if (req.query.select && req.query.select.trim()) {
 				select = req.query.select.split(',').join(' ');
@@ -315,14 +363,28 @@ router.get('/', (req, res) => {
 			} else {
 				sort = '-_metadata.lastUpdated';
 			}
-			let docs = await model.find(filter).select(select).sort(sort).skip(skip).limit(count).lean();
+			let docs = await model
+				.find(filter)
+				.select(select)
+				.sort(sort)
+				.skip(skip)
+				.limit(count)
+				.lean();
 			if (req.query.expand) {
-				let promises = docs.map(e => specialFields.expandDocument(req, e, null, true));
+				let promises = docs.map((e) =>
+					specialFields.expandDocument(req, e, null, true)
+				);
 				docs = await Promise.all(promises);
 				promises = null;
 			}
-			if (specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
-				let promises = docs.map(e => specialFields.decryptSecureFields(req, e, null));
+			if (
+				specialFields.secureFields &&
+        specialFields.secureFields.length &&
+        specialFields.secureFields[0]
+			) {
+				let promises = docs.map((e) =>
+					specialFields.decryptSecureFields(req, e, null)
+				);
 				await Promise.all(promises);
 				promises = null;
 			}
@@ -334,10 +396,10 @@ router.get('/', (req, res) => {
 			throw e;
 		}
 	}
-	execute().catch(err => {
+	execute().catch((err) => {
 		logger.error(err);
 		res.status(400).json({
-			message: err.message
+			message: err.message,
 		});
 	});
 });
@@ -348,14 +410,18 @@ router.get('/:id', (req, res) => {
 			let doc = await model.findById(req.params.id).lean();
 			if (!doc) {
 				return res.status(404).json({
-					message: `Record With ID  ${req.params.id} Not Found.`
+					message: `Record With ID  ${req.params.id} Not Found.`,
 				});
 			}
 			const expandLevel = (req.header('expand-level') || 0) + 1;
 			if (req.query.expand && expandLevel < 3) {
 				doc = await specialFields.expandDocument(req, doc);
 			}
-			if (specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
+			if (
+				specialFields.secureFields &&
+        specialFields.secureFields.length &&
+        specialFields.secureFields[0]
+			) {
 				await specialFields.decryptSecureFields(req, doc, null);
 			}
 			res.status(200).json(doc);
@@ -366,10 +432,10 @@ router.get('/:id', (req, res) => {
 			throw e;
 		}
 	}
-	execute().catch(err => {
+	execute().catch((err) => {
 		logger.error(err);
 		res.status(400).json({
-			message: err.message
+			message: err.message,
 		});
 	});
 });
@@ -383,31 +449,48 @@ router.post('/', (req, res) => {
 			let payload = req.body;
 			let promises;
 			const hasSkipReview = await workflowUtils.hasSkipReview(req);
-			if ((workflowUtils.isWorkflowEnabled() && !hasSkipReview) || req.query.draft) {
+			if (
+				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
+        req.query.draft
+			) {
 				let wfItemStatus = 'Pending';
 				if (req.query.draft) {
 					wfItemStatus = 'Draft';
 				}
 				if (Array.isArray(payload)) {
 					promises = payload.map(async (e) => {
-						const wfItem = workflowUtils.getWorkflowItem(req, 'POST', e._id, wfItemStatus, e, null);
+						const wfItem = workflowUtils.getWorkflowItem(
+							req,
+							'POST',
+							e._id,
+							wfItemStatus,
+							e,
+							null
+						);
 						const wfDoc = new workflowModel(wfItem);
 						wfDoc._req = req;
 						const status = await wfDoc.save();
 						return {
 							_workflow: status._id,
-							message: 'Workflow has been created'
+							message: 'Workflow has been created',
 						};
 					});
 					promises = await Promise.all(promises);
 				} else {
-					const wfItem = workflowUtils.getWorkflowItem(req, 'POST', payload._id, wfItemStatus, payload, null);
+					const wfItem = workflowUtils.getWorkflowItem(
+						req,
+						'POST',
+						payload._id,
+						wfItemStatus,
+						payload,
+						null
+					);
 					const wfDoc = new workflowModel(wfItem);
 					wfDoc._req = req;
 					const status = await wfDoc.save();
 					promises = {
 						_workflow: status._id,
-						message: 'Workflow has been created'
+						message: 'Workflow has been created',
 					};
 				}
 				res.status(200).json(promises);
@@ -416,16 +499,24 @@ router.post('/', (req, res) => {
 					let abortOnError = req.query.abortOnError;
 					if (abortOnError) {
 						if (!global.isTransactionAllowed)
-							throw new Error('Transactions are not supported for your Mongo Db server configuration.');
+							throw new Error(
+								'Transactions are not supported for your Mongo Db server configuration.'
+							);
 						logger.debug(`[${txnId}] :: Starting transaction for bulk post.`);
 						let session;
 						try {
-							await mongoose.connection.transaction(async function saveRecords(sess) {
+							await mongoose.connection.transaction(async function saveRecords(
+								sess
+							) {
 								session = sess;
 								return createDocuments(req, session);
-							}, config.transactionOptions)
+							},
+							config.transactionOptions);
 						} catch (err) {
-							logger.error(`[${txnId}] : Error while bulk post with transaction :: `, err);
+							logger.error(
+								`[${txnId}] : Error while bulk post with transaction :: `,
+								err
+							);
 							throw err;
 						} finally {
 							if (session) session.endSession();
@@ -437,7 +528,9 @@ router.post('/', (req, res) => {
 					let upsert = req.query.upsert == 'true';
 					if (upsert && payload._id) {
 						let oldDoc = await model.findById(payload._id);
-						logger.debug(`[${txnId}] : Updating Existing Record With ID ${payload._id}`);
+						logger.debug(
+							`[${txnId}] : Updating Existing Record With ID ${payload._id}`
+						);
 						payload = _.mergeWith(oldDoc, payload, mergeCustomizer);
 					}
 					const doc = new model(payload);
@@ -453,10 +546,10 @@ router.post('/', (req, res) => {
 			throw e;
 		}
 	}
-	execute().catch(err => {
+	execute().catch((err) => {
 		logger.error(err);
 		res.status(400).json({
-			message: err.message ? err.message : Object.values(err).join()
+			message: err.message ? err.message : Object.values(err).join(),
 		});
 	});
 });
@@ -474,7 +567,7 @@ router.put('/:id', (req, res) => {
 			let doc = await model.findById(req.params.id);
 			if (!doc && !upsert) {
 				return res.status(404).json({
-					message: 'Document Not Found'
+					message: 'Document Not Found',
 				});
 			}
 			if (!doc && upsert) {
@@ -486,7 +579,7 @@ router.put('/:id', (req, res) => {
 			}
 			if (doc._metadata.workflow) {
 				return res.status(400).json({
-					message: 'This Document is Locked because of a pending Workflow'
+					message: 'This Document is Locked because of a pending Workflow',
 				});
 			}
 			if (!isNewDoc) {
@@ -495,20 +588,32 @@ router.put('/:id', (req, res) => {
 			}
 			doc._req = req;
 			const hasSkipReview = await workflowUtils.hasSkipReview(req);
-			if ((workflowUtils.isWorkflowEnabled() && !hasSkipReview) || req.query.draft) {
+			if (
+				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
+        req.query.draft
+			) {
 				let wfItemStatus = 'Pending';
 				if (req.query.draft) {
 					wfItemStatus = 'Draft';
 				}
-				const wfItem = workflowUtils.getWorkflowItem(req, isNewDoc ? 'POST' : 'PUT', doc._id, wfItemStatus, payload, isNewDoc ? null : doc._oldDoc);
+				const wfItem = workflowUtils.getWorkflowItem(
+					req,
+					isNewDoc ? 'POST' : 'PUT',
+					doc._id,
+					wfItemStatus,
+					payload,
+					isNewDoc ? null : doc._oldDoc
+				);
 				const wfDoc = new workflowModel(wfItem);
 				wfDoc._req = req;
 				status = await wfDoc.save();
 				wfId = status._id;
-				status = await model.findByIdAndUpdate(doc._id, { '_metadata.workflow': status._id });
+				status = await model.findByIdAndUpdate(doc._id, {
+					'_metadata.workflow': status._id,
+				});
 				return res.status(200).json({
 					_workflow: wfId,
-					message: 'Workflow has been created'
+					message: 'Workflow has been created',
 				});
 			} else {
 				_.mergeWith(doc, payload, mergeCustomizer);
@@ -522,10 +627,10 @@ router.put('/:id', (req, res) => {
 			throw e;
 		}
 	}
-	execute().catch(err => {
+	execute().catch((err) => {
 		logger.error(err);
 		res.status(400).json({
-			message: err.message
+			message: err.message,
 		});
 	});
 });
@@ -540,12 +645,12 @@ router.delete('/:id', (req, res) => {
 			let status;
 			if (!doc) {
 				return res.status(404).json({
-					message: `Record With ID  ${req.params.id} Not Found`
+					message: `Record With ID  ${req.params.id} Not Found`,
 				});
 			}
 			if (doc._metadata.workflow) {
 				return res.status(400).json({
-					message: 'This Document is Locked because of a pending Workflow'
+					message: 'This Document is Locked because of a pending Workflow',
 				});
 			}
 			doc._req = req;
@@ -553,13 +658,22 @@ router.delete('/:id', (req, res) => {
 			const hasSkipReview = await workflowUtils.hasSkipReview(req);
 			let wfId;
 			if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
-				const wfItem = workflowUtils.getWorkflowItem(req, 'DELETE', doc._id, 'Pending', null, doc.toObject());
+				const wfItem = workflowUtils.getWorkflowItem(
+					req,
+					'DELETE',
+					doc._id,
+					'Pending',
+					null,
+					doc.toObject()
+				);
 				const wfDoc = new workflowModel(wfItem);
 				wfDoc._req = req;
 				status = await wfDoc.save();
 				wfId = status._id;
 				doc._metadata.workflow = status._id;
-				status = await model.findByIdAndUpdate(doc._id, { '_metadata.workflow': status._id });
+				status = await model.findByIdAndUpdate(doc._id, {
+					'_metadata.workflow': status._id,
+				});
 			} else {
 				if (!config.permanentDelete) {
 					let softDeletedDoc = new softDeletedModel(doc);
@@ -571,7 +685,7 @@ router.delete('/:id', (req, res) => {
 			logger.trace(`[${txnId}] Delete doc :: ${req.params.id} :: ${status}`);
 			res.status(200).json({
 				_workflow: wfId,
-				message: 'Document Deleted'
+				message: 'Document Deleted',
 			});
 		} catch (e) {
 			if (typeof e === 'string') {
@@ -580,10 +694,10 @@ router.delete('/:id', (req, res) => {
 			throw e;
 		}
 	}
-	execute().catch(err => {
+	execute().catch((err) => {
 		logger.error(err);
 		res.status(400).json({
-			message: err.message
+			message: err.message,
 		});
 	});
 });
@@ -599,10 +713,10 @@ router.put('/:id/math', (req, res) => {
 			throw e;
 		}
 	}
-	execute().catch(err => {
+	execute().catch((err) => {
 		logger.error(err);
 		res.status(400).json({
-			message: err.message
+			message: err.message,
 		});
 	});
 });
@@ -616,7 +730,7 @@ router.post('/hook', (req, res) => {
 			const data = req.body;
 			if (!url) {
 				return res.status(400).json({
-					message: 'URL is Mandatory'
+					message: 'URL is Mandatory',
 				});
 			}
 			try {
@@ -624,7 +738,7 @@ router.post('/hook', (req, res) => {
 				res.status(200).json(httpRes);
 			} catch (e) {
 				res.status(400).json({
-					message: e.message
+					message: e.message,
 				});
 			}
 		} catch (e) {
@@ -634,10 +748,10 @@ router.post('/hook', (req, res) => {
 			throw e;
 		}
 	}
-	execute().catch(err => {
+	execute().catch((err) => {
 		logger.error(err);
 		res.status(400).json({
-			message: err.message
+			message: err.message,
 		});
 	});
 });
@@ -647,16 +761,17 @@ async function createDocuments(req, session) {
 	let upsert = req.query.upsert == 'true';
 	let oldDocs = [];
 	let oldIds = [];
+	let promises;
 	let txnId = req.get(global.txnIdHeader);
 	if (upsert) {
-		var newIds = payload.map(data => data._id).filter(_id => _id);
+		var newIds = payload.map((data) => data._id).filter((_id) => _id);
 		oldDocs = await model.find({ _id: { $in: newIds } });
-		oldIds = oldDocs.map(data => data._id);
+		oldIds = oldDocs.map((data) => data._id);
 		logger.debug(`[${txnId}] : Existing Record Ids :: `, oldIds);
 	}
 	promises = payload.map(async (data) => {
 		if (upsert && data._id && oldIds.includes(data._id)) {
-			let oldDoc = oldDocs.find(doc => doc._id == data._id);
+			let oldDoc = oldDocs.find((doc) => doc._id == data._id);
 			data = _.mergeWith(oldDoc, data, mergeCustomizer);
 		}
 		let doc = new model(data);
@@ -676,10 +791,15 @@ async function createDocuments(req, session) {
 }
 
 function addAuthHeader(paths, jwt) {
-	Object.keys(paths).forEach(path => {
-		Object.keys(paths[path]).forEach(method => {
-			if (typeof paths[path][method] == 'object' && paths[path][method]['parameters']) {
-				let authObj = paths[path][method]['parameters'].find(obj => obj.name == 'authorization');
+	Object.keys(paths).forEach((path) => {
+		Object.keys(paths[path]).forEach((method) => {
+			if (
+				typeof paths[path][method] == 'object' &&
+        paths[path][method]['parameters']
+			) {
+				let authObj = paths[path][method]['parameters'].find(
+					(obj) => obj.name == 'authorization'
+				);
 				if (authObj) authObj.default = jwt;
 			}
 		});
@@ -931,163 +1051,152 @@ function addAuthHeader(paths, jwt) {
 // 	});
 // }
 
-
-
 /******************************* NEW Math API Logic *************************/
 
 async function processMathQueue(obj, callback) {
+	const req = obj.req;
+	const res = obj.res;
+	const oldNewData = {};
 	try {
-	  const req = obj.req;
-	  const res = obj.res;
-	  const id = req.params.id;
-	  const oldNewData = {};
-  
-	  req.simulateFlag = false;
-	  req.query.source = "presave";
-	  req.simulate = false;
-  
-	  const updatedBody = await doRoundMathAPI(req, res, oldNewData);
-	  res.json(updatedBody);
-	  callback();
-	  pushWebHookAndAuditData(req, webHookData);
+		// req.simulateFlag = false;
+		// req.query.source = 'presave';
+		// req.simulate = false;
+		const updatedBody = await doRoundMathAPI(req, res, oldNewData);
+		res.json(updatedBody);
+		callback();
+		pushWebHookAndAuditData(req, oldNewData);
 	} catch (err) {
-	  logger.error(err.message);
-	  callback();
-	  if (
-		err.message == "CUSTOM_READ_CONFLICT" ||
-		(err.errmsg === "WriteConflict" &&
-		  err.errorLabels &&
-		  err.errorLabels.indexOf("TransientTransactionError") > -1)
-	  ) {
-		logger.error("=================");
-		req.simulateFlag = true;
-		if (!res.headersSent) {
-		  mathQueue.push({ req: req, res: res });
+		logger.error(err.message);
+		callback();
+		if (
+			err.message == 'CUSTOM_READ_CONFLICT' ||
+      (err.errmsg === 'WriteConflict' &&
+        err.errorLabels &&
+        err.errorLabels.indexOf('TransientTransactionError') > -1)
+		) {
+			logger.error('=================');
+			req.simulateFlag = true;
+			if (!res.headersSent) {
+				mathQueue.push({ req: req, res: res });
+			}
+		} else {
+			let status = err.name == 'ValidationError' ? 400 : 500;
+			res.status(status).json({ message: err.message });
 		}
-	  } else {
-		let status = err.name == "ValidationError" ? 400 : 500;
-		res.status(status).json({ message: err.message });
-	  }
 	}
-  }
-  
-  function pushWebHookAndAuditData(req, webHookData) {
+}
+
+function pushWebHookAndAuditData(req, webHookData) {
 	webHookData.user = req.headers[global.userHeader];
-	webHookData.txnId = req.headers[global.txnIdHeader] || req.headers["txnid"];
+	webHookData.txnId = req.headers[global.txnIdHeader] || req.headers['txnid'];
 	hooksUtils.prepPostHooks(webHookData);
 	if (!config.disableAudits) {
-	  let auditData = {};
-	  auditData.versionValue = "-1";
-	  auditData.user = webHookData.user;
-	  auditData.txnId = webHookData.txnId;
-	  auditData.timeStamp = new Date();
-	  auditData.data = {};
-	  auditData.data.old = {};
-	  auditData.data.new = {};
-	  auditData._metadata = {};
-	  auditData.colName = `${config.app}.${config.serviceCollection}.audit`;
-	  auditData._metadata.lastUpdated = new Date();
-	  auditData._metadata.createdAt = new Date();
-	  auditData._metadata.deleted = false;
-	  auditData.data._id = webHookData.new._id;
-	  auditData.data._version = webHookData.new._metadata.version.document;
-	  getDiff(
-		webHookData.old,
-		webHookData.new,
-		auditData.data.old,
-		auditData.data.new
-	  );
-	  let oldLastUpdated =
-		auditData.data.old && auditData.data.old._metadata
-		  ? auditData.data.old._metadata.lastUpdated
-		  : null;
-	  let newLastUpdated =
-		auditData.data.new && auditData.data.new._metadata
-		  ? auditData.data.new._metadata.lastUpdated
-		  : null;
-	  if (oldLastUpdated) delete auditData.data.old._metadata.lastUpdated;
-	  if (newLastUpdated) delete auditData.data.new._metadata.lastUpdated;
-	  if (!_.isEqual(auditData.data.old, auditData.data.new)) {
-		if (oldLastUpdated)
-		  auditData.data.old._metadata.lastUpdated = oldLastUpdated;
-		if (newLastUpdated)
-		  auditData.data.new._metadata.lastUpdated = newLastUpdated;
-		// client.publish('auditQueue', JSON.stringify(auditData))
-		hooksUtils.insertAuditLog(webHookData.txnId, auditData);
-	  }
+		let auditData = {};
+		auditData.versionValue = '-1';
+		auditData.user = webHookData.user;
+		auditData.txnId = webHookData.txnId;
+		auditData.timeStamp = new Date();
+		auditData.data = {};
+		auditData.data.old = {};
+		auditData.data.new = {};
+		auditData._metadata = {};
+		auditData.colName = `${config.app}.${config.serviceCollection}.audit`;
+		auditData._metadata.lastUpdated = new Date();
+		auditData._metadata.createdAt = new Date();
+		auditData._metadata.deleted = false;
+		auditData.data._id = webHookData.new._id;
+		auditData.data._version = webHookData.new._metadata.version.document;
+		getDiff(
+			webHookData.old,
+			webHookData.new,
+			auditData.data.old,
+			auditData.data.new
+		);
+		let oldLastUpdated = auditData.data.old && auditData.data.old._metadata ? auditData.data.old._metadata.lastUpdated : null;
+		let newLastUpdated = auditData.data.new && auditData.data.new._metadata ? auditData.data.new._metadata.lastUpdated : null;
+		if (oldLastUpdated) delete auditData.data.old._metadata.lastUpdated;
+		if (newLastUpdated) delete auditData.data.new._metadata.lastUpdated;
+		if (!_.isEqual(auditData.data.old, auditData.data.new)) {
+			if (oldLastUpdated)
+				auditData.data.old._metadata.lastUpdated = oldLastUpdated;
+			if (newLastUpdated)
+				auditData.data.new._metadata.lastUpdated = newLastUpdated;
+			// client.publish('auditQueue', JSON.stringify(auditData))
+			hooksUtils.insertAuditLog(webHookData.txnId, auditData);
+		}
 	}
-  }
-  
-  async function doRoundMathAPI(req, res, oldNewData) {
-	try {
-	  const id = req.params.id;
-	  const body = req.body;
-	  let prevVersion;
+}
 
-	  // Fetching Existing Record to store document version.
-	  const doc = await model.findOne({ _id: id });
-	  oldNewData.old = doc.toObject();
-	  oldNewData._id = id;
-	  prevVersion = doc.toObject()._metadata.version.document;
-  
-	  // Grouping math operations for each field.
-	  const fields = {};
-	  body.forEach((item) => {
-		const key = Object.keys(item)[0];
-		const field = Object.keys(item[key])[0];
-		if (!fields[field]) {
-		  fields[field] = [];
+async function doRoundMathAPI(req, res, oldNewData) {
+	try {
+		const id = req.params.id;
+		const body = req.body;
+		let prevVersion;
+
+		// Fetching Existing Record to store document version.
+		const doc = await model.findOne({ _id: id });
+		oldNewData.old = doc.toObject();
+		oldNewData._id = id;
+		prevVersion = doc.toObject()._metadata.version.document;
+
+		// Grouping math operations for each field.
+		const fields = {};
+		body.forEach((item) => {
+			const key = Object.keys(item)[0];
+			const field = Object.keys(item[key])[0];
+			if (!fields[field]) {
+				fields[field] = [];
+			}
+			fields[field].push(item);
+		});
+
+		// Creating a $project query of each field.
+		const project = {};
+		Object.keys(fields).forEach((key) => {
+			const query = fields[key].reduce((prev, curr) => {
+				const temp = {};
+				const operation = Object.keys(curr)[0];
+				const projectOperation = operation === '$inc' ? '$add' : '$multiply';
+				temp[projectOperation] = [
+					Object.values(curr[operation])[0],
+					prev ? prev : '$' + Object.keys(curr[operation])[0],
+				];
+				return temp;
+			}, null);
+			project[key] = query;
+		});
+
+		const docs = await model.aggregate([
+			{ $match: { _id: id, '_metadata.version.document': prevVersion } },
+			{
+				$project: project,
+			},
+		]);
+		if (!docs || !docs[0]) {
+			throw new Error('CUSTOM_READ_CONFLICT');
 		}
-		fields[field].push(item);
-	  });
-  
-	  // Creating a $project query of each field.
-	  const project = {};
-	  Object.keys(fields).forEach((key) => {
-		const query = fields[key].reduce((prev, curr) => {
-		  const temp = {};
-		  const operation = Object.keys(curr)[0];
-		  const projectOperation = operation === "$inc" ? "$add" : "$multiply";
-		  temp[projectOperation] = [
-			Object.values(curr[operation])[0],
-			prev ? prev : "$" + Object.keys(curr[operation])[0],
-		  ];
-		  return temp;
-		}, null);
-		project[key] = query;
-	  });
-  
-	  const docs = await model.aggregate([
-		{ $match: { _id: id, "_metadata.version.document": prevVersion } },
-		{
-		  $project: project,
-		},
-	  ]);
-	  if (!docs || !docs[0]) {
-		throw new Error("CUSTOM_READ_CONFLICT");
-	  }
-	  const updateData = docs[0];
-	  delete updateData._id;
-	  specialFields.precisionFields.forEach((item) => {
-		if (updateData[item.field]) {
-		  // let precisionFactor = Math.pow(10, precision);
-		  updateData[item.field] = parseFloat(
-			updateData[item.field].toFixed(item.precision)
-		  );
-		}
-	  });
-	  
-	  const status = await model.findOneAndUpdate(
-		{ _id: id, "_metadata.version.document": prevVersion },
-		{ $set: updateData, $inc: { "_metadata.version.document": 1 } },
-		{ new: true }
-	  );
-	  oldNewData.old = status.toObject();
-	  return status;
+		const updateData = docs[0];
+		delete updateData._id;
+		specialFields.precisionFields.forEach((item) => {
+			if (updateData[item.field]) {
+				// let precisionFactor = Math.pow(10, precision);
+				updateData[item.field] = parseFloat(
+					updateData[item.field].toFixed(item.precision)
+				);
+			}
+		});
+
+		const status = await model.findOneAndUpdate(
+			{ _id: id, '_metadata.version.document': prevVersion },
+			{ $set: updateData, $inc: { '_metadata.version.document': 1 } },
+			{ new: true }
+		);
+		oldNewData.old = status.toObject();
+		return status;
 	} catch (err) {
-	  logger.error(err);
-	  throw err;
+		logger.error(err);
+		throw err;
 	}
-  }
+}
 
 module.exports = router;

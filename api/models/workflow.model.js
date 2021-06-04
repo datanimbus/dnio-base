@@ -135,9 +135,9 @@ schema.pre('save', async function (next) {
 });
 
 schema.pre('save', async function (next) {
-    const newDoc = this.data.new;
-    const oldDoc = this.data.old;
-    const req = this._req;
+	const newDoc = this.data.new;
+	const oldDoc = this.data.old;
+	const req = this._req;
 	if(req.body && req.body.action) {
 		next();
 	} else {

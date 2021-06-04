@@ -66,7 +66,7 @@ async function getDocumentIds(req, serviceId, filter) {
  * @param {*} req The Incoming Request Object
  * @param {*} userId User Id used in relation
  */
- async function getUserDoc(req, userId) {
+async function getUserDoc(req, userId) {
 	let key = 'USER_' + userId + '_' + req.headers[global.userHeader];
 	let user = documentCache.get(key);
 	const userUrl = `/api/a/rbac/usr/${userId}`;
@@ -83,14 +83,14 @@ async function getDocumentIds(req, serviceId, filter) {
 				const temp = res.body;
 				temp._href = userUrl;
 				return temp;
-			})
+			});
 			documentCache.set(key, user);
 		}
 		return user;
 	} catch (err) {
 		logger.error(`[${req.headers[global.txnIdHeader]}] : Error in getUserDoc :: `, err.message);
 		if(err.message && err.message.includes(404))
-			throw new Error(`${userId} User not found.`)
+			throw new Error(`${userId} User not found.`);
 		throw err;
 	}
 }
@@ -424,7 +424,7 @@ e.bulkDelete = function (relatedService) {
 					});
 			}, Promise.resolve());
 		}).then(() => {
-			var collectionsToDrop = ['bulkCreate', 'exportedFile.chunks', 'exportedFile.files', 'exports', 'fileImport.chunks', 'fileImport.files', 'fileTransfers', 'workflow']
+			var collectionsToDrop = ['bulkCreate', 'exportedFile.chunks', 'exportedFile.files', 'exports', 'fileImport.chunks', 'fileImport.files', 'fileTransfers', 'workflow'];
 			collectionsToDrop = collectionsToDrop.map(coll => `${config.serviceCollection}.${coll}`);
 			return dropCollections(collectionsToDrop);
 		}).then(() => {
@@ -480,10 +480,10 @@ function dropCollections(collections) {
 		return mongoose.connection.db.dropCollection(coll).then(() => {
 			logger.debug('Dropped collection :: ', coll);
 		}).catch((err) => {
-			logger.error(`Error dropping collection :: ${coll} : `, err)
-		})
+			logger.error(`Error dropping collection :: ${coll} : `, err);
+		});
 	});
-	return Promise.all(promises)
+	return Promise.all(promises);
 }
 
 function getRelationCheckObj(obj) {
@@ -925,38 +925,38 @@ function getDiff(a, b, oldData, newData) {
 }
 
 function modifySecureFieldsFilter(filter, secureFields, secureFlag, isWorkflowFilter) {
-    if (filter instanceof RegExp) return filter;
-    let newSecurefield = secureFields.map(field=> field+'.value');
-    if (Array.isArray(filter)) return filter.map(_f => modifySecureFieldsFilter(_f, secureFields, secureFlag, isWorkflowFilter));
-    if (filter != null && typeof filter == 'object' && filter.constructor == {}.constructor) {
-        let newFilter = {};
-        Object.keys(filter).forEach(_k => {
-            let newKey = _k;
-            if (newSecurefield.indexOf(_k) > -1 || (isWorkflowFilter && newSecurefield.indexOf(_k.substring(9)) > -1 && (_k.startsWith('data.new')|| _k.startsWith('data.old')))) {
-                newKey = _k.split('.');
-                newKey.pop();
-                newKey = newKey.join('.');                
-                newKey = newKey.startsWith('$') ? newKey : newKey + '.checksum';
-                newFilter[newKey] = modifySecureFieldsFilter(filter[_k], secureFields, true, isWorkflowFilter);
-            } else {
-                newFilter[newKey] = modifySecureFieldsFilter(filter[_k], secureFields, secureFlag, isWorkflowFilter);
-            }
-        });
-        return newFilter;
-    }
-    return secureFlag && typeof filter == 'string' ? crypto.createHash('md5').update(filter).digest("hex") : filter;
+	if (filter instanceof RegExp) return filter;
+	let newSecurefield = secureFields.map(field=> field+'.value');
+	if (Array.isArray(filter)) return filter.map(_f => modifySecureFieldsFilter(_f, secureFields, secureFlag, isWorkflowFilter));
+	if (filter != null && typeof filter == 'object' && filter.constructor == {}.constructor) {
+		let newFilter = {};
+		Object.keys(filter).forEach(_k => {
+			let newKey = _k;
+			if (newSecurefield.indexOf(_k) > -1 || (isWorkflowFilter && newSecurefield.indexOf(_k.substring(9)) > -1 && (_k.startsWith('data.new')|| _k.startsWith('data.old')))) {
+				newKey = _k.split('.');
+				newKey.pop();
+				newKey = newKey.join('.');                
+				newKey = newKey.startsWith('$') ? newKey : newKey + '.checksum';
+				newFilter[newKey] = modifySecureFieldsFilter(filter[_k], secureFields, true, isWorkflowFilter);
+			} else {
+				newFilter[newKey] = modifySecureFieldsFilter(filter[_k], secureFields, secureFlag, isWorkflowFilter);
+			}
+		});
+		return newFilter;
+	}
+	return secureFlag && typeof filter == 'string' ? crypto.createHash('md5').update(filter).digest('hex') : filter;
 }
 
 function removeNullForUniqueAttribute(obj, key) {
-    let keyArr = key.split('.');
-    return keyArr.reduce((acc, curr, i) => {
-        if (!acc) return null;
-        if (i === keyArr.length - 1 && acc[curr] === null) {
-            acc[curr] = undefined;
-            return acc;
-        }
-        return acc[curr];
-    }, obj);
+	let keyArr = key.split('.');
+	return keyArr.reduce((acc, curr, i) => {
+		if (!acc) return null;
+		if (i === keyArr.length - 1 && acc[curr] === null) {
+			acc[curr] = undefined;
+			return acc;
+		}
+		return acc[curr];
+	}, obj);
 }
 
 e.getDocumentIds = getDocumentIds;

@@ -601,6 +601,7 @@ async function approve(req, res) {
 				doc.markModified('audit');
 				doc._req = req;
 				doc._isEncrypted = true;
+				// eslint-disable-next-line no-unsafe-finally
 				return await doc.save();
 			}
 		});
@@ -687,7 +688,7 @@ async function decryptAndExpandWFItems(wfItems, req) {
 		return wfItems;
 	} else {
 		wfItems = await decryptAndExpandWFItems([wfItems], req);
-		return wfItems[0]
+		return wfItems[0];
 	}
 }
 

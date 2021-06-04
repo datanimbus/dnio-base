@@ -8,7 +8,7 @@ const definition = require('../helpers/service.definition').definition;
 const mongooseUtils = require('../utils/mongoose.utils');
 const hooksUtils = require('../utils/hooks.utils');
 const specialFields = require('../utils/special-fields.utils');
-const { removeNullForUniqueAttribute } = require('../utils/common.utils')
+const { removeNullForUniqueAttribute } = require('../utils/common.utils');
 
 
 const logger = global.logger;
@@ -55,16 +55,16 @@ schema.pre('validate', async function (next) {
 	}
 });
 
-schema.pre("validate", function (next) {
-    let self = this;
-    specialFields.uniqueFields.forEach(_k=> removeNullForUniqueAttribute(self, _k.key));
-    next();
+schema.pre('validate', function (next) {
+	let self = this;
+	specialFields.uniqueFields.forEach(_k=> removeNullForUniqueAttribute(self, _k.key));
+	next();
 });
 
-schema.pre("save", function (next) {
-    let self = this;
-    specialFields.uniqueFields.forEach(_k=> removeNullForUniqueAttribute(self, _k.key));
-    next();
+schema.pre('save', function (next) {
+	let self = this;
+	specialFields.uniqueFields.forEach(_k=> removeNullForUniqueAttribute(self, _k.key));
+	next();
 });
 
 schema.pre('save', utils.counter.getIdGenerator(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER));

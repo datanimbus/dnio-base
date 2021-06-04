@@ -24,12 +24,12 @@ global.falseBooleanValues = ['n', 'no', 'false', '0'];
 function setIsTransactionAllowed() {
 	global.isTransactionAllowed = false;
 	try {
-		mongoose.connection.db.admin().command({"replSetGetStatus":1 }, async function (err, replicaSetStatus) {
+		mongoose.connection.db.admin().command({'replSetGetStatus':1 }, async function (err, replicaSetStatus) {
 			logger.trace('Replica Status :: ', replicaSetStatus);
 			if(replicaSetStatus) {
 				let dbVersion = (await mongoose.connection.db.admin().serverInfo()).version;
 				logger.debug('Appcenter Db Version :: ', dbVersion);
-				global.isTransactionAllowed = dbVersion && dbVersion >= '4.2.0'
+				global.isTransactionAllowed = dbVersion && dbVersion >= '4.2.0';
 			}
 			logger.info('Are MongoDb Transactions Allowed :: ', global.isTransactionAllowed);
 		});
