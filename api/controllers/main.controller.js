@@ -379,8 +379,8 @@ router.get('/', (req, res) => {
 			}
 			if (
 				specialFields.secureFields &&
-        specialFields.secureFields.length &&
-        specialFields.secureFields[0]
+				specialFields.secureFields.length &&
+				specialFields.secureFields[0]
 			) {
 				let promises = docs.map((e) =>
 					specialFields.decryptSecureFields(req, e, null)
@@ -419,8 +419,8 @@ router.get('/:id', (req, res) => {
 			}
 			if (
 				specialFields.secureFields &&
-        specialFields.secureFields.length &&
-        specialFields.secureFields[0]
+				specialFields.secureFields.length &&
+				specialFields.secureFields[0]
 			) {
 				await specialFields.decryptSecureFields(req, doc, null);
 			}
@@ -451,7 +451,7 @@ router.post('/', (req, res) => {
 			const hasSkipReview = await workflowUtils.hasSkipReview(req);
 			if (
 				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
-        req.query.draft
+				req.query.draft
 			) {
 				let wfItemStatus = 'Pending';
 				if (req.query.draft) {
@@ -511,7 +511,7 @@ router.post('/', (req, res) => {
 								session = sess;
 								return createDocuments(req, session);
 							},
-							config.transactionOptions);
+								config.transactionOptions);
 						} catch (err) {
 							logger.error(
 								`[${txnId}] : Error while bulk post with transaction :: `,
@@ -590,7 +590,7 @@ router.put('/:id', (req, res) => {
 			const hasSkipReview = await workflowUtils.hasSkipReview(req);
 			if (
 				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
-        req.query.draft
+				req.query.draft
 			) {
 				let wfItemStatus = 'Pending';
 				if (req.query.draft) {
@@ -795,7 +795,7 @@ function addAuthHeader(paths, jwt) {
 		Object.keys(paths[path]).forEach((method) => {
 			if (
 				typeof paths[path][method] == 'object' &&
-        paths[path][method]['parameters']
+				paths[path][method]['parameters']
 			) {
 				let authObj = paths[path][method]['parameters'].find(
 					(obj) => obj.name == 'authorization'
@@ -1063,16 +1063,20 @@ async function processMathQueue(obj, callback) {
 		// req.simulate = false;
 		const updatedBody = await doRoundMathAPI(req, res, oldNewData);
 		res.json(updatedBody);
-		callback();
 		pushWebHookAndAuditData(req, oldNewData);
+		if (callback) {
+			callback();
+		}
 	} catch (err) {
 		logger.error(err.message);
-		callback();
+		if (callback) {
+			callback();
+		}
 		if (
 			err.message == 'CUSTOM_READ_CONFLICT' ||
-      (err.errmsg === 'WriteConflict' &&
-        err.errorLabels &&
-        err.errorLabels.indexOf('TransientTransactionError') > -1)
+			(err.errmsg === 'WriteConflict' &&
+				err.errorLabels &&
+				err.errorLabels.indexOf('TransientTransactionError') > -1)
 		) {
 			logger.error('=================');
 			req.simulateFlag = true;
@@ -1089,7 +1093,7 @@ async function processMathQueue(obj, callback) {
 function pushWebHookAndAuditData(req, webHookData) {
 	webHookData.user = req.headers[global.userHeader];
 	webHookData.txnId = req.headers[global.txnIdHeader] || req.headers['txnid'];
-	hooksUtils.prepPostHooks(webHookData);
+	hooksUtils.prepPostHooks(JSON.parse(JSON.stringify(webHookData)));
 	if (!config.disableAudits) {
 		let auditData = {};
 		auditData.versionValue = '-1';
@@ -1097,8 +1101,8 @@ function pushWebHookAndAuditData(req, webHookData) {
 		auditData.txnId = webHookData.txnId;
 		auditData.timeStamp = new Date();
 		auditData.data = {};
-		auditData.data.old = {};
-		auditData.data.new = {};
+		auditData.data.old = JSON.parse(JSON.stringify(webHookData.old));
+		auditData.data.new = JSON.parse(JSON.stringify(webHookData.new));
 		auditData._metadata = {};
 		auditData.colName = `${config.app}.${config.serviceCollection}.audit`;
 		auditData._metadata.lastUpdated = new Date();
