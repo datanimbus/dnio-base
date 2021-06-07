@@ -705,6 +705,10 @@ router.delete('/:id', (req, res) => {
 router.put('/:id/math', (req, res) => {
 	async function execute() {
 		try {
+			const hasSkipReview = await workflowUtils.hasSkipReview(req);
+			if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
+				return res.status(403).json({ message: 'User Must have SKIP_REVIEW Permission to use Math API' });
+			}
 			mathQueue.push({ req, res });
 		} catch (e) {
 			if (typeof e === 'string') {
