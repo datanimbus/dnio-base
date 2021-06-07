@@ -195,7 +195,7 @@ schema.pre('save', function (next) {
 schema.post('save', function (doc, next) {
 	const req = doc._req;
 	const newData = doc.toObject();
-	const oldData = doc._oldData ? JSON.parse(JSON.stringify(doc._oldData)) : null;
+	const oldData = doc._oldDoc ? JSON.parse(JSON.stringify(doc._oldDoc)) : null;
 	const webHookData = {};
 	webHookData._id = newData._id;
 	webHookData.user = req.headers[global.userHeader];
