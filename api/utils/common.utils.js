@@ -71,7 +71,7 @@ async function getUserDoc(req, userId) {
 	let user = documentCache.get(key);
 	const userUrl = `/api/a/rbac/usr/${userId}`;
 	try {
-		if(!user) {
+		if (!user) {
 			user = await httpClient.httpRequest({
 				url: `${config.baseUrlUSR}/usr/${userId}`,
 				method: 'GET',
@@ -89,7 +89,7 @@ async function getUserDoc(req, userId) {
 		return user;
 	} catch (err) {
 		logger.error(`[${req.headers[global.txnIdHeader]}] : Error in getUserDoc :: `, err.message);
-		if(err.message && err.message.includes(404))
+		if (err.message && err.message.includes(404))
 			throw new Error(`${userId} User not found.`);
 		throw err;
 	}
@@ -227,7 +227,7 @@ async function decryptText(req, data) {
 			throw new Error('Error decrypting text');
 		}
 	} catch (e) {
-		logger.error(`[${req ? req.headers[global.txnIdHeader]: ''}] Error requesting Security service :: `, e.message ? e.message : (e.body ? e.body : e));
+		logger.error(`[${req ? req.headers[global.txnIdHeader] : ''}] Error requesting Security service :: `, e.message ? e.message : (e.body ? e.body : e));
 		throw e;
 	}
 }
@@ -239,7 +239,7 @@ async function decryptText(req, data) {
  * @param {string} address The details of user input to search for
  */
 async function getGeoDetails(req, path, address) {
-	address = typeof address === 'string'? address : address.userInput;
+	address = typeof address === 'string' ? address : address.userInput;
 	const options = {
 		url: 'https://maps.googleapis.com/maps/api/geocode/json',
 		method: 'GET',
@@ -328,6 +328,55 @@ function isExpandAllowed(req, path) {
 	return select.indexOf(path) > -1;
 }
 
+
+async function upsertDocument(req, serviceId, document) {
+	let service = serviceCache.get(serviceId);
+	try {
+		if (!service) {
+			service = httpClient.httpRequest({
+				url: config.baseUrlSM + '/service/' + serviceId,
+				method: 'GET',
+				headers: {
+					'txnId': req ? req.headers[global.txnIdHeader] : '',
+					'user': req ? req.headers[global.userHeader] : '',
+					'Content-Type': 'application/json'
+				},
+				qs: {
+					select: 'api,app,definition,attributeList,collectionName'
+				},
+				json: true
+			}).then(res => res.body);
+			serviceCache.set(serviceId, service);
+		}
+		service = await service;
+		const dataServiceUrl = '/api/c/' + service.app + service.api;
+		let method = 'POST';
+		let api = config.baseUrlGW + dataServiceUrl;
+		if (document._id) {
+			method = 'PUT';
+			api = config.baseUrlGW + dataServiceUrl + '/' + document._id + '?upsert=true';
+		}
+		const doc = await httpClient.httpRequest({
+			url: api,
+			method: method,
+			headers: {
+				'txnId': req ? req.headers[global.txnIdHeader] : '',
+				'authorization': req ? req.headers.authorization : '',
+				'Content-Type': 'application/json',
+			},
+			json: true,
+			body: document
+		}).then(res => {
+			const temp = res.body;
+			temp._href = dataServiceUrl;
+			return temp;
+		});
+		return doc;
+	} catch (e) {
+		logger.error('Error in upsertDocument :: ', e);
+		throw e;
+	}
+}
 
 e.getServiceDetail = function (serviceId, req) {
 	var options = {
@@ -926,16 +975,16 @@ function getDiff(a, b, oldData, newData) {
 
 function modifySecureFieldsFilter(filter, secureFields, secureFlag, isWorkflowFilter) {
 	if (filter instanceof RegExp) return filter;
-	let newSecurefield = secureFields.map(field=> field+'.value');
+	let newSecurefield = secureFields.map(field => field + '.value');
 	if (Array.isArray(filter)) return filter.map(_f => modifySecureFieldsFilter(_f, secureFields, secureFlag, isWorkflowFilter));
 	if (filter != null && typeof filter == 'object' && filter.constructor == {}.constructor) {
 		let newFilter = {};
 		Object.keys(filter).forEach(_k => {
 			let newKey = _k;
-			if (newSecurefield.indexOf(_k) > -1 || (isWorkflowFilter && newSecurefield.indexOf(_k.substring(9)) > -1 && (_k.startsWith('data.new')|| _k.startsWith('data.old')))) {
+			if (newSecurefield.indexOf(_k) > -1 || (isWorkflowFilter && newSecurefield.indexOf(_k.substring(9)) > -1 && (_k.startsWith('data.new') || _k.startsWith('data.old')))) {
 				newKey = _k.split('.');
 				newKey.pop();
-				newKey = newKey.join('.');                
+				newKey = newKey.join('.');
 				newKey = newKey.startsWith('$') ? newKey : newKey + '.checksum';
 				newFilter[newKey] = modifySecureFieldsFilter(filter[_k], secureFields, true, isWorkflowFilter);
 			} else {
@@ -973,5 +1022,6 @@ e.mergeCustomizer = mergeCustomizer;
 e.getDiff = getDiff;
 e.modifySecureFieldsFilter = modifySecureFieldsFilter;
 e.removeNullForUniqueAttribute = removeNullForUniqueAttribute;
+e.upsertDocument = upsertDocument;
 
 module.exports = e;
