@@ -57,13 +57,13 @@ schema.pre('validate', async function (next) {
 
 schema.pre('validate', function (next) {
 	let self = this;
-	specialFields.uniqueFields.forEach(_k=> removeNullForUniqueAttribute(self, _k.key));
+	specialFields.uniqueFields.forEach(_k => removeNullForUniqueAttribute(self, _k.key));
 	next();
 });
 
 schema.pre('save', function (next) {
 	let self = this;
-	specialFields.uniqueFields.forEach(_k=> removeNullForUniqueAttribute(self, _k.key));
+	specialFields.uniqueFields.forEach(_k => removeNullForUniqueAttribute(self, _k.key));
 	next();
 });
 
@@ -176,6 +176,25 @@ schema.pre('save', async function (next) {
 		if (errors) {
 			let txnId = req.headers['txnid'];
 			logger.error(`[${txnId}] Error in validation date fields :: `, errors);
+			next(errors);
+		} else {
+			next();
+		}
+	} catch (e) {
+		next(e);
+	}
+});
+
+
+schema.pre('save', async function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	const req = this._req;
+	try {
+		const errors = await specialFields.cascadeRelation(req, newDoc, oldDoc);
+		if (errors) {
+			let txnId = req.headers['txnid'];
+			logger.error(`[${txnId}] Error in cascading relations :: `, errors);
 			next(errors);
 		} else {
 			next();
