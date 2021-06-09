@@ -200,10 +200,10 @@ schema.post('save', function (doc, next) {
 	webHookData._id = newData._id;
 	webHookData.user = req.headers[global.userHeader];
 	webHookData.txnId = req.headers[global.txnIdHeader] || req.headers['txnid'];
-	webHookData.new = newData;
-	webHookData.old = oldData;
+	webHookData.new = JSON.parse(JSON.stringify(newData));
+	webHookData.old = JSON.parse(JSON.stringify(oldData));
 	next();
-	hooksUtils.prepPostHooks(webHookData);
+	hooksUtils.prepPostHooks(JSON.parse(JSON.stringify(webHookData)));
 	// queue.sendToQueue(webHookData);
 	if (!config.disableAudits) {
 		let auditData = {};
