@@ -144,6 +144,10 @@ async function getServiceDoc(req, serviceId, documentId) {
 				const temp = res.body;
 				temp._href = dataServiceUrl;
 				return temp;
+			}).catch(err => {
+				logger.error('Error in getServiceDoc.DocumentFetch :: ', err.statusCode, err.error);
+				logger.trace(err);
+				return null;
 			});
 			documentCache.set(key, document);
 		}
