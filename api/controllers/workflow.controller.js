@@ -571,9 +571,11 @@ async function approve(req, res) {
 					serviceDoc._isFromWorkflow = true;
 					serviceDoc._oldDoc = serviceDoc.toObject();
 					_.mergeWith(serviceDoc, doc.data.new, mergeCustomizer);
+					if (!serviceDoc._metadata) {
+						serviceDoc._metadata = {};
+					}
 					serviceDoc._metadata.workflow = null;
 					serviceDoc = await serviceDoc.save();
-
 				} else if (doc.operation == 'DELETE') {
 					serviceDoc = await serviceModel.findById(doc.documentId);
 					serviceDoc._req = req;
@@ -593,6 +595,7 @@ async function approve(req, res) {
 				event.action = 'Error';
 				event.remarks = typeof e === 'object' && e.message ? e.message : JSON.stringify(e);
 				doc.status = 'Failed';
+				logger.error(e);
 			} finally {
 				if (!doc.audit) {
 					doc.audit = [];
