@@ -511,7 +511,7 @@ router.post('/', (req, res) => {
 								session = sess;
 								return createDocuments(req, session);
 							},
-							config.transactionOptions);
+								config.transactionOptions);
 						} catch (err) {
 							logger.error(
 								`[${txnId}] : Error while bulk post with transaction :: `,
@@ -731,14 +731,14 @@ router.post('/hook', (req, res) => {
 	async function execute() {
 		try {
 			const url = req.query.url;
-			const data = req.body;
+			const payload = req.body;
 			if (!url) {
 				return res.status(400).json({
 					message: 'URL is Mandatory',
 				});
 			}
 			try {
-				const httpRes = await hooksUtils.invokeHook(txnId, url, data);
+				const httpRes = await hooksUtils.invokeHook({ txnId, hook: { url }, payload });
 				res.status(200).json(httpRes);
 			} catch (e) {
 				res.status(400).json({

@@ -71,7 +71,11 @@ function callAllPreHooks(req, data, options) {
 			payload = constructPayload(req, curr, _data, options);
 			payload.docId = docId;
 			payload['properties'] = properties;
-			return invokeHook(txnId, curr.url, payload, curr.failMessage, headers);
+			if (curr.type === 'function') {
+				return invokeFunction({ txnId, hook: curr, payload, headers }, req);
+			} else {
+				return invokeHook({ txnId, hook: curr, payload, headers });
+			}
 		}).then(_response => {
 			newData = _.mergeWith(oldData, _response.body.data, commonUtils.mergeCustomizer);
 			newData._metadata = oldData._metadata;
@@ -120,7 +124,13 @@ function prepPostHooks(_data) {
 		docId = _data.old._id;
 	}
 	logger.info(`[${txnId}] PostHook :: ${docId} :: ${postHooks.length} found`);
-	postHooks.forEach(_d => logger.info(`[${txnId}] PostHook :: ${docId} :: ${_d.name} - ${_d.url} `));
+	postHooks = postHooks.map(_d => {
+		if (_d.type === 'function') {
+			_d.url = config.baseUrlGW + _d.url;
+		}
+		logger.info(`[${txnId}] PostHook :: ${docId} :: ${_d.name} - ${_d.url} `);
+		return _d;
+	});
 	let postHookLog = {
 		txnId: txnId,
 		user: _data.user,
@@ -168,6 +178,8 @@ function prepPostHooks(_data) {
 			streamingPayload['_id'] = postHookLog['_id'];
 			postHookLog['name'] = _curr.name;
 			postHookLog['url'] = _curr.url;
+			postHookLog['hookType'] = (_curr.type || 'external');
+			postHookLog['refId'] = _curr.refId;
 			insertHookLog('PostHook', txnId, postHookLog);
 			queueMgmt.sendToQueue(streamingPayload);
 		});
@@ -240,6 +252,8 @@ function prepWorkflowHooks(_data) {
 			streamingPayload['_id'] = workflowHookLog['_id'];
 			workflowHookLog['name'] = _curr.name;
 			workflowHookLog['url'] = _curr.url;
+			workflowHookLog['hookType'] = (_curr.type || 'external');
+			workflowHookLog['refId'] = _curr.refId;
 			insertHookLog('WorkflowHook', txnId, workflowHookLog);
 			queueMgmt.sendToQueue(streamingPayload);
 		});
@@ -336,23 +350,29 @@ function constructHookLog(req, hook, options) {
 }
 
 /**
- * 
- * @param {string} url The URL that needs to be invoked
- * @param {*} data The Payload that needs to be sent
- * @param {string} [customErrMsg] The Custom Error Message
+ * @param {string} txnId The txnID of the request
+ * @param {object} data Options 
+ * @param {object} data.hook The Hook Data
+ * @param {string} data.hook.url Hook URL
+ * @param {string} data.hook.name Hook Name
+ * @param {string} data.hook.type Type of Hook
+ * @param {string} data.hook.failMessage The Custom Error Message
+ * @param {object} data.payload The Payload that needs to be sent
+ * @param {string} data.headers Additional Headers
+ * @param {string} data.txnId The TxnId of the Request
  */
-function invokeHook(txnId, url, data, customErrMsg, _headers) {
+function invokeHook(data) {
 	let timeout = (process.env.HOOK_CONNECTION_TIMEOUT && parseInt(process.env.HOOK_CONNECTION_TIMEOUT)) || 30;
-	data.properties = data.properties || commonUtils.generateProperties(txnId);
-	let headers = _headers || commonUtils.generateHeaders(txnId);
+	data.payload.properties = data.payload.properties || commonUtils.generateProperties(data.txnId);
+	let headers = data.headers || commonUtils.generateHeaders(data.txnId);
 	headers['Content-Type'] = 'application/json';
-	headers['TxnId'] = txnId;
+	headers['TxnId'] = data.txnId;
 	var options = {
-		url: url,
+		url: data.url,
 		method: 'POST',
 		headers: headers,
 		json: true,
-		body: data,
+		body: data.payload,
 		timeout: timeout * 1000
 	};
 	if (typeof process.env.TLS_REJECT_UNAUTHORIZED === 'string' && process.env.TLS_REJECT_UNAUTHORIZED.toLowerCase() === 'false') {
@@ -362,8 +382,51 @@ function invokeHook(txnId, url, data, customErrMsg, _headers) {
 	return httpClient.httpRequest(options)
 		// .then(res => res)
 		.catch(err => {
-			logger.error(`Error requesting hook :: ${url} :: ${err.message}`);
-			const message = customErrMsg ? customErrMsg : `Pre-save "${data.name}" down! Unable to proceed.`;
+			logger.error(`Error requesting hook :: ${options.url} :: ${err.message}`);
+			const message = data.hook.failMessage ? data.hook.failMessage : `Pre-save "${data.hook.name}" down! Unable to proceed.`;
+			throw ({
+				message: message,
+				response: err.response
+			});
+		});
+}
+
+/**
+ * @param {string} txnId The txnID of the request
+ * @param {object} data Options 
+ * @param {object} data.hook The Hook Data
+ * @param {string} data.hook.url Hook URL
+ * @param {string} data.hook.name Hook Name
+ * @param {string} data.hook.type Type of Hook
+ * @param {string} data.hook.failMessage The Custom Error Message
+ * @param {object} data.payload The Payload that needs to be sent
+ * @param {string} data.headers Additional Headers
+ * @param {string} data.txnId The TxnId of the Request
+ */
+function invokeFunction(data, req) {
+	let timeout = (process.env.HOOK_CONNECTION_TIMEOUT && parseInt(process.env.HOOK_CONNECTION_TIMEOUT)) || 30;
+	data.payload.properties = data.payload.properties || commonUtils.generateProperties(data.txnId);
+	let headers = data.headers || commonUtils.generateHeaders(data.txnId);
+	headers['Content-Type'] = 'application/json';
+	headers['TxnId'] = data.txnId;
+	headers['Authorization'] = req.headers['authorization'];
+	var options = {
+		url: config.baseUrlGW + data.url,
+		method: 'POST',
+		headers: headers,
+		json: true,
+		body: data.payload,
+		timeout: timeout * 1000
+	};
+	if (typeof process.env.TLS_REJECT_UNAUTHORIZED === 'string' && process.env.TLS_REJECT_UNAUTHORIZED.toLowerCase() === 'false') {
+		options.insecure = true;
+		options.rejectUnauthorized = false;
+	}
+	return httpClient.httpRequest(options)
+		// .then(res => res)
+		.catch(err => {
+			logger.error(`Error requesting function :: ${options.url} :: ${err.message}`);
+			const message = data.hook.failMessage ? data.hook.failMessage : `Pre-save "${data.hook.name}" down! Unable to proceed.`;
 			throw ({
 				message: message,
 				response: err.response
