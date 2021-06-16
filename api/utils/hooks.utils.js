@@ -522,17 +522,21 @@ function processHooksQueue() {
 	}
 }
 
-function setHooks(data) {
-	let json = JSON.parse(JSON.stringify(data));
-	if (data && typeof data === 'object') {
-		json.experienceHooks = createExperienceHooksList(data);
-		delete json._id;
-		const filePath = path.join(process.cwd(), 'hooks.json');
-		if (fs.existsSync(filePath)) {
-			const temp = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-			json = _.assign(temp, json);
+async function setHooks(data) {
+	try {
+		let json = JSON.parse(JSON.stringify(data));
+		if (data && typeof data === 'object') {
+			json.experienceHooks = createExperienceHooksList(data);
+			delete json._id;
+			const filePath = path.join(process.cwd(), 'hooks.json');
+			if (fs.existsSync(filePath)) {
+				const temp = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+				json = _.assign(temp, json);
+			}
+			fs.writeFileSync(filePath, JSON.stringify(json), 'utf-8');
 		}
-		fs.writeFileSync(filePath, JSON.stringify(json), 'utf-8');
+	} catch (err) {
+		logger.error(`Set hooks :: ${err}`);
 	}
 }
 
@@ -550,18 +554,22 @@ async function getHooks() {
 				setHooks(_d);
 			});
 	} catch (err) {
-		logger.error(`Get hooks :: ${err.message}`);
+		logger.error(`Get hooks :: ${err}`);
 	}
 }
 
 function createExperienceHooksList(data) {
-	let hooks = [];
-	let wizard = data.wizard;
-	if (wizard) {
-		hooks = [].concat.apply([], wizard.map(_d => _d.actions));
-		logger.trace(`Experience hooks - ${JSON.stringify(hooks)}`);
+	try {
+		let hooks = [];
+		let wizard = data.wizard;
+		if (wizard) {
+			hooks = [].concat.apply([], wizard.map(_d => _d.actions));
+			logger.trace(`Experience hooks - ${JSON.stringify(hooks)}`);
+		}
+		return hooks;
+	} catch (err) {
+		logger.error(`createExperienceHooksList :: ${err}`);
 	}
-	return hooks;
 }
 
 module.exports = {
