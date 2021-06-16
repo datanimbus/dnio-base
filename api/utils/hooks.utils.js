@@ -411,7 +411,7 @@ function invokeFunction(data, req) {
 	headers['TxnId'] = data.txnId;
 	headers['Authorization'] = req.headers['authorization'];
 	var options = {
-		url: config.baseUrlGW + data.url,
+		url: config.baseUrlGW + data.hook.url,
 		method: 'POST',
 		headers: headers,
 		json: true,
