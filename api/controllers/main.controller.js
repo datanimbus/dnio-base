@@ -511,7 +511,7 @@ router.post('/', (req, res) => {
 								session = sess;
 								return createDocuments(req, session);
 							},
-								config.transactionOptions);
+							config.transactionOptions);
 						} catch (err) {
 							logger.error(
 								`[${txnId}] : Error while bulk post with transaction :: `,
