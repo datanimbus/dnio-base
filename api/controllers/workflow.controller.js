@@ -570,10 +570,8 @@ async function approve(req, res) {
 					serviceDoc._req = req;
 					serviceDoc._isFromWorkflow = true;
 					serviceDoc._oldDoc = serviceDoc.toObject();
+					delete doc.data.new._metadata;
 					_.mergeWith(serviceDoc, doc.data.new, mergeCustomizer);
-					if (!serviceDoc._metadata) {
-						serviceDoc._metadata = {};
-					}
 					serviceDoc._metadata.workflow = null;
 					serviceDoc = await serviceDoc.save();
 				} else if (doc.operation == 'DELETE') {

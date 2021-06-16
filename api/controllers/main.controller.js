@@ -573,11 +573,11 @@ router.put('/:id', (req, res) => {
 			if (!doc && upsert) {
 				isNewDoc = true;
 				payload._id = req.params.id;
-				payload._metadata = {};
+				delete payload._metadata;
 				delete payload.__v;
 				doc = new model(payload);
 			}
-			if (doc._metadata.workflow) {
+			if (doc._metadata && doc._metadata.workflow) {
 				return res.status(400).json({
 					message: 'This Document is Locked because of a pending Workflow',
 				});
