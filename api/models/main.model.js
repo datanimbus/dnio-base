@@ -258,13 +258,10 @@ schema.post('save', function (error, doc, next) {
 	if (!error) return next();
 	if (error.code == 11000) {
 		if (error.errmsg) {
-			if (error.errmsg.indexOf('_id') > -1 && error.errmsg.indexOf('._id') === -1) {
+			if (!error.errmsg.match(/(.*)index:(.*)_1 collation(.*)/g)) {
 				next(new Error(`ID ${doc._id} already exists.`));
 			} else {
-				var uniqueAttributeFailed = error.errmsg.substring(
-					error.errmsg.lastIndexOf('index:') + 7,
-					error.errmsg.lastIndexOf('_1')
-				);
+				var uniqueAttributeFailed = error.errmsg.replace(/(.*)index: (.*)_1 collation(.*)/, '$2').split('\n')[0];
 				if (uniqueAttributeFailed.endsWith('._id'))
 					uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -4);
 				if (uniqueAttributeFailed.endsWith('.checksum') && specialFields.secureFields.includes(uniqueAttributeFailed.slice(0, -9)))
