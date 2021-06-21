@@ -136,7 +136,7 @@ function cursor(req, model){
 	};
 	
 	reqParams['sort'] ? reqParams.sort.split(',').map(el => el.split('-').length > 1 ? sort[el.split('-')[1]] = -1 : sort[el.split('-')[0]] = 1) : null;
-	var select = reqParams['select'] ? reqParams.select.split(',') : [];
+	// var select = reqParams['select'] ? reqParams.select.split(',') : [];
 	var skip = reqParams['skip'] ? reqParams.skip : 0;
 	var batchSize = reqParams['batchSize'] ? reqParams.batchSize : 500;
 	var search = reqParams['search'] ? reqParams.search : null;
@@ -155,10 +155,10 @@ function cursor(req, model){
 	}
 	var query = model.find(filter).skip(skip).sort(sort);
 	query.lean();
-	if (select.length || select.length) {
-		var union = select.concat(select);
-		query.select(union.join(' '));
-	}
+	// if (select.length || select.length) {
+	// 	var union = select.concat(select);
+	// 	query.select(union.join(' '));
+	// }
 	return query.batchSize(batchSize).cursor();
 }
 
