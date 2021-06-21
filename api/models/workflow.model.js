@@ -61,6 +61,28 @@ schema.pre('save', function (next) {
 	});
 });
 
+
+schema.pre('save', function (next) {
+	let self = this;
+	let promise = Promise.resolve();
+	if (!self.data.new._id && self.operation == 'POST') {
+		promise = utils.counter.generateId(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER).then(id => {
+			self.data.new._id = id;
+			return self;
+		});
+	}
+	promise.then(() => {
+		if (self.data.new._id) {
+			self.documentId = self.data.new._id;
+		}
+		next();
+	}).catch(err => {
+		logger.error(err);
+		next(err);
+	});
+});
+
+
 schema.pre('save', function (next) {
 	let self = this;
 	if (!(self.isNew)) {
