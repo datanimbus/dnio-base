@@ -191,11 +191,15 @@ schema.pre('save', async function (next) {
 	const oldDoc = this._oldDoc;
 	const req = this._req;
 	try {
-		const errors = await specialFields.cascadeRelation(req, newDoc, oldDoc);
-		if (errors) {
-			let txnId = req.headers['txnid'];
-			logger.error(`[${txnId}] Error in cascading relations :: `, errors);
-			next(errors);
+		if (req.query) {
+			const errors = await specialFields.cascadeRelation(req, newDoc, oldDoc);
+			if (errors) {
+				let txnId = req.headers['txnid'];
+				logger.error(`[${txnId}] Error in cascading relations :: `, errors);
+				next(errors);
+			} else {
+				next();
+			}
 		} else {
 			next();
 		}

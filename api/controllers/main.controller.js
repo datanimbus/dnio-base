@@ -573,11 +573,11 @@ router.put('/:id', (req, res) => {
 			if (!doc && upsert) {
 				isNewDoc = true;
 				payload._id = req.params.id;
-				payload._metadata = {};
+				delete payload._metadata;
 				delete payload.__v;
 				doc = new model(payload);
 			}
-			if (doc._metadata.workflow) {
+			if (doc._metadata && doc._metadata.workflow) {
 				return res.status(400).json({
 					message: 'This Document is Locked because of a pending Workflow',
 				});
@@ -731,14 +731,14 @@ router.post('/hook', (req, res) => {
 	async function execute() {
 		try {
 			const url = req.query.url;
-			const data = req.body;
+			const payload = req.body;
 			if (!url) {
 				return res.status(400).json({
 					message: 'URL is Mandatory',
 				});
 			}
 			try {
-				const httpRes = await hooksUtils.invokeHook(txnId, url, data);
+				const httpRes = await hooksUtils.invokeHook({ txnId, hook: { url }, payload });
 				res.status(200).json(httpRes);
 			} catch (e) {
 				res.status(400).json({
