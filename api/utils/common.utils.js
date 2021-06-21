@@ -101,7 +101,7 @@ async function getUserDoc(req, userId) {
  * @param {string} serviceId The Service ID for whose docs needs to be fetched
  * @param {string} documentId The Document ID that needs to be fetched
  */
-async function getServiceDoc(req, serviceId, documentId) {
+async function getServiceDoc(req, serviceId, documentId, throwError) {
 	const expandLevel = (req.headers['Expand-Level'] || 0) + 1;
 	const key = serviceId + '_' + documentId + '_' + req.headers[global.userHeader];
 	let service = serviceCache.get(serviceId);
@@ -144,13 +144,25 @@ async function getServiceDoc(req, serviceId, documentId) {
 				const temp = res.body;
 				temp._href = dataServiceUrl;
 				return temp;
+			}).catch(err => {
+				logger.error('Error in getServiceDoc.DocumentFetch :: ', err.statusCode, err.error);
+				logger.trace(err);
+				if (throwError) {
+					throw err;
+				} else {
+					return null;
+				}
 			});
 			documentCache.set(key, document);
 		}
 		return document;
 	} catch (e) {
 		logger.error('Error in getServiceDoc :: ', e);
-		throw e;
+		if (throwError) {
+			throw e;
+		} else {
+			return null;
+		}
 	}
 }
 
