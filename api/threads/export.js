@@ -32,39 +32,39 @@ This shall be used later when data.stack starts supporitng timezones for export.
 
 // to do moment
 function convertToTimezone(value, dateType, timezone = 0) {
-    if(value) {
-       try {
-        const temp = new Date((new Date(value)).getTime() - (timezone * 60 * 1000));
-        if(dateType == 'date'){
-            return dateformat(temp, 'mmm d, yyyy');
-        } else {
+	if(value) {
+	   try {
+		const temp = new Date((new Date(value)).getTime() - (timezone * 60 * 1000));
+		if(dateType == 'date'){
+			return dateformat(temp, 'mmm d, yyyy');
+		} else {
 			return dateformat(temp, 'mmm d, yyyy, HH:MM:ss');
-        }
-       } catch(e) {
+		}
+	   } catch(e) {
 			logger.error(e);
-       }
-    }
+	   }
+	}
 }
 
 */
 
 function convertToTimezone(dateObj, dateType, timezone = 0) {
 	logger.trace(timezone);
-	if(dateObj) {
+	if (dateObj) {
 		try {
 			return {
-				tzData : dateType == 'date' ? moment(dateObj.tzData).tz(dateObj.tzInfo).format('MMM DD, YYYY') : dateObj.tzData,
+				tzData: dateType == 'date' ? moment(dateObj.tzData).tz(dateObj.tzInfo).format('MMM DD, YYYY') : dateObj.tzData,
 				tzInfo: dateObj.tzInfo
 			};
-		} catch(e) {
+		} catch (e) {
 			logger.error(e);
 		}
 	}
 }
 
 function parseDateField(data, key, dateType, timezone) {
-	if(data[key]) {
-		if(Array.isArray(data[key])) {
+	if (data[key]) {
+		if (Array.isArray(data[key])) {
 			data[key] = data[key].map(dt => {
 				let result = convertToTimezone(dt, dateType, timezone);
 				data[key] = result.tzData;
@@ -77,13 +77,13 @@ function parseDateField(data, key, dateType, timezone) {
 		}
 		return data;
 	}
-	let nestedKeys ,nextKey;
-	if(key) nestedKeys =  key.split('.');
-	if(nestedKeys) nextKey = nestedKeys.shift();
-	if(nextKey && data[nextKey]) {
-		if(Array.isArray(data[nextKey]))
+	let nestedKeys, nextKey;
+	if (key) nestedKeys = key.split('.');
+	if (nestedKeys) nextKey = nestedKeys.shift();
+	if (nextKey && data[nextKey]) {
+		if (Array.isArray(data[nextKey]))
 			data[nextKey] = data[nextKey].map(dt => parseDateField(dt, nestedKeys.join('.'), dateType, timezone));
-		if(typeof data[nextKey] == 'object')
+		if (typeof data[nextKey] == 'object')
 			data[nextKey] = parseDateField(data[nextKey], nestedKeys.join('.'), dateType, timezone);
 		return data;
 	}
@@ -143,7 +143,7 @@ function flatten(obj, deep, parent) {
 function getHeadersAsPerSelectParam(headersObj, selectOrder) {
 	Object.keys(headersObj).forEach(headerKey => {
 		if (!selectOrder.includes(headerKey))
-			if(headerKey.endsWith('-Timezone Info')) {
+			if (headerKey.endsWith('-Timezone Info')) {
 				selectOrder.splice(selectOrder.indexOf(headerKey.replace('-Timezone Info', '')) + 1, 0, headerKey);
 			} else {
 				selectOrder.push(headerKey);
@@ -271,8 +271,8 @@ function keyvalue(data, obj, keys, values, flag) {
 			keys += item.key;
 			values += item['properties']['name'];
 			obj[keys] = values;
-			if(item['properties']['dateType']) {
-				obj[keys + '-Timezone Info'] = values + '-Timezone Info';  
+			if (item['properties']['dateType']) {
+				obj[keys + '-Timezone Info'] = values + '-Timezone Info';
 			}
 			keys = keys.replace(item.key, '');
 			values = values.replace(item['properties']['name'], '');
@@ -360,7 +360,7 @@ async function execute() {
 			filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
 			// intFilter = JSON.parse(JSON.stringify(filter));
 			filter = await exportUtils.createFilter(definitionArr, filter, reqData);
-			filter = commonUtils.modifySecureFieldsFilter(filter, specialFields.secureFields,false);
+			filter = commonUtils.modifySecureFieldsFilter(filter, specialFields.secureFields, false);
 			filter = crudderUtils.parseFilter(filter);
 		}
 		logger.debug(`[${txnId}] Filter for export :: ${JSON.stringify(filter)}`);
@@ -423,6 +423,15 @@ async function execute() {
 
 			/******** Writing documents in TXT file *******/
 			await documents.reduce((acc, curr) => {
+				if (curr['_metadata.deleted']) {
+					delete curr['_metadata.deleted'];
+				}
+				if (curr['_metadata.version']) {
+					delete curr['_metadata.version'];
+				}
+				if (curr['__v']) {
+					delete curr['__v'];
+				}
 				Object.assign(headersObj, curr);
 				return acc.then(() => txtWriteStream.write(JSON.stringify(curr) + '\n', () => Promise.resolve()));
 			}, Promise.resolve());
