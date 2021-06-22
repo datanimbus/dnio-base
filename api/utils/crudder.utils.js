@@ -76,6 +76,7 @@ function validateAggregation(body) {
 	return true;
 }
 
+const { flatten } = require('@appveen/utils/objectUtils');
 let _ = require('lodash');
 
 function isString(val) {
@@ -84,7 +85,7 @@ function isString(val) {
 
 function createRegexp(str) {
 	if (str.charAt(0) === '/' &&
-        str.charAt(str.length - 1) === '/') {
+		str.charAt(str.length - 1) === '/') {
 		var text = str.substr(1, str.length - 2).replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 		return new RegExp(text, 'i');
 	} else {
@@ -125,7 +126,7 @@ function parseFilter(filterParsed) {
 	return filterParsed;
 }
 
-function cursor(req, model){
+function cursor(req, model) {
 	let reqParams = req.query;// Object.keys(req.swagger.params).reduce((prev, curr) => {
 	// 	prev[curr] = req.swagger.params[curr].value;
 	// 	return prev;
@@ -134,9 +135,9 @@ function cursor(req, model){
 	var sort = reqParams['sort'] ? {} : {
 		'_metadata.lastUpdated': -1
 	};
-	
+
 	reqParams['sort'] ? reqParams.sort.split(',').map(el => el.split('-').length > 1 ? sort[el.split('-')[1]] = -1 : sort[el.split('-')[0]] = 1) : null;
-	// var select = reqParams['select'] ? reqParams.select.split(',') : [];
+	var select = reqParams['select'] ? reqParams.select.split(',') : [];
 	var skip = reqParams['skip'] ? reqParams.skip : 0;
 	var batchSize = reqParams['batchSize'] ? reqParams.batchSize : 500;
 	var search = reqParams['search'] ? reqParams.search : null;
@@ -155,10 +156,15 @@ function cursor(req, model){
 	}
 	var query = model.find(filter).skip(skip).sort(sort);
 	query.lean();
-	// if (select.length || select.length) {
-	// 	var union = select.concat(select);
-	// 	query.select(union.join(' '));
-	// }
+	if (select.length || select.length) {
+		let obj = {};
+		select.forEach(key => {
+			_.set(obj, key, '');
+		});
+		const t = flatten(obj);
+		select = Object.keys(t);
+		query.select(select.join(' '));
+	}
 	return query.batchSize(batchSize).cursor();
 }
 

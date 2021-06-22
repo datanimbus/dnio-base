@@ -423,15 +423,6 @@ async function execute() {
 
 			/******** Writing documents in TXT file *******/
 			await documents.reduce((acc, curr) => {
-				if (curr['_metadata.deleted']) {
-					delete curr['_metadata.deleted'];
-				}
-				if (curr['_metadata.version']) {
-					delete curr['_metadata.version'];
-				}
-				if (curr['__v']) {
-					delete curr['__v'];
-				}
 				Object.assign(headersObj, curr);
 				return acc.then(() => txtWriteStream.write(JSON.stringify(curr) + '\n', () => Promise.resolve()));
 			}, Promise.resolve());
