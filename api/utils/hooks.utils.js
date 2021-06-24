@@ -368,7 +368,7 @@ function invokeHook(data) {
 	headers['Content-Type'] = 'application/json';
 	headers['TxnId'] = data.txnId;
 	var options = {
-		url: data.url,
+		url: data.hook.url,
 		method: 'POST',
 		headers: headers,
 		json: true,
