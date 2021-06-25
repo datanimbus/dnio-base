@@ -65,15 +65,18 @@ schema.pre('save', function (next) {
 schema.pre('save', function (next) {
 	let self = this;
 	let promise = Promise.resolve();
-	if (!self.data.new._id && self.operation == 'POST') {
+	if (self.operation == 'POST' && !self.data.new._id) {
 		promise = utils.counter.generateId(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER).then(id => {
 			self.data.new._id = id;
 			return self;
 		});
 	}
 	promise.then(() => {
-		if (self.data.new._id) {
+		if (self.data.new && self.data.new._id && !self.documentId) {
 			self.documentId = self.data.new._id;
+		}
+		if (self.data.old && self.data.old._id && !self.documentId) {
+			self.documentId = self.data.old._id;
 		}
 		next();
 	}).catch(err => {
@@ -160,7 +163,7 @@ schema.pre('save', async function (next) {
 	const newDoc = this.data.new;
 	const oldDoc = this.data.old;
 	const req = this._req;
-	if(req.body && req.body.action) {
+	if (req.body && req.body.action) {
 		next();
 	} else {
 		try {
