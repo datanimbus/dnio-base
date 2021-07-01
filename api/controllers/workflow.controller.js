@@ -560,14 +560,16 @@ async function approve(req, res) {
 			};
 			try {
 				let serviceDoc;
+				const tempReq = _.cloneDeep(req);
+				tempReq.headers[global.userHeader] = doc.requestedBy;
 				if (doc.operation == 'POST') {
 					serviceDoc = new serviceModel(_.cloneDeep(doc.data.new));
-					serviceDoc._req = req;
+					serviceDoc._req = tempReq;
 					serviceDoc._isFromWorkflow = true;
 					serviceDoc = await serviceDoc.save();
 				} else if (doc.operation == 'PUT') {
 					serviceDoc = await serviceModel.findById(doc.documentId);
-					serviceDoc._req = req;
+					serviceDoc._req = tempReq;
 					serviceDoc._isFromWorkflow = true;
 					serviceDoc._oldDoc = serviceDoc.toObject();
 					delete doc.data.new._metadata;
@@ -576,7 +578,7 @@ async function approve(req, res) {
 					serviceDoc = await serviceDoc.save();
 				} else if (doc.operation == 'DELETE') {
 					serviceDoc = await serviceModel.findById(doc.documentId);
-					serviceDoc._req = req;
+					serviceDoc._req = tempReq;
 					serviceDoc._isFromWorkflow = true;
 					serviceDoc._oldDoc = serviceDoc.toObject();
 					if (!config.permanentDelete) {
