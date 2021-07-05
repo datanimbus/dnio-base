@@ -66,13 +66,19 @@ function objectMapping(sheetJson, mapping) {
 	if (mapping && mapping.constructor == {}.constructor) {
 		Object.keys(mapping).forEach(key => {
 			if (typeof mapping[key] == 'string') {
-				newDoc[key] = sheetJson[mapping[key]];
+				if (key === '_id') {
+					if (sheetJson[mapping[key]] !== null && sheetJson[mapping[key]] !== undefined) {
+						newDoc[key] = sheetJson[mapping[key]] + '';
+					}
+				} else {
+					newDoc[key] = sheetJson[mapping[key]];
+				}
 			} else if (Array.isArray(mapping[key])) {
 				newDoc[key] = mapping[key].map(_o => {
 					return objectMapping(sheetJson, _o);
 				});
 				newDoc[key] = newDoc[key].filter(_d => _d);
-				if(newDoc[key].length == 0) delete newDoc[key];
+				if (newDoc[key].length == 0) delete newDoc[key];
 			} else {
 				newDoc[key] = objectMapping(sheetJson, mapping[key]);
 			}
