@@ -5,6 +5,7 @@ if (process.env.NODE_ENV != 'production') {
 	require('dotenv').config();
 }
 
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const bluebird = require('bluebird');
@@ -82,21 +83,20 @@ app.use(function (req, res, next) {
 });
 app.use(function (req, res, next) {
 	let allowedExt = config.allowedExt || [];
-	if (!req.files) return next();
+	if (!req.file) return next();
 	logger.debug(`[${req.get(global.txnIdHeader)}] File upload in request`);
-	let flag = Object.keys(req.files).every(file => {
-		let filename = req.files[file].name;
-		logger.debug(`[${req.get(global.txnIdHeader)}] File upload :: filename :: ${filename}`);
-		let fileExt = filename.split('.').pop();
-		logger.debug(`[${req.get(global.txnIdHeader)}] File upload :: fileExt :: ${fileExt}`);
-		if (allowedExt.indexOf(fileExt) == -1) {
-			logger.error(`[${req.get(global.txnIdHeader)}] File upload :: fileExt :: Not permitted`);
-			return false;
-		}
-		let isValid = fileValidator({ type: 'Buffer', data: req.files[file].data }, fileExt);
-		logger.info(`[${req.get(global.txnIdHeader)}] Is file ${filename} valid? ${isValid}`);
-		return isValid;
-	});
+	let flag = true;
+	let filename = req.file.originalname;
+	logger.debug(`[${req.get(global.txnIdHeader)}] File upload :: filename :: ${filename}`);
+	let fileExt = filename.split('.').pop();
+	logger.debug(`[${req.get(global.txnIdHeader)}] File upload :: fileExt :: ${fileExt}`);
+	if (allowedExt.indexOf(fileExt) == -1) {
+		logger.error(`[${req.get(global.txnIdHeader)}] File upload :: fileExt :: Not permitted`);
+		flag = false;
+	} else {
+		flag = fileValidator({ type: 'Buffer', data: fs.readFileSync(req.file.path) }, fileExt);
+		logger.info(`[${req.get(global.txnIdHeader)}] Is file ${filename} valid? ${flag}`);
+	}
 	if (flag) next();
 	else next(new Error('File not supported'));
 });
