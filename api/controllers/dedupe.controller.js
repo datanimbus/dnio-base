@@ -41,9 +41,10 @@ router.get('/:id', async (req, res) => {
 		}
 		res.status(200).json(doc);
 	} catch (e) {
-		logger.error('Error in dedupe/:id :: ', e);
+		let err = e;
+		logger.error('Error in dedupe/:id :: ', err);
 		if (typeof e === 'string') {
-			e = new Error(e);
+			err = new Error(e);
 		}
 		res.status(500).json({
 			message: err.message
@@ -64,7 +65,7 @@ router.get('/', async (req, res) => {
 				} else if (tempFilter) {
 					filter = tempFilter;
 				}
-				filter = modifySecureFieldsFilter(filter, specialFields.secureFields, false);
+				// filter = modifySecureFieldsFilter(filter, specialFields.secureFields, false);
 			}
 		} catch (e) {
 			logger.error(e);
@@ -120,8 +121,9 @@ router.get('/', async (req, res) => {
 		*/
 		res.status(200).json(docs);
 	} catch (e) {
+		let err = e;
 		if (typeof e === 'string') {
-			e = new Error(e);
+			err = new Error(e);
 		}
 		res.status(500).json({
 			message: err.message
@@ -130,10 +132,10 @@ router.get('/', async (req, res) => {
 });
 
 router.put('/review', async (req, res) => {
+	let user = req.headers[global.userHeader];
+	let txnId = req.headers[global.txnIdHeader];
+	let dedupeFields = specialFields.dedupeFields;
 	try {
-		let user = req.headers[global.userHeader];
-		let txnId = req.headers[global.txnIdHeader];
-		let dedupeFields = specialFields.dedupeFields;
 		let dedupeId = uuid();
 		logger.debug(`[${txnId}] :: Starting Dedupe process for ${user} on fields ${dedupeFields} with dedupeId ${dedupeId}`);
 		// create search index on dedupe fields here
@@ -157,17 +159,18 @@ router.put('/review', async (req, res) => {
 			status: 'READY_TO_PROCESS'
 		}, req.get('Authorization'));
 	} catch (e) {
-		logger.error(`[${txnId}] :: Error in starting dedupe review process `, e);
+		let err = e;
+		logger.error(`[${txnId}] :: Error in starting dedupe review process `, err);
 		if (typeof e === 'string') {
-			e = new Error(e);
+			err = new Error(e);
 		}
 		if (!res.headersSent) {
 			res.status(500).json({
-				message: e.message
+				message: err.message
 			});
 		}
 	}
-})
+});
 
 
 /**
@@ -189,7 +192,7 @@ router.put('/review', async (req, res) => {
 						"_id": "TES1002"
 					}
 				}, 
-        		{
+				{
 					"_id": "60928eaef50d689174857829",
 					"newDoc": {
 						"_id": "TES1002"
@@ -209,7 +212,7 @@ router.put('/review', async (req, res) => {
 						// New doc prepared on UI
 					}
 				}, 
-        		{
+				{
 					"_id": "60928eaef50d689174857829",
 					"newDoc": {
 						// Updated Doc prepared on UI
@@ -229,62 +232,63 @@ router.put('/:dedupeId/action', async (req, res) => {
 		let dedupeId = req.params.dedupeId;
 		let { action, dedupeItems } = req.body;
 		let dedupeItemIds = dedupeItems.map(item => item._id);
-		let docs = await model.find({ _id: {$in : dedupeItemIds }, dedupeId });
+		let docs = await model.find({ _id: { $in: dedupeItemIds }, dedupeId });
 		if (!docs.length) {
 			return res.status(404).json({
-				message: `No Dedupe Records With Given IDs`
+				message: 'No Dedupe Records With Given IDs'
 			});
 		}
 		let failedItems = [], successItems = [];
 		let promises = docs.map(async (doc) => {
 			let dedupeItem = dedupeItems.find(item => item._id == doc._id);
-			if(user !== doc.user) {
+			if (user !== doc.user) {
 				dedupeItem['message'] = 'User can act on his own dedupe records only.';
 				failedItems.push(dedupeItem);
 				return;
 			}
 			doc.action = action;
-			if(action == 'MARK_ONE') {
+			if (action == 'MARK_ONE') {
 				doc.newDoc = doc.docs.find(d => d._id == dedupeItem.newDoc._id);
-			} else if(action == 'CREATE_NEW' || 'UPDATE_ONE') {
+			} else if (action == 'CREATE_NEW' || action == 'UPDATE_ONE') {
 				doc.newDoc = dedupeItem.newDoc;
 			}
 			await doc.save();
-			successItems.push(dedupeItem)
-		})
+			successItems.push(dedupeItem);
+		});
 		docs = await Promise.all(promises);
 		return res.json({
 			successItems,
 			failedItems,
 			action
-		})
+		});
 	} catch (e) {
-		logger.error('Error in /:dedupeId/action/ :: ', e);
+		let err = e;
+		logger.error('Error in /:dedupeId/action/ :: ', err);
 		if (typeof e === 'string') {
-			e = new Error(e);
+			err = new Error(e);
 		}
 		res.status(500).json({
-			message: e.message
+			message: err.message
 		});
 	}
 });
 
 router.put('/:dedupeId/apply', async (req, res) => {
+	let txnId = req.headers[global.txnIdHeader];
+	let user = req.headers[global.userHeader];
+	let dedupeId = req.params.dedupeId;
+	let dedupeFields = specialFields.dedupeFields;
 	try {
-		let txnId = req.headers[global.txnIdHeader];
-		let user = req.headers[global.userHeader];
-		let dedupeId = req.params.dedupeId;
-		let dedupeFields = specialFields.dedupeFields;
 		// Check if there is any pending dedupe item for action
 		let pendingDedupeItems = await model.countDocuments({
 			dedupeId,
 			user,
 			action: 'PENDING'
 		});
-		if(pendingDedupeItems > 0) {
+		if (pendingDedupeItems > 0) {
 			return res.status(400).json({
 				message: `You have ${pendingDedupeItems} pending dedupes item/s for action.`
-			})
+			});
 		}
 		// To block read operations
 		informGW({
@@ -306,17 +310,18 @@ router.put('/:dedupeId/apply', async (req, res) => {
 			status: 'COMPLETED'
 		}, req.get('Authorization'));
 	} catch (e) {
-		logger.error(`[${txnId}] :: Error in starting dedupe apply process `, e);
+		let err = e;
+		logger.error(`[${txnId}] :: Error in starting dedupe apply process `, err);
 		if (typeof e === 'string') {
-			e = new Error(e);
+			err = new Error(e);
 		}
 		if (!res.headersSent) {
 			res.status(500).json({
-				message: e.message
+				message: err.message
 			});
 		}
 	}
-})
+});
 
 function informGW(data, jwtToken) {
 

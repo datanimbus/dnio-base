@@ -22,7 +22,7 @@ const definition = {
 		type: 'String',
 		required: true
 	},
-    docs: {
+	docs: {
 		type: ['Object']
 	},
 	docsCount: {
@@ -33,18 +33,18 @@ const definition = {
 		type: 'String',
 		enum: ['SUCCESS', 'FAILED']
 	},
-    action: {
-        type: 'String',
+	action: {
+		type: 'String',
 		enum: ['PENDING', 'MARK_ONE', 'CREATE_NEW', 'UPDATE_ONE', 'DISCARD'],
 		default: 'PENDING'
-    },
-    newDoc: {
+	},
+	newDoc: {
 		type: 'Object'
 	},
-    remarks: {
+	remarks: {
 		type: 'String'
 	},
-    errMessage: {
+	errMessage: {
 		type: 'String'
 	},
 };
