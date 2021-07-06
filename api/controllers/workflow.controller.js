@@ -562,6 +562,13 @@ async function approve(req, res) {
 				let serviceDoc;
 				const tempReq = _.cloneDeep(req);
 				tempReq.headers[global.userHeader] = doc.requestedBy;
+
+				const errors = await specialFields.validateRelation(req, doc.data.new, doc.data.old);
+				if (errors) {
+					logger.error('Relation Validation Failed:', errors);
+					return res.status(400).json({ message: errors });
+				}
+
 				if (doc.operation == 'POST') {
 					serviceDoc = new serviceModel(_.cloneDeep(doc.data.new));
 					serviceDoc._req = tempReq;
