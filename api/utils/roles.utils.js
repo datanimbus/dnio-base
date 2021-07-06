@@ -24,9 +24,9 @@ async function getRoles() {
 	logger.trace('Get roles');
 	try {
 		let authorDB = mongoose.connections[1].client.db(config.authorDB);
-		authorDB.collection('userMgmt.roles').findOne({_id: config.serviceId})
+		authorDB.collection('userMgmt.roles').findOne({ _id: config.serviceId })
 			.then(_d => {
-				if(!_d) {
+				if (!_d) {
 					logger.error(`Get roles :: Unable to find ${config.serviceId}`);
 					return;
 				}
@@ -57,7 +57,7 @@ function processRolesQueue() {
 		var opts = client.subscriptionOptions();
 		opts.setStartWithLastReceived();
 		opts.setDurableName(config.serviceId + '-role-durable');
-		var subscription = client.subscribe(config.serviceId + '-role', config.serviceId + '-role', opts);
+		var subscription = client.subscribe('user-role', opts);
 		subscription.on('message', function (_body) {
 			try {
 				let bodyObj = JSON.parse(_body.getData());

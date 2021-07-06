@@ -570,7 +570,7 @@ function processHooksQueue() {
 		var opts = client.subscriptionOptions();
 		opts.setStartWithLastReceived();
 		opts.setDurableName(config.serviceId + '-hooks-durable');
-		var subscription = client.subscribe(config.serviceId + '-hooks', config.serviceId + '-hooks', opts);
+		var subscription = client.subscribe('sm-hooks', opts);
 		subscription.on('message', function (_body) {
 			try {
 				let bodyObj = JSON.parse(_body.getData());
