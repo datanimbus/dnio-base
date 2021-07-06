@@ -5,4 +5,5 @@ module.exports.init = function () {
 	require('./fileMapper.model');
 	require('./workflow.model');
 	require('./fileTransfers.model');
+	require('./dedupe.model');
 };

@@ -3,6 +3,7 @@ const router = require('express').Router();
 router.use('/', require('./main.controller'));
 router.use('/utils', require('./utils.controller'));
 router.use('/utils/callback', require('./callback.controller'));
+router.use('/utils/dedupe', require('./dedupe.controller'));
 router.use('/utils/experienceHook', require('./experienceHook.controller'));
 router.use('/utils/export', require('./export.controller'));
 router.use('/utils/file', require('./file.controller'));
