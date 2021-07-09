@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const swaggerParser = require('swagger-parser');
 const async = require('async');
 const _ = require('lodash');
+const { flatten } = require('@appveen/utils/objectUtils');
 
 const config = require('../../config');
 const specialFields = require('../utils/special-fields.utils');
@@ -1183,7 +1184,7 @@ async function doRoundMathAPI(req, res, oldNewData) {
 		if (!docs || !docs[0]) {
 			throw new Error('CUSTOM_READ_CONFLICT');
 		}
-		const updateData = docs[0];
+		const updateData = flatten(docs[0]);
 		delete updateData._id;
 		specialFields.precisionFields.forEach((item) => {
 			if (updateData[item.field]) {
