@@ -12,6 +12,7 @@ let logger = global.logger;
 function executeThread(_txnId, file, data) {
 	logger.debug(`[${_txnId}] Exec. thread :: ${file}`);
 	return new Promise((resolve, reject) => {
+		let responseSent = false;
 		const filePath = path.join(process.cwd(), 'api/threads', `${file}.js`);
 		if (!fs.existsSync(filePath)) {
 			logger.error(`[${_txnId}] Exec. thread :: ${file} :: INVALID_FILE`);
@@ -20,12 +21,17 @@ function executeThread(_txnId, file, data) {
 		const worker = new Worker(filePath, {
 			workerData: data
 		});
-		worker.on('message', resolve);
+		worker.on('message', function (data) {
+			responseSent = true;
+			worker.terminate();
+			resolve(data);
+		});
 		worker.on('error', reject);
 		worker.on('exit', code => {
-			if (code !== 0)
+			if (!responseSent) {
 				logger.error(`[${_txnId}] Exec. thread :: ${file} :: Worker stopped with exit code ${code}`);
-			reject(new Error(`Worker stopped with exit code ${code}`));
+				reject(new Error(`Worker stopped with exit code ${code}`));
+			}
 		});
 	});
 }
