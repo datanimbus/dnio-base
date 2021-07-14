@@ -355,11 +355,22 @@ async function execute() {
 		if (selectionObject.querySelect.length > 0) {
 			reqData.query.select = selectionObject.querySelect.join(',');
 		}
+		const errors = {};
 		let filter = reqData.query.filter;
 		if (filter) {
 			filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
 			// intFilter = JSON.parse(JSON.stringify(filter));
-			filter = await exportUtils.createFilter(definitionArr, filter, reqData);
+			// filter = await exportUtils.createFilter(definitionArr, filter, reqData);
+			const tempFilter = await specialFields.patchRelationInFilter(
+				reqData,
+				filter,
+				errors
+			);
+			if (Array.isArray(tempFilter) && tempFilter.length > 0) {
+				filter = tempFilter[0];
+			} else if (tempFilter) {
+				filter = tempFilter;
+			}
 			filter = commonUtils.modifySecureFieldsFilter(filter, specialFields.secureFields, false);
 			filter = crudderUtils.parseFilter(filter);
 		}
