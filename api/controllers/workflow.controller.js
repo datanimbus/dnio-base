@@ -564,6 +564,7 @@ async function approve(req, res) {
 				tempReq.headers[global.userHeader] = doc.requestedBy;
 
 				const errors = await specialFields.validateRelation(req, doc.data.new, doc.data.old);
+				await specialFields.decryptSecureFields(req, doc.data.new, null);
 				if (errors) {
 					logger.error('Relation Validation Failed:', errors);
 					return res.status(400).json({ message: errors });
@@ -572,12 +573,12 @@ async function approve(req, res) {
 				if (doc.operation == 'POST') {
 					serviceDoc = new serviceModel(_.cloneDeep(doc.data.new));
 					serviceDoc._req = tempReq;
-					serviceDoc._isFromWorkflow = true;
+					// serviceDoc._isFromWorkflow = true;
 					serviceDoc = await serviceDoc.save();
 				} else if (doc.operation == 'PUT') {
 					serviceDoc = await serviceModel.findById(doc.documentId);
 					serviceDoc._req = tempReq;
-					serviceDoc._isFromWorkflow = true;
+					// serviceDoc._isFromWorkflow = true;
 					serviceDoc._oldDoc = serviceDoc.toObject();
 					delete doc.data.new._metadata;
 					_.mergeWith(serviceDoc, doc.data.new, mergeCustomizer);
@@ -586,7 +587,7 @@ async function approve(req, res) {
 				} else if (doc.operation == 'DELETE') {
 					serviceDoc = await serviceModel.findById(doc.documentId);
 					serviceDoc._req = tempReq;
-					serviceDoc._isFromWorkflow = true;
+					// serviceDoc._isFromWorkflow = true;
 					serviceDoc._oldDoc = serviceDoc.toObject();
 					if (!config.permanentDelete) {
 						let softDeletedDoc = new softDeletedModel(doc);
