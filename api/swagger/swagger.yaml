@@ -700,7 +700,7 @@ paths:
           description: Internal server error
   /utils/export:
     x-swagger-router-controller: controller
-    get:
+    post:
       description: Retrieve a list of 'complex'
       operationId: v1_srvc2006Export
       parameters:

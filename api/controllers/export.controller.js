@@ -45,7 +45,7 @@ router.get('/download/:id', (req, res) => {
 	});
 });
 
-router.get('/', (req, res) => {
+router.post('/', (req, res) => {
 	async function execute() {
 		try {
 			let txnId = req.get(global.txnIdHeader);
