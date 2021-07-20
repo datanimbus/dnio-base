@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
-const crypto = require('crypto');
+const uuid = require('uuid/v1');
 
 const config = require('../../config');
 const queueMgmt = require('../../queue');
@@ -173,7 +173,7 @@ function prepPostHooks(_data) {
 	};
 	return postHooks.reduce(function (_prev, _curr) {
 		return _prev.then(() => {
-			postHookLog['_id'] = crypto.randomBytes(16).toString('hex');
+			postHookLog['_id'] = uuid();
 			postHookLog.callbackUrl = `${postHookLog.callbackUrl}/${postHookLog._id}`;
 			streamingPayload['_id'] = postHookLog['_id'];
 			postHookLog['name'] = _curr.name;
@@ -247,7 +247,7 @@ function prepWorkflowHooks(_data) {
 	};
 	return workflowHooks.reduce(function (_prev, _curr) {
 		return _prev.then(() => {
-			workflowHookLog['_id'] = crypto.randomBytes(16).toString('hex');
+			workflowHookLog['_id'] = uuid();
 			workflowHookLog.callbackUrl = `${workflowHookLog.callbackUrl}/${workflowHookLog._id}`;
 			streamingPayload['_id'] = workflowHookLog['_id'];
 			workflowHookLog['name'] = _curr.name;
@@ -314,7 +314,7 @@ function constructPayload(req, preHook, data, options) {
  */
 function constructHookLog(req, hook, options) {
 	return {
-		_id: crypto.randomBytes(16).toString('hex'),
+		_id: uuid(),
 		name: hook.name,
 		url: hook.url,
 		user: req.headers[global.userHeader],
@@ -542,7 +542,7 @@ function callExperienceHook(req, res) {
 				res.status(500).json({ message });
 			})
 			.finally(() => {
-				data['_id'] = crypto.randomBytes(16).toString('hex');
+				data['_id'] = uuid();
 				data['url'] = wantedHook.url;
 				data['_metadata'] = {
 					createdAt: new Date(),
