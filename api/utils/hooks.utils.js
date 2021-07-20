@@ -98,7 +98,7 @@ function callAllPreHooks(req, data, options) {
 			}
 			throw preHookLog;
 		}).finally(() => {
-			if (!config.disableInsights && preHookLog && preHookLog._id) insertHookLog('PreHook', txnId, preHookLog);
+			if (!config.disableInsights && preHookLog && preHookLog._id) insertHookLog('PreHook', txnId, JSON.parse(JSON.stringify(preHookLog)));
 		});
 	}, Promise.resolve(JSON.parse(JSON.stringify(data))));
 }
@@ -180,8 +180,8 @@ function prepPostHooks(_data) {
 			postHookLog['url'] = _curr.url;
 			postHookLog['hookType'] = (_curr.type || 'external');
 			postHookLog['refId'] = _curr.refId;
-			insertHookLog('PostHook', txnId, postHookLog);
-			queueMgmt.sendToQueue(streamingPayload);
+			insertHookLog('PostHook', txnId, JSON.parse(JSON.stringify(postHookLog)));
+			queueMgmt.sendToQueue(JSON.parse(JSON.stringify(streamingPayload)));
 		});
 	}, Promise.resolve());
 }
@@ -254,8 +254,8 @@ function prepWorkflowHooks(_data) {
 			workflowHookLog['url'] = _curr.url;
 			workflowHookLog['hookType'] = (_curr.type || 'external');
 			workflowHookLog['refId'] = _curr.refId;
-			insertHookLog('WorkflowHook', txnId, workflowHookLog);
-			queueMgmt.sendToQueue(streamingPayload);
+			insertHookLog('WorkflowHook', txnId, JSON.parse(JSON.stringify(workflowHookLog)));
+			queueMgmt.sendToQueue(JSON.parse(JSON.stringify(streamingPayload)));
 		});
 	}, Promise.resolve());
 }
@@ -551,7 +551,7 @@ function callExperienceHook(req, res) {
 						release: process.env.RELEASE || 'dev'
 					}
 				};
-				if (!config.disableInsights) insertHookLog('ExperienceHook', txnId, data);
+				if (!config.disableInsights) insertHookLog('ExperienceHook', txnId, JSON.parse(JSON.stringify(data)));
 			});
 	} catch (e) {
 		let message;
