@@ -55,7 +55,7 @@ router.post('/', (req, res) => {
 				fileId,
 				reqData: {
 					headers: req.headers,
-					query: req.query
+					query: req.body
 				}
 			});
 			logger.info(`[${txnId}] : File export result :: `, result);

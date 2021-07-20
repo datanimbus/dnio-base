@@ -705,11 +705,11 @@ paths:
       operationId: v1_srvc2006Export
       parameters:
         - name: page
-          in: query
+          in: body
           type: integer
           description: Page number of the request
         - name: count
-          in: query
+          in: body
           type: integer
           description: Number of records per page
         - name: authorization
@@ -717,20 +717,20 @@ paths:
           type: string
           description: The JWT token for req.validation
         - name: filter
-          in: query
+          in: body
           type: string
           description: Filter records based on certain fields
         - name: select
-          in: query
+          in: body
           type: string
           description: Comma seperated fields to be displayed
         - name: sort
-          in: query
+          in: body
           type: string
           description: sort parameter
         - *ref_3
         - name: totalRecords
-          in: query
+          in: body
           type: integer
           description: total records
       responses:
