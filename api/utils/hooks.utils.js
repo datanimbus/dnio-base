@@ -125,9 +125,9 @@ function prepPostHooks(_data) {
 	}
 	logger.info(`[${txnId}] PostHook :: ${docId} :: ${postHooks.length} found`);
 	postHooks = postHooks.map(_d => {
-		if (_d.type === 'function') {
-			_d.url = config.baseUrlGW + _d.url;
-		}
+		// if (_d.type === 'function') {
+		// 	_d.url = config.baseUrlGW + _d.url;
+		// }
 		logger.info(`[${txnId}] PostHook :: ${docId} :: ${_d.name} - ${_d.url} `);
 		return _d;
 	});
