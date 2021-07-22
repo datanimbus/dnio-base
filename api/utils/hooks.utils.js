@@ -166,22 +166,23 @@ function prepPostHooks(_data) {
 			disableInsights: config.disableInsights
 		}
 	};
-	let streamingPayload = {
-		collection: `${config.app}.hook`,
-		txnId: txnId,
-		retry: 0
-	};
 	return postHooks.reduce(function (_prev, _curr) {
 		return _prev.then(() => {
-			postHookLog['_id'] = uuid();
-			postHookLog.callbackUrl = `${postHookLog.callbackUrl}/${postHookLog._id}`;
-			streamingPayload['_id'] = postHookLog['_id'];
-			postHookLog['name'] = _curr.name;
-			postHookLog['url'] = _curr.url;
-			postHookLog['hookType'] = (_curr.type || 'external');
-			postHookLog['refId'] = _curr.refId;
-			insertHookLog('PostHook', txnId, JSON.parse(JSON.stringify(postHookLog)));
-			queueMgmt.sendToQueue(JSON.parse(JSON.stringify(streamingPayload)));
+			const streamingPayload = {
+				collection: `${config.app}.hook`,
+				txnId: txnId,
+				retry: 0
+			};
+			const temp = JSON.parse(JSON.stringify(postHookLog));
+			temp['_id'] = uuid();
+			temp.callbackUrl = `${temp.callbackUrl}/${temp._id}`;
+			streamingPayload['_id'] = temp['_id'];
+			temp['name'] = _curr.name;
+			temp['url'] = _curr.url;
+			temp['hookType'] = (_curr.type || 'external');
+			temp['refId'] = _curr.refId;
+			insertHookLog('PostHook', txnId, temp);
+			queueMgmt.sendToQueue(streamingPayload);
 		});
 	}, Promise.resolve());
 }
@@ -240,22 +241,23 @@ function prepWorkflowHooks(_data) {
 			disableInsights: config.disableInsights
 		}
 	};
-	let streamingPayload = {
-		collection: `${config.app}.hook`,
-		txnId: txnId,
-		retry: 0
-	};
 	return workflowHooks.reduce(function (_prev, _curr) {
 		return _prev.then(() => {
-			workflowHookLog['_id'] = uuid();
-			workflowHookLog.callbackUrl = `${workflowHookLog.callbackUrl}/${workflowHookLog._id}`;
-			streamingPayload['_id'] = workflowHookLog['_id'];
-			workflowHookLog['name'] = _curr.name;
-			workflowHookLog['url'] = _curr.url;
-			workflowHookLog['hookType'] = (_curr.type || 'external');
-			workflowHookLog['refId'] = _curr.refId;
-			insertHookLog('WorkflowHook', txnId, JSON.parse(JSON.stringify(workflowHookLog)));
-			queueMgmt.sendToQueue(JSON.parse(JSON.stringify(streamingPayload)));
+			const streamingPayload = {
+				collection: `${config.app}.hook`,
+				txnId: txnId,
+				retry: 0
+			};
+			const temp = JSON.parse(JSON.stringify(workflowHookLog));
+			temp['_id'] = uuid();
+			temp.callbackUrl = `${temp.callbackUrl}/${temp._id}`;
+			streamingPayload['_id'] = temp['_id'];
+			temp['name'] = _curr.name;
+			temp['url'] = _curr.url;
+			temp['hookType'] = (_curr.type || 'external');
+			temp['refId'] = _curr.refId;
+			insertHookLog('WorkflowHook', txnId, temp);
+			queueMgmt.sendToQueue(streamingPayload);
 		});
 	}, Promise.resolve());
 }
