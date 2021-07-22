@@ -45,7 +45,7 @@ router.get('/download/:id', (req, res) => {
 	});
 });
 
-router.get('/', (req, res) => {
+router.post('/', (req, res) => {
 	async function execute() {
 		try {
 			let txnId = req.get(global.txnIdHeader);
@@ -55,7 +55,7 @@ router.get('/', (req, res) => {
 				fileId,
 				reqData: {
 					headers: req.headers,
-					query: req.query
+					query: req.body
 				}
 			});
 			logger.info(`[${txnId}] : File export result :: `, result);
