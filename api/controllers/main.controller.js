@@ -103,6 +103,7 @@ router.get('/utils/bulkShow', (req, res) => {
 router.put('/bulkUpdate', (req, res) => {
 	async function execute() {
 		// const workflowModel = global.authorDB.model('workflow');
+		let txnId = req.get(global.txnIdHeader);
 		const workflowModel = mongoose.model('workflow');
 		try {
 			const id = req.query.id;
@@ -157,10 +158,7 @@ router.put('/bulkUpdate', (req, res) => {
 				return res.status(207).json(allResult);
 			}
 		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+			handleError(e, txnId);
 		}
 	}
 	execute().catch((err) => {
@@ -174,6 +172,7 @@ router.put('/bulkUpdate', (req, res) => {
 router.delete('/utils/bulkDelete', (req, res) => {
 	async function execute() {
 		// const workflowModel = global.authorDB.model('workflow');
+		let txnId = req.get(global.txnIdHeader);
 		const workflowModel = mongoose.model('workflow');
 		try {
 			const ids = req.body.ids;
@@ -236,10 +235,7 @@ router.delete('/utils/bulkDelete', (req, res) => {
 				});
 			}
 		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+			handleError(e, txnId);
 		}
 	}
 	execute().catch((err) => {
@@ -516,11 +512,7 @@ router.post('/', (req, res) => {
 				res.status(200).json(promises);
 			}
 		} catch (e) {
-			logger.error(`[${txnId}] : Error while inserting record :: `, e);
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+			handleError(e, txnId);
 		}
 	}
 	execute().catch((err) => {
@@ -534,6 +526,7 @@ router.post('/', (req, res) => {
 router.put('/:id', (req, res) => {
 	async function execute() {
 		// const workflowModel = global.authorDB.model('workflow');
+		let txnId = req.get(global.txnIdHeader);
 		const workflowModel = mongoose.model('workflow');
 		try {
 			const upsert = req.query.upsert == 'true';
@@ -598,10 +591,7 @@ router.put('/:id', (req, res) => {
 				return res.status(200).json(status);
 			}
 		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+			handleError(e, txnId);
 		}
 	}
 	execute().catch((err) => {
@@ -613,9 +603,9 @@ router.put('/:id', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-	let txnId = req.get(global.txnIdHeader);
 	async function execute() {
 		// const workflowModel = global.authorDB.model('workflow');
+		let txnId = req.get(global.txnIdHeader);
 		const workflowModel = mongoose.model('workflow');
 		try {
 			let doc = await model.findById(req.params.id);
@@ -665,10 +655,7 @@ router.delete('/:id', (req, res) => {
 				message: 'Document Deleted',
 			});
 		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+			handleError(e, txnId);
 		}
 	}
 	execute().catch((err) => {
@@ -1148,6 +1135,36 @@ async function doRoundMathAPI(req, res, oldNewData) {
 		logger.error(err);
 		throw err;
 	}
+}
+
+
+
+function handleError(err, txnId) {
+	let message;
+	logger.error(`[${txnId}] : Some Error Occured :: `, err);
+	if (err.response) {
+		if (err.response.body) {
+			if (typeof err.response.body === 'string') {
+				try {
+					err.response.body = JSON.parse(err.response.body);
+				} catch (e) {
+					logger.error(`[${txnId}] : Error While Parsing Error Body`);
+				}
+			}
+			if (err.response.body.message) {
+				message = err.response.body.message;
+			} else {
+				message = err.response.body;
+			}
+		} else {
+			message = `[${txnId}] : ${err.message}`;
+		}
+	} else if (typeof err === 'string') {
+		message = err;
+	} else {
+		message = err.message;
+	}
+	throw new Error(message);
 }
 
 module.exports = router;
