@@ -497,43 +497,18 @@ router.post('/', (req, res) => {
 				res.status(200).json(promises);
 			} else {
 				if (Array.isArray(payload)) {
-					let abortOnError = req.query.abortOnError;
-					if (abortOnError) {
-						if (!global.isTransactionAllowed)
-							throw new Error(
-								'Transactions are not supported for your Mongo Db server configuration.'
-							);
-						logger.debug(`[${txnId}] :: Starting transaction for bulk post.`);
-						let session;
+					promises = payload.map(async (data) => {
+						const doc = new model(data);
+						doc._req = req;
 						try {
-							await mongoose.connection.transaction(async function saveRecords(
-								sess
-							) {
-								session = sess;
-								return createDocuments(req, session);
-							},
-							config.transactionOptions);
-						} catch (err) {
-							logger.error(
-								`[${txnId}] : Error while bulk post with transaction :: `,
-								err
-							);
-							throw err;
-						} finally {
-							if (session) session.endSession();
+							return (await doc.save()).toObject();
+						} catch (e) {
+							logger.error(`[${txnId}] : Error while inserting record :: `, e);
+							return { message: e.message };
 						}
-					} else {
-						promises = await createDocuments(req);
-					}
+					});
+					promises = await Promise.all(promises);
 				} else {
-					let upsert = req.query.upsert == 'true';
-					if (upsert && payload._id) {
-						let oldDoc = await model.findById(payload._id);
-						logger.debug(
-							`[${txnId}] : Updating Existing Record With ID ${payload._id}`
-						);
-						payload = _.mergeWith(oldDoc, payload, mergeCustomizer);
-					}
 					const doc = new model(payload);
 					doc._req = req;
 					promises = (await doc.save()).toObject();
@@ -541,6 +516,7 @@ router.post('/', (req, res) => {
 				res.status(200).json(promises);
 			}
 		} catch (e) {
+			logger.error(`[${txnId}] : Error while inserting record :: `, e);
 			if (typeof e === 'string') {
 				throw new Error(e);
 			}
@@ -760,40 +736,6 @@ router.post('/hook', (req, res) => {
 		});
 	});
 });
-
-async function createDocuments(req, session) {
-	const payload = req.body;
-	let upsert = req.query.upsert == 'true';
-	let oldDocs = [];
-	let oldIds = [];
-	let promises;
-	let txnId = req.get(global.txnIdHeader);
-	if (upsert) {
-		var newIds = payload.map((data) => data._id).filter((_id) => _id);
-		oldDocs = await model.find({ _id: { $in: newIds } });
-		oldIds = oldDocs.map((data) => data._id);
-		logger.debug(`[${txnId}] : Existing Record Ids :: `, oldIds);
-	}
-	promises = payload.map(async (data) => {
-		if (upsert && data._id && oldIds.includes(data._id)) {
-			let oldDoc = oldDocs.find((doc) => doc._id == data._id);
-			data = _.mergeWith(oldDoc, data, mergeCustomizer);
-		}
-		let doc = new model(data);
-		doc._req = req;
-		if (session) {
-			return (await doc.save({ session })).toObject();
-		} else {
-			try {
-				return (await doc.save()).toObject();
-			} catch (e) {
-				logger.error(`[${txnId}] : Error in creating record :: `, e);
-				return { message: e.message };
-			}
-		}
-	});
-	return await Promise.all(promises);
-}
 
 function addAuthHeader(paths, jwt) {
 	Object.keys(paths).forEach((path) => {
