@@ -15,6 +15,7 @@ const {
 	getDiff,
 	modifySecureFieldsFilter,
 } = require('./../utils/common.utils');
+const serviceData = require('../../service.json');
 
 const logger = global.logger;
 const model = mongoose.model(config.serviceId);
@@ -442,8 +443,16 @@ router.post('/', (req, res) => {
 		// const workflowModel = global.authorDB.model('workflow');
 		const workflowModel = mongoose.model('workflow');
 		let txnId = req.get(global.txnIdHeader);
+
+		let payload = req.body;
+		let initialState = serviceData.stateModel.initialState;
+		let attribute = serviceData.stateModel.attribute;
+
+		if ( serviceData.stateModel.enabled && !initialState.includes( _.get(payload, attribute) ) ) {
+			throw new Error('Record is not in initial state.');
+		}
+
 		try {
-			let payload = req.body;
 			let promises;
 			const hasSkipReview = await workflowUtils.hasSkipReview(req);
 			if (
@@ -535,18 +544,35 @@ router.put('/:id', (req, res) => {
 			let wfId;
 			let isNewDoc = false;
 			let doc = await model.findById(req.params.id);
+
 			if (!doc && !upsert) {
 				return res.status(404).json({
 					message: 'Document Not Found',
 				});
 			}
+			
+			let stateModel = serviceData.stateModel;
+			let attribute = stateModel.attribute;
+
 			if (!doc && upsert) {
 				isNewDoc = true;
 				payload._id = req.params.id;
 				delete payload._metadata;
 				delete payload.__v;
 				doc = new model(payload);
+
+				if ( stateModel.enabled && !stateModel.initialState.includes( _.get(payload, attribute) ) ) {
+					throw new Error('Record is not in initial state.');
+				}
 			}
+
+			let currentState = doc[stateModel.attribute.toLowerCase()];
+			let nextStates = stateModel.states ? stateModel.states[currentState] : [];
+
+			if (stateModel.enabled && !isNewDoc && !nextStates.includes( _.get(payload, attribute) )) {
+				throw new Error('State transition is not allowed');
+			}
+
 			if (doc._metadata && doc._metadata.workflow) {
 				return res.status(400).json({
 					message: 'This Document is Locked because of a pending Workflow',
