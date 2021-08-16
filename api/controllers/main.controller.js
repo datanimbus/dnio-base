@@ -10,6 +10,8 @@ const specialFields = require('../utils/special-fields.utils');
 const hooksUtils = require('../utils/hooks.utils');
 const crudderUtils = require('../utils/crudder.utils');
 const workflowUtils = require('../utils/workflow.utils');
+const transactionUtils = require('../utils/transaction.utils');
+
 const {
 	mergeCustomizer,
 	getDiff,
@@ -102,16 +104,19 @@ router.get('/utils/bulkShow', (req, res) => {
 
 router.put('/bulkUpdate', (req, res) => {
 	async function execute() {
+		const id = req.query.id;
+		if (!id) {
+			return res.status(400).json({
+				message: 'Invalid IDs',
+			});
+		}
+		if (req.query.txn == true) {
+			return transactionUtils.transferToTransaction(req, res);
+		}
 		// const workflowModel = global.authorDB.model('workflow');
 		let txnId = req.get(global.txnIdHeader);
 		const workflowModel = mongoose.model('workflow');
 		try {
-			const id = req.query.id;
-			if (!id) {
-				return res.status(400).json({
-					message: 'Invalid IDs',
-				});
-			}
 			const ids = id.split(',');
 			const filter = {
 				_id: {
@@ -171,16 +176,19 @@ router.put('/bulkUpdate', (req, res) => {
 
 router.delete('/utils/bulkDelete', (req, res) => {
 	async function execute() {
+		const ids = req.body.ids;
+		if (!ids || ids.length == 0) {
+			return res.status(400).json({
+				message: 'Invalid IDs',
+			});
+		}
+		if (req.query.txn == true) {
+			return transactionUtils.transferToTransaction(req, res);
+		}
 		// const workflowModel = global.authorDB.model('workflow');
 		let txnId = req.get(global.txnIdHeader);
 		const workflowModel = mongoose.model('workflow');
 		try {
-			const ids = req.body.ids;
-			if (!ids || ids.length == 0) {
-				return res.status(400).json({
-					message: 'Invalid IDs',
-				});
-			}
 			const filter = {
 				_id: {
 					$in: ids,
@@ -439,6 +447,9 @@ router.get('/:id', (req, res) => {
 
 router.post('/', (req, res) => {
 	async function execute() {
+		if (req.query.txn == true) {
+			return transactionUtils.transferToTransaction(req, res);
+		}
 		// const workflowModel = global.authorDB.model('workflow');
 		const workflowModel = mongoose.model('workflow');
 		let txnId = req.get(global.txnIdHeader);
@@ -525,6 +536,9 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
 	async function execute() {
+		if (req.query.txn == true) {
+			return transactionUtils.transferToTransaction(req, res);
+		}
 		// const workflowModel = global.authorDB.model('workflow');
 		let txnId = req.get(global.txnIdHeader);
 		const workflowModel = mongoose.model('workflow');
@@ -604,6 +618,9 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
 	async function execute() {
+		if (req.query.txn == true) {
+			return transactionUtils.transferToTransaction(req, res);
+		}
 		// const workflowModel = global.authorDB.model('workflow');
 		let txnId = req.get(global.txnIdHeader);
 		const workflowModel = mongoose.model('workflow');
