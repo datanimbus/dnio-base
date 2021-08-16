@@ -118,7 +118,7 @@ function get(_service) {
 		if (_service == 'sec') return 'http://localhost:10007';
 		if (_service == 'mon') return 'http://localhost:10005';
 		if (_service == 'gw') return 'http://localhost:9080';
-		if (_service == 'common') return `http://localhost:3000`;
+		if (_service == 'common') return 'http://localhost:3000';
 	}
 }
 
