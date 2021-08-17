@@ -566,10 +566,10 @@ router.put('/:id', (req, res) => {
 				}
 			}
 
-			let currentState = doc[stateModel.attribute.toLowerCase()];
+			let currentState = _.get(doc, stateModel.attribute);
 			let nextStates = stateModel.states ? stateModel.states[currentState] : [];
 
-			if (stateModel.enabled && !isNewDoc && !nextStates.includes( _.get(payload, attribute) )) {
+			if (stateModel.enabled && !isNewDoc && !nextStates.includes(_.get(payload, attribute)) && _.get(doc, attribute) !== _.get(payload, attribute)) {
 				throw new Error('State transition is not allowed');
 			}
 
