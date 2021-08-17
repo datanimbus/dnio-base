@@ -456,10 +456,10 @@ router.post('/', (req, res) => {
 		let txnId = req.get(global.txnIdHeader);
 
 		let payload = req.body;
-		let initialState = serviceData.stateModel.initialState;
+		let initialStates = serviceData.stateModel.initialStates;
 		let attribute = serviceData.stateModel.attribute;
 
-		if ( serviceData.stateModel.enabled && !initialState.includes( _.get(payload, attribute) ) ) {
+		if ( serviceData.stateModel.enabled && !initialStates.includes( _.get(payload, attribute) ) ) {
 			throw new Error('Record is not in initial state.');
 		}
 
@@ -575,7 +575,7 @@ router.put('/:id', (req, res) => {
 				delete payload.__v;
 				doc = new model(payload);
 
-				if ( stateModel.enabled && !stateModel.initialState.includes( _.get(payload, attribute) ) ) {
+				if ( stateModel.enabled && !stateModel.initialStates.includes( _.get(payload, attribute) ) ) {
 					throw new Error('Record is not in initial state.');
 				}
 			}
