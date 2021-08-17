@@ -90,6 +90,7 @@ e.baseUrlWF = get('wf') + '/workflow';
 e.baseUrlSEC = get('sec') + '/sec';
 e.baseUrlDM = get('dm') + '/dm';
 e.baseUrlPM = get('pm') + '/pm';
+e.baseUrlCOMMON = get('common') + '/api/common';
 e.baseUrlGW = get('gw');
 
 
@@ -105,6 +106,7 @@ function get(_service) {
 		if (_service == 'sec') return `http://sec.${e.namespace}`;
 		if (_service == 'mon') return `http://mon.${e.namespace}`;
 		if (_service == 'gw') return `http://gw.${e.namespace}`;
+		if (_service == 'common') return `http://common.${e.namespace}`;
 	} else {
 		if (_service == 'dm') return 'http://localhost:10709';
 		if (_service == 'ne') return 'http://localhost:10010';
@@ -116,6 +118,7 @@ function get(_service) {
 		if (_service == 'sec') return 'http://localhost:10007';
 		if (_service == 'mon') return 'http://localhost:10005';
 		if (_service == 'gw') return 'http://localhost:9080';
+		if (_service == 'common') return 'http://localhost:3000';
 	}
 }
 
