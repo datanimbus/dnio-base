@@ -456,10 +456,9 @@ router.post('/', (req, res) => {
 		let txnId = req.get(global.txnIdHeader);
 
 		let payload = req.body;
-		let initialStates = serviceData.stateModel.initialStates;
-		let attribute = serviceData.stateModel.attribute;
 
-		if ( serviceData.stateModel.enabled && !initialStates.includes( _.get(payload, attribute) ) ) {
+		if ( serviceData.stateModel && serviceData.stateModel.enabled && 
+			!serviceData.stateModel.initialStates.includes( _.get(payload, serviceData.stateModel.attribute) ) ) {
 			throw new Error('Record is not in initial state.');
 		}
 
@@ -564,9 +563,6 @@ router.put('/:id', (req, res) => {
 					message: 'Document Not Found',
 				});
 			}
-			
-			let stateModel = serviceData.stateModel;
-			let attribute = stateModel.attribute;
 
 			if (!doc && upsert) {
 				isNewDoc = true;
@@ -575,15 +571,15 @@ router.put('/:id', (req, res) => {
 				delete payload.__v;
 				doc = new model(payload);
 
-				if ( stateModel.enabled && !stateModel.initialStates.includes( _.get(payload, attribute) ) ) {
+				if ( serviceData.stateModel && serviceData.stateModel.enabled && 
+					!serviceData.stateModel.initialStates.includes( _.get(payload, serviceData.stateModel.attribute) ) ) {
 					throw new Error('Record is not in initial state.');
 				}
 			}
 
-			let currentState = _.get(doc, stateModel.attribute);
-			let nextStates = stateModel.states ? stateModel.states[currentState] : [];
-
-			if (stateModel.enabled && !isNewDoc && !nextStates.includes(_.get(payload, attribute)) && _.get(doc, attribute) !== _.get(payload, attribute)) {
+			if (serviceData.stateModel && serviceData.stateModel.enabled && !isNewDoc 
+				&& !serviceData.stateModel.states[_.get(doc, serviceData.stateModel.attribute)].includes(_.get(payload, serviceData.stateModel.attribute)) 
+				&& _.get(doc, serviceData.stateModel.attribute) !== _.get(payload, serviceData.stateModel.attribute)) {
 				throw new Error('State transition is not allowed');
 			}
 
