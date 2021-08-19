@@ -237,7 +237,6 @@ async function schemaValidation(req, newData, oldData) {
  * @param {*} [oldData] Old Data if PUT request
  */
  async function stateModelValidation(req, newData, oldData) {
-	const model = mongoose.model(config.serviceId);
 	const serviceData = require('../../service.json');
 	
 	try {	
