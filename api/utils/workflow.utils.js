@@ -175,7 +175,9 @@ function simulate(req, data, options) {
 	}).then(() => {
 		return relationValidation(req, data, oldData).catch(err => modifyError(err, 'relation'));
 	}).then(() => {
-		return data;
+		return stateModelValidation(req, data, oldData).catch(err => modifyError(err, 'stateModel'));
+	}).then(newData => {
+		return newData;
 	}).catch(err => {
 		logger.error(err);
 		throw err;
@@ -224,6 +226,36 @@ async function schemaValidation(req, newData, oldData) {
 		return modelData.toObject();
 	} catch (e) {
 		logger.error('schemaValidation', e);
+		throw e;
+	}
+}
+
+/**
+ * 
+ * @param {*} req The Incoming Request Object
+ * @param {*} newData The Data to validate against schema
+ * @param {*} [oldData] Old Data if PUT request
+ */
+ async function stateModelValidation(req, newData, oldData) {
+	const model = mongoose.model(config.serviceId);
+	const serviceData = require('../../service.json');
+	
+	try {	
+		if (serviceData.stateModel && serviceData.stateModel.enabled && _.get(newData, serviceData.stateModel.attribute) && 
+				_.get(oldData, serviceData.stateModel.attribute) !== _.get(newData, serviceData.stateModel.attribute) && 
+				!serviceData.stateModel.states[_.get(oldData, serviceData.stateModel.attribute)].includes(_.get(newData, serviceData.stateModel.attribute)) ) {
+			
+			logger.info('State transition is not allowed');
+			throw new Error('State transition is not allowed');
+		}
+		
+		if (serviceData.stateModel && serviceData.stateModel.enabled && !oldData) {
+			_.set(newData, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
+		}
+		
+		return newData;
+	} catch (e) {
+		logger.error('stateModel', e);
 		throw e;
 	}
 }
