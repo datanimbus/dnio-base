@@ -1227,7 +1227,7 @@ function addExpireAt(req) {
 	if (req.query.expireAt) {
 		expireAt = req.query.expireAt;
 		if (!isNaN(expireAt)) {
-			expireAt = parseInt(req.query.expireAt)
+			expireAt = parseInt(req.query.expireAt);
 		}
 		expireAt = new Date(expireAt);
 	} else if (req.query.expireAfter) {
@@ -1237,7 +1237,7 @@ function addExpireAt(req) {
 			s: 1000,
 			m: 60000,
 			h: 3600000
-		}
+		};
 		let timeUnit = expireAfter.charAt(expireAfter.length - 1);
 		if (!isNaN(timeUnit)) addTime = parseInt(expireAfter) * 1000;
 		else {
@@ -1259,7 +1259,7 @@ function addExpireAt(req) {
 			let expString = expireAt.toISOString();
 			req.body = req.body.map(_d => {
 				_d['_expireAt'] = expString;
-			})
+			});
 		} else {
 			req.body['_expireAt'] = expireAt.toISOString();
 		}

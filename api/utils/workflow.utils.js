@@ -236,7 +236,7 @@ async function schemaValidation(req, newData, oldData) {
  * @param {*} newData The Data to validate against schema
  * @param {*} [oldData] Old Data if PUT request
  */
- async function stateModelValidation(req, newData, oldData) {
+async function stateModelValidation(req, newData, oldData) {
 	const serviceData = require('../../service.json');
 	
 	try {	
