@@ -9,6 +9,7 @@ const mongooseUtils = require('../utils/mongoose.utils');
 const hooksUtils = require('../utils/hooks.utils');
 const specialFields = require('../utils/special-fields.utils');
 const { removeNullForUniqueAttribute } = require('../utils/common.utils');
+const serviceData = require('../../service.json');
 
 
 const logger = global.logger;
@@ -88,6 +89,24 @@ schema.pre('save', async function (next) {
 	} catch (e) {
 		next(e);
 	}
+});
+
+schema.pre('save', function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	
+	if ( serviceData.stateModel && serviceData.stateModel.enabled && !oldDoc && 
+		!serviceData.stateModel.initialStates.includes( _.get(newDoc, serviceData.stateModel.attribute) ) ) {
+		return next(new Error('Record is not in initial state.'));
+	}
+
+	if (serviceData.stateModel && serviceData.stateModel.enabled && oldDoc 
+		&& !serviceData.stateModel.states[_.get(oldDoc, serviceData.stateModel.attribute)].includes(_.get(newDoc, serviceData.stateModel.attribute)) 
+		&& _.get(oldDoc, serviceData.stateModel.attribute) !== _.get(newDoc, serviceData.stateModel.attribute)) {
+		return next(new Error('State transition is not allowed'));
+	}
+	next();
+
 });
 
 schema.pre('save', function (next) {
