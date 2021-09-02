@@ -236,20 +236,20 @@ async function schemaValidation(req, newData, oldData) {
  * @param {*} newData The Data to validate against schema
  * @param {*} [oldData] Old Data if PUT request
  */
- async function stateModelValidation(req, newData, oldData) {
+async function stateModelValidation(req, newData, oldData) {
 	const serviceData = require('../../service.json');
 	
 	try {	
-		if (serviceData.stateModel && serviceData.stateModel.enabled && _.get(newData, serviceData.stateModel.attribute) && 
+		if (serviceData.stateModel && serviceData.stateModel.enabled && (!oldData || _.get(oldData, serviceData.stateModel.attribute) === undefined)) {
+
+			_.set(newData, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
+
+		} else if (serviceData.stateModel && serviceData.stateModel.enabled && _.get(newData, serviceData.stateModel.attribute) && 
 				_.get(oldData, serviceData.stateModel.attribute) !== _.get(newData, serviceData.stateModel.attribute) && 
 				!serviceData.stateModel.states[_.get(oldData, serviceData.stateModel.attribute)].includes(_.get(newData, serviceData.stateModel.attribute)) ) {
 			
 			logger.info('State transition is not allowed');
 			throw new Error('State transition is not allowed');
-		}
-		
-		if (serviceData.stateModel && serviceData.stateModel.enabled && !oldData) {
-			_.set(newData, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
 		}
 		
 		return newData;
