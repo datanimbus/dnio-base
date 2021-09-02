@@ -6,6 +6,9 @@
 function metadataPlugin() {
 	return function (schema) {
 		schema.add({
+			_expireAt: {
+				type: Date,
+			},
 			_metadata: {
 				deleted: {
 					type: Boolean,
@@ -23,6 +26,7 @@ function metadataPlugin() {
 				}
 			}
 		});
+		schema.index({ '_expireAt': 1 }, { expireAfterSeconds: 0 });
 		schema.index({
 			'_metadata.lastUpdated': 1
 		});
