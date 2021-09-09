@@ -381,7 +381,7 @@ router.get('/', (req, res) => {
 				.skip(skip)
 				.limit(count)
 				.lean();
-			if (req.query.expand == true) {
+			if (req.query.expand == true || req.query.expand == 'true') {
 				let promises = docs.map((e) =>
 					specialFields.expandDocument(req, e, null, true)
 				);
@@ -425,7 +425,7 @@ router.get('/:id', (req, res) => {
 				});
 			}
 			const expandLevel = (req.header('expand-level') || 0) + 1;
-			if (req.query.expand == true && expandLevel < 3) {
+			if ((req.query.expand == true || req.query.expand == 'true')  && expandLevel < 3) {
 				doc = await specialFields.expandDocument(req, doc);
 			}
 			if (
