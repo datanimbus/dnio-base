@@ -381,7 +381,7 @@ router.get('/', (req, res) => {
 				.skip(skip)
 				.limit(count)
 				.lean();
-			if (req.query.expand == true) {
+			if (req.query.expand == true || req.query.expand == 'true') {
 				let promises = docs.map((e) =>
 					specialFields.expandDocument(req, e, null, true)
 				);
