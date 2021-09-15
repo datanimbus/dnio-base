@@ -10,11 +10,14 @@ const specialFields = require('../utils/special-fields.utils');
 const hooksUtils = require('../utils/hooks.utils');
 const crudderUtils = require('../utils/crudder.utils');
 const workflowUtils = require('../utils/workflow.utils');
+const transactionUtils = require('../utils/transaction.utils');
+
 const {
 	mergeCustomizer,
 	getDiff,
 	modifySecureFieldsFilter,
 } = require('./../utils/common.utils');
+const serviceData = require('../../service.json');
 
 const logger = global.logger;
 const model = mongoose.model(config.serviceId);
@@ -102,15 +105,24 @@ router.get('/utils/bulkShow', (req, res) => {
 
 router.put('/bulkUpdate', (req, res) => {
 	async function execute() {
+		const id = req.query.id;
+		if (!id) {
+			return res.status(400).json({
+				message: 'Invalid IDs',
+			});
+		}
+		if (req.query.txn == true) {
+			return transactionUtils.transferToTransaction(req, res);
+		}
+		try {
+			addExpireAt(req);
+		} catch (err) {
+			return res.status(400).json({ message: err.message });
+		}
 		// const workflowModel = global.authorDB.model('workflow');
+		let txnId = req.get(global.txnIdHeader);
 		const workflowModel = mongoose.model('workflow');
 		try {
-			const id = req.query.id;
-			if (!id) {
-				return res.status(400).json({
-					message: 'Invalid IDs',
-				});
-			}
 			const ids = id.split(',');
 			const filter = {
 				_id: {
@@ -157,10 +169,7 @@ router.put('/bulkUpdate', (req, res) => {
 				return res.status(207).json(allResult);
 			}
 		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+			handleError(e, txnId);
 		}
 	}
 	execute().catch((err) => {
@@ -173,15 +182,19 @@ router.put('/bulkUpdate', (req, res) => {
 
 router.delete('/utils/bulkDelete', (req, res) => {
 	async function execute() {
+		const ids = req.body.ids;
+		if (!ids || ids.length == 0) {
+			return res.status(400).json({
+				message: 'Invalid IDs',
+			});
+		}
+		if (req.query.txn == true) {
+			return transactionUtils.transferToTransaction(req, res);
+		}
 		// const workflowModel = global.authorDB.model('workflow');
+		let txnId = req.get(global.txnIdHeader);
 		const workflowModel = mongoose.model('workflow');
 		try {
-			const ids = req.body.ids;
-			if (!ids || ids.length == 0) {
-				return res.status(400).json({
-					message: 'Invalid IDs',
-				});
-			}
 			const filter = {
 				_id: {
 					$in: ids,
@@ -236,10 +249,7 @@ router.delete('/utils/bulkDelete', (req, res) => {
 				});
 			}
 		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+			handleError(e, txnId);
 		}
 	}
 	execute().catch((err) => {
@@ -371,7 +381,7 @@ router.get('/', (req, res) => {
 				.skip(skip)
 				.limit(count)
 				.lean();
-			if (req.query.expand) {
+			if (req.query.expand == true || req.query.expand == 'true') {
 				let promises = docs.map((e) =>
 					specialFields.expandDocument(req, e, null, true)
 				);
@@ -415,7 +425,7 @@ router.get('/:id', (req, res) => {
 				});
 			}
 			const expandLevel = (req.header('expand-level') || 0) + 1;
-			if (req.query.expand && expandLevel < 3) {
+			if ((req.query.expand == true || req.query.expand == 'true')  && expandLevel < 3) {
 				doc = await specialFields.expandDocument(req, doc);
 			}
 			if (
@@ -443,11 +453,26 @@ router.get('/:id', (req, res) => {
 
 router.post('/', (req, res) => {
 	async function execute() {
+		if (req.query.txn == true) {
+			return transactionUtils.transferToTransaction(req, res);
+		}
+		try {
+			addExpireAt(req);
+		} catch (err) {
+			return res.status(400).json({ message: err.message });
+		}
 		// const workflowModel = global.authorDB.model('workflow');
 		const workflowModel = mongoose.model('workflow');
 		let txnId = req.get(global.txnIdHeader);
+
+		let payload = req.body;
+
+		if (serviceData.stateModel && serviceData.stateModel.enabled &&
+			!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
+			throw new Error('Record is not in initial state.');
+		}
+
 		try {
-			let payload = req.body;
 			let promises;
 			const hasSkipReview = await workflowUtils.hasSkipReview(req);
 			if (
@@ -516,11 +541,7 @@ router.post('/', (req, res) => {
 				res.status(200).json(promises);
 			}
 		} catch (e) {
-			logger.error(`[${txnId}] : Error while inserting record :: `, e);
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+			handleError(e, txnId);
 		}
 	}
 	execute().catch((err) => {
@@ -533,7 +554,16 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
 	async function execute() {
+		if (req.query.txn == true) {
+			return transactionUtils.transferToTransaction(req, res);
+		}
+		try {
+			addExpireAt(req);
+		} catch (err) {
+			return res.status(400).json({ message: err.message });
+		}
 		// const workflowModel = global.authorDB.model('workflow');
+		let txnId = req.get(global.txnIdHeader);
 		const workflowModel = mongoose.model('workflow');
 		try {
 			const upsert = req.query.upsert == 'true';
@@ -542,18 +572,32 @@ router.put('/:id', (req, res) => {
 			let wfId;
 			let isNewDoc = false;
 			let doc = await model.findById(req.params.id);
+
 			if (!doc && !upsert) {
 				return res.status(404).json({
 					message: 'Document Not Found',
 				});
 			}
+
 			if (!doc && upsert) {
 				isNewDoc = true;
 				payload._id = req.params.id;
 				delete payload._metadata;
 				delete payload.__v;
 				doc = new model(payload);
+
+				if (serviceData.stateModel && serviceData.stateModel.enabled &&
+					!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
+					throw new Error('Record is not in initial state.');
+				}
 			}
+
+			if (serviceData.stateModel && serviceData.stateModel.enabled && !isNewDoc
+				&& !serviceData.stateModel.states[_.get(doc, serviceData.stateModel.attribute)].includes(_.get(payload, serviceData.stateModel.attribute))
+				&& _.get(doc, serviceData.stateModel.attribute) !== _.get(payload, serviceData.stateModel.attribute)) {
+				throw new Error('State transition is not allowed');
+			}
+
 			if (doc._metadata && doc._metadata.workflow) {
 				return res.status(400).json({
 					message: 'This Document is Locked because of a pending Workflow',
@@ -598,10 +642,7 @@ router.put('/:id', (req, res) => {
 				return res.status(200).json(status);
 			}
 		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+			handleError(e, txnId);
 		}
 	}
 	execute().catch((err) => {
@@ -613,9 +654,12 @@ router.put('/:id', (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-	let txnId = req.get(global.txnIdHeader);
 	async function execute() {
+		if (req.query.txn == true) {
+			return transactionUtils.transferToTransaction(req, res);
+		}
 		// const workflowModel = global.authorDB.model('workflow');
+		let txnId = req.get(global.txnIdHeader);
 		const workflowModel = mongoose.model('workflow');
 		try {
 			let doc = await model.findById(req.params.id);
@@ -665,10 +709,7 @@ router.delete('/:id', (req, res) => {
 				message: 'Document Deleted',
 			});
 		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+			handleError(e, txnId);
 		}
 	}
 	execute().catch((err) => {
@@ -1147,6 +1188,81 @@ async function doRoundMathAPI(req, res, oldNewData) {
 	} catch (err) {
 		logger.error(err);
 		throw err;
+	}
+}
+
+
+
+function handleError(err, txnId) {
+	let message;
+	logger.error(`[${txnId}] : Some Error Occured :: `, err);
+	if (err.response) {
+		if (err.response.body) {
+			if (typeof err.response.body === 'string') {
+				try {
+					err.response.body = JSON.parse(err.response.body);
+				} catch (e) {
+					logger.error(`[${txnId}] : Error While Parsing Error Body`);
+				}
+			}
+			if (err.response.body.message) {
+				message = err.response.body.message;
+			} else {
+				message = err.response.body;
+			}
+		} else {
+			message = `[${txnId}] : ${err.message}`;
+		}
+	} else if (typeof err === 'string') {
+		message = err;
+	} else {
+		message = err.message;
+	}
+	throw new Error(message);
+}
+
+
+function addExpireAt(req) {
+	let expireAt = null;
+	if (req.query.expireAt) {
+		expireAt = req.query.expireAt;
+		if (!isNaN(expireAt)) {
+			expireAt = parseInt(req.query.expireAt);
+		}
+		expireAt = new Date(expireAt);
+	} else if (req.query.expireAfter) {
+		let expireAfter = req.query.expireAfter;
+		let addTime = 0;
+		let time = {
+			s: 1000,
+			m: 60000,
+			h: 3600000
+		};
+		let timeUnit = expireAfter.charAt(expireAfter.length - 1);
+		if (!isNaN(timeUnit)) addTime = parseInt(expireAfter) * 1000;
+		else {
+			let timeVal = expireAfter.substr(0, expireAfter.length - 1);
+			if (time[timeUnit] && !isNaN(timeVal)) {
+				addTime = parseInt(timeVal) * time[timeUnit];
+			} else {
+				throw new Error('expireAfter value invalid');
+			}
+		}
+		expireAt = new Date().getTime() + addTime;
+		expireAt = new Date(expireAt);
+	}
+	if (expireAt) {
+		if (isNaN(expireAt.getTime())) {
+			throw new Error('expire value invalid');
+		}
+		if (Array.isArray(req.body)) {
+			let expString = expireAt.toISOString();
+			req.body = req.body.map(_d => {
+				_d['_expireAt'] = expString;
+			});
+		} else {
+			req.body['_expireAt'] = expireAt.toISOString();
+		}
 	}
 }
 
