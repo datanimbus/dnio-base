@@ -608,7 +608,7 @@ async function approve(req, res) {
 					}
 				} catch (parseErr) {
 					logger.warn('Error was not a JSON String:', e);
-					error = e
+					error = e;
 				}
 				isFailed = true;
 				event.by = 'Entity';
