@@ -550,6 +550,7 @@ async function approve(req, res) {
 		const remarks = req.body.remarks;
 		const attachments = req.body.attachments || [];
 		const promises = docs.map(async (doc) => {
+			let isFailed = false;
 			const event = {
 				by: 'user',
 				action: 'Approved',
@@ -564,11 +565,12 @@ async function approve(req, res) {
 				tempReq.headers[global.userHeader] = doc.requestedBy;
 
 				const errors = await specialFields.validateRelation(req, doc.data.new, doc.data.old);
-				await specialFields.decryptSecureFields(req, doc.data.new, null);
 				if (errors) {
 					logger.error('Relation Validation Failed:', errors);
 					return res.status(400).json({ message: errors });
 				}
+
+				await specialFields.decryptSecureFields(req, doc.data.new, null);
 
 				if (doc.operation == 'POST') {
 					serviceDoc = new serviceModel(_.cloneDeep(doc.data.new));
@@ -599,10 +601,20 @@ async function approve(req, res) {
 				doc.status = 'Approved';
 				doc.respondedBy = req.headers[global.userHeader];
 			} catch (e) {
+				let error = e;
+				try {
+					if (typeof e === 'string') {
+						error = JSON.parse(e);
+					}
+				} catch (parseErr) {
+					logger.warn('Error was not a JSON String:', e);
+					error = e
+				}
+				isFailed = true;
 				event.by = 'Entity';
-				event.action = 'Error';
-				event.remarks = typeof e === 'object' && e.message ? e.message : JSON.stringify(e);
-				doc.status = 'Failed';
+				event.action = 'Process';
+				event.remarks = typeof error === 'object' && error.message ? error.message : JSON.stringify(error);
+				// doc.status = 'Failed';
 				logger.error(e);
 			} finally {
 				if (!doc.audit) {
@@ -611,7 +623,9 @@ async function approve(req, res) {
 				doc.audit.push(event);
 				doc.markModified('audit');
 				doc._req = req;
-				doc._isEncrypted = true;
+				if (!isFailed) {
+					doc._isEncrypted = true;
+				}
 				// eslint-disable-next-line no-unsafe-finally
 				return await doc.save();
 			}
