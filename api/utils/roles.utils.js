@@ -72,6 +72,31 @@ function processRolesQueue() {
 	}
 }
 
+
+
+async function patchUserPermissions(req, res, next) {
+	try {
+		const userId = req.header(global.userHeader);
+		if (!userId) {
+			return res.status(401).json({ messgae: 'UserId not found in headers' });
+		}
+		let authorDB = mongoose.connections[1].client.db(config.authorDB);
+		const permissions = await authorDB.collection('userMgmt.groups').aggregate([
+			{ $match: { users: userId } },
+			{ $unwind: '$roles' },
+			{ $group: { _id: null, perms: { $addToSet: '$roles.id' } } }
+		]).toArray();
+		req.user = {
+			permissions
+		};
+		next();
+	} catch (err) {
+		logger.error(`patchUserPermissions :: ${err}`);
+		res.status(500).json({ message: err.message });
+	}
+}
+
 module.exports.getRoles = getRoles;
 module.exports.setRoles = setRoles;
+module.exports.patchUserPermissions = patchUserPermissions;
 

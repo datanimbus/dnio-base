@@ -44,21 +44,37 @@ function getApproversList() {
 	});
 }
 
+// /**
+//  * @returns {boolean} Returns true/false
+//  */
+// function isWorkflowEnabled() {
+// 	let flag = false;
+// 	try {
+// 		const role = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'role.json'), 'utf-8'));
+// 		if (!role || role._id != config.serviceId) {
+// 			flag = false;
+// 		} else {
+// 			if (role.roles && role.roles.length > 0 && role.roles.find(r => r.operations.find(o => o.method == 'REVIEW'))) {
+// 				flag = true;
+// 			} else {
+// 				flag = false;
+// 			}
+// 		}
+// 	} catch (err) {
+// 		logger.error('workflow.utils>isWorkflowEnabled', err);
+// 		flag = false;
+// 	}
+// 	return flag;
+// }
+
 /**
  * @returns {boolean} Returns true/false
  */
 function isWorkflowEnabled() {
 	let flag = false;
 	try {
-		const role = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'role.json'), 'utf-8'));
-		if (!role || role._id != config.serviceId) {
-			flag = false;
-		} else {
-			if (role.roles && role.roles.length > 0 && role.roles.find(r => r.operations.find(o => o.method == 'REVIEW'))) {
-				flag = true;
-			} else {
-				flag = false;
-			}
+		if (typeof specialFields.hasPermissionForREVIEW === 'function') {
+			flag = true;
 		}
 	} catch (err) {
 		logger.error('workflow.utils>isWorkflowEnabled', err);
@@ -66,6 +82,8 @@ function isWorkflowEnabled() {
 	}
 	return flag;
 }
+
+
 
 /**
  * @returns {Promise<boolean>} Returns a boolean Promise
@@ -238,20 +256,20 @@ async function schemaValidation(req, newData, oldData) {
  */
 async function stateModelValidation(req, newData, oldData) {
 	const serviceData = require('../../service.json');
-	
-	try {	
+
+	try {
 		if (serviceData.stateModel && serviceData.stateModel.enabled && (!oldData || _.get(oldData, serviceData.stateModel.attribute) === undefined)) {
 
 			_.set(newData, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
 
-		} else if (serviceData.stateModel && serviceData.stateModel.enabled && _.get(newData, serviceData.stateModel.attribute) && 
-				_.get(oldData, serviceData.stateModel.attribute) !== _.get(newData, serviceData.stateModel.attribute) && 
-				!serviceData.stateModel.states[_.get(oldData, serviceData.stateModel.attribute)].includes(_.get(newData, serviceData.stateModel.attribute)) ) {
-			
+		} else if (serviceData.stateModel && serviceData.stateModel.enabled && _.get(newData, serviceData.stateModel.attribute) &&
+			_.get(oldData, serviceData.stateModel.attribute) !== _.get(newData, serviceData.stateModel.attribute) &&
+			!serviceData.stateModel.states[_.get(oldData, serviceData.stateModel.attribute)].includes(_.get(newData, serviceData.stateModel.attribute))) {
+
 			logger.info('State transition is not allowed');
 			throw new Error('State transition is not allowed');
 		}
-		
+
 		return newData;
 	} catch (e) {
 		logger.error('stateModel', e);

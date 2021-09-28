@@ -58,7 +58,7 @@ require('./db-factory');
 const queueMgmt = require('./queue');
 const init = require('./init');
 const specialFields = require('./api/utils/special-fields.utils');
-require('./api/utils/roles.utils');
+const roleUtils = require('./api/utils/roles.utils');
 
 let timeOut = process.env.API_REQUEST_TIMEOUT || 120;
 let secureFields = specialFields.secureFields;
@@ -74,6 +74,7 @@ app.use(express.json({ limit: config.MaxJSONSize }));
 app.use(express.urlencoded({ extended: true }));
 app.use(utils.logMiddleware.getLogMiddleware(logger));
 app.use(upload.single('file'));
+app.use(roleUtils.patchUserPermissions);
 app.use(function (req, res, next) {
 	if (config.disableInsights) next();
 	else {

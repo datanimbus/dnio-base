@@ -5,6 +5,8 @@ extends: 'eslint:recommended'
 parserOptions:
   ecmaVersion: 2017
   sourceType: module
+ignorePatterns:
+  - "special-fields.utils.js"
 rules:
   camelcase: error
   indent:
