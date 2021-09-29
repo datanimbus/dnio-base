@@ -76,6 +76,9 @@ function setRoles(role) {
 
 async function patchUserPermissions(req, res, next) {
 	try {
+		if (req.path.indexOf('/utils/health') > -1 || req.path.indexOf('/utils/export') > -1) {
+			return next();
+		}
 		const userId = req.header(global.userHeader);
 		if (!userId) {
 			return res.status(401).json({ messgae: 'UserId not found in headers' });
