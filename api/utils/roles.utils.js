@@ -12,12 +12,12 @@ const client = queueMgmt.client;
 
 client.on('connect', () => {
 	getRoles();
-	processRolesQueue();
+	// processRolesQueue();
 });
 
 client.on('reconnect', () => {
 	getRoles();
-	processRolesQueue();
+	// processRolesQueue();
 });
 
 async function getRoles() {
@@ -49,28 +49,28 @@ function setRoles(role) {
 }
 
 // Roles quque
-function processRolesQueue() {
-	// check if this is running inside a worker
-	if (global.doNotSubscribe) return;
-	logger.info('Starting subscription to roles channel');
-	try {
-		var opts = client.subscriptionOptions();
-		opts.setStartWithLastReceived();
-		opts.setDurableName(config.serviceId + '-role-durable');
-		var subscription = client.subscribe('user-role', opts);
-		subscription.on('message', function (_body) {
-			try {
-				let bodyObj = JSON.parse(_body.getData());
-				logger.debug(`Message from roles channel :: ${config.serviceId}-role :: ${JSON.stringify(bodyObj)}`);
-				setRoles(bodyObj);
-			} catch (err) {
-				logger.error(`Error processing roles queue :: ${err.message}`);
-			}
-		});
-	} catch (err) {
-		logger.error(`Roles channel :: ${err.message}`);
-	}
-}
+// function processRolesQueue() {
+// 	// check if this is running inside a worker
+// 	if (global.doNotSubscribe) return;
+// 	logger.info('Starting subscription to roles channel');
+// 	try {
+// 		var opts = client.subscriptionOptions();
+// 		opts.setStartWithLastReceived();
+// 		opts.setDurableName(config.serviceId + '-role-durable');
+// 		var subscription = client.subscribe('user-role', opts);
+// 		subscription.on('message', function (_body) {
+// 			try {
+// 				let bodyObj = JSON.parse(_body.getData());
+// 				logger.debug(`Message from roles channel :: ${config.serviceId}-role :: ${JSON.stringify(bodyObj)}`);
+// 				setRoles(bodyObj);
+// 			} catch (err) {
+// 				logger.error(`Error processing roles queue :: ${err.message}`);
+// 			}
+// 		});
+// 	} catch (err) {
+// 		logger.error(`Roles channel :: ${err.message}`);
+// 	}
+// }
 
 
 
