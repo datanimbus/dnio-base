@@ -84,11 +84,18 @@ async function patchUserPermissions(req, res, next) {
 		const permissions = await authorDB.collection('userMgmt.groups').aggregate([
 			{ $match: { users: userId } },
 			{ $unwind: '$roles' },
+			{ $match: { 'roles.type': 'appcenter' } },
 			{ $group: { _id: null, perms: { $addToSet: '$roles.id' } } }
 		]).toArray();
-		req.user = {
-			permissions
-		};
+		if (permissions && permissions.length > 0) {
+			req.user = {
+				permissions: permissions[0].perms
+			};
+		} else {
+			req.user = {
+				permissions: []
+			};
+		}
 		next();
 	} catch (err) {
 		logger.error(`patchUserPermissions :: ${err}`);
