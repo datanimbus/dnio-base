@@ -82,28 +82,28 @@ async function patchUserPermissions(req, res, next) {
 			return next();
 		}
 
-		logger.debug(`[${req.header("txnId")}] Validating token format`);
-		let token = req.header("authorization");
+		logger.debug(`[${req.header('txnId')}] Validating token format`);
+		let token = req.header('authorization');
 
 		if (!token) {
-			logger.debug(`[${req.header("txnId")}] No token found in 'authorization' header`);
-			logger.debug(`[${req.header("txnId")}] Checking for 'authorization' token in cookie`);
+			logger.debug(`[${req.header('txnId')}] No token found in 'authorization' header`);
+			logger.debug(`[${req.header('txnId')}] Checking for 'authorization' token in cookie`);
 			token = req.cookies.Authorization;
 		}
 
-		if (!token) return res.status(401).json({ message: "Unauthorized" });
+		if (!token) return res.status(401).json({ message: 'Unauthorized' });
 
-		token = token.split("JWT ")[1];
+		token = token.split('JWT ')[1];
 		const user = JWT.verify(token, config.TOKEN_SECRET, { ignoreExpiration: true });
 		if (!user) {
-			logger.error(`[${req.header("txnId")}] Invalid JWT format`);
-			return res.status(401).json({ "message": "Unauthorized" });
+			logger.error(`[${req.header('txnId')}] Invalid JWT format`);
+			return res.status(401).json({ 'message': 'Unauthorized' });
 		}
 		let tokenHash = securityUtils.md5(token);
-		logger.debug(`[${req.header("txnId")}] Token hash :: ${tokenHash}`);
+		logger.debug(`[${req.header('txnId')}] Token hash :: ${tokenHash}`);
 		req.tokenHash = tokenHash;
-		req.user = typeof user === "string" ? JSON.parse(user) : user;
-		logger.trace(`[${req.header("txnId")}] Token Data : ${JSON.stringify(req.user)}`);
+		req.user = typeof user === 'string' ? JSON.parse(user) : user;
+		logger.trace(`[${req.header('txnId')}] Token Data : ${JSON.stringify(req.user)}`);
 
 		// Fetching from Redis Cache
 		const permissions = await cache.getUserPermissions(req.user._id);
