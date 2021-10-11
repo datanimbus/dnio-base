@@ -93,6 +93,8 @@ e.baseUrlPM = get('pm') + '/pm';
 e.baseUrlCOMMON = get('common') + '/api/common';
 e.baseUrlGW = get('gw');
 
+e.TOKEN_SECRET = process.env.TOKEN_SECRET || 'u?5k167v13w5fhjhuiweuyqi67621gqwdjavnbcvadjhgqyuqagsduyqtw87e187etqiasjdbabnvczmxcnkzn';
+
 
 function get(_service) {
 	if (e.isK8sEnv()) {
