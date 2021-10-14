@@ -4,8 +4,6 @@ WORKDIR /app
 
 COPY package.json /app
 
-COPY package-lock.json /app
-
 RUN npm i --production
 
 COPY app.js /app
