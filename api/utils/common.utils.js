@@ -396,8 +396,8 @@ e.getServiceDetail = function (serviceId, req) {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
-			'TxnId': req.headers[global.txnIdHeader],
-			'Authorization': req.headers.authorization
+			'TxnId': req.headers ? req.headers[global.txnIdHeader]: '',
+			'Authorization': req.headers ? req.headers.authorization : ''
 		},
 		json: true
 	};
@@ -903,9 +903,9 @@ function crudDocuments(_service, method, body, qs, req) {
 		method: method.toUpperCase(),
 		headers: {
 			'Content-Type': 'application/json',
-			'TxnId': req.headers['txnid'],
-			'Authorization': req.headers['authorization'],
-			'Cache': req.headers['cache']
+			'TxnId': req.headers ? req.headers['txnid'] : '',
+			'Authorization': req.headers ? req.headers['authorization'] : '',
+			'Cache': req.headers ? req.headers['cache'] : ''
 		},
 		json: true
 	};
