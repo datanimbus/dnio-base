@@ -1,16 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
-const JWT = require('jsonwebtoken');
-const AuthCache = require('@appveen/ds-auth-cache');
+// const JWT = require('jsonwebtoken');
+// const { AuthCache } = require('@appveen/ds-auth-cache');
 
 const config = require('../../config');
 const queueMgmt = require('../../queue');
-const securityUtils = require('../utils/security.utils');
+// const securityUtils = require('../utils/security.utils');
 
 const logger = global.logger;
 const client = queueMgmt.client;
-const cache = new AuthCache();
+// const cache = new AuthCache();
 
 client.on('connect', () => {
 	getRoles();
@@ -76,61 +76,61 @@ function setRoles(role) {
 
 
 
-async function patchUserPermissions(req, res, next) {
-	try {
-		if (req.path.indexOf('/utils/health') > -1 || req.path.indexOf('/utils/export') > -1) {
-			return next();
-		}
+// async function patchUserPermissions(req, res, next) {
+// 	try {
+// 		if (req.path.indexOf('/utils/health') > -1 || req.path.indexOf('/utils/export') > -1) {
+// 			return next();
+// 		}
 
-		logger.debug(`[${req.header('txnId')}] Validating token format`);
-		let token = req.header('authorization');
+// 		logger.debug(`[${req.header('txnId')}] Validating token format`);
+// 		let token = req.header('authorization');
 
-		if (!token) {
-			logger.debug(`[${req.header('txnId')}] No token found in 'authorization' header`);
-			logger.debug(`[${req.header('txnId')}] Checking for 'authorization' token in cookie`);
-			token = req.cookies.Authorization;
-		}
+// 		if (!token) {
+// 			logger.debug(`[${req.header('txnId')}] No token found in 'authorization' header`);
+// 			logger.debug(`[${req.header('txnId')}] Checking for 'authorization' token in cookie`);
+// 			token = req.cookies.Authorization;
+// 		}
 
-		if (!token) return res.status(401).json({ message: 'Unauthorized' });
+// 		if (!token) return res.status(401).json({ message: 'Unauthorized' });
 
-		token = token.split('JWT ')[1];
-		const user = JWT.verify(token, config.TOKEN_SECRET, { ignoreExpiration: true });
-		if (!user) {
-			logger.error(`[${req.header('txnId')}] Invalid JWT format`);
-			return res.status(401).json({ 'message': 'Unauthorized' });
-		}
-		let tokenHash = securityUtils.md5(token);
-		logger.debug(`[${req.header('txnId')}] Token hash :: ${tokenHash}`);
-		req.tokenHash = tokenHash;
-		req.user = typeof user === 'string' ? JSON.parse(user) : user;
-		logger.trace(`[${req.header('txnId')}] Token Data : ${JSON.stringify(req.user)}`);
+// 		token = token.split('JWT ')[1];
+// 		const user = JWT.verify(token, config.TOKEN_SECRET, { ignoreExpiration: true });
+// 		if (!user) {
+// 			logger.error(`[${req.header('txnId')}] Invalid JWT format`);
+// 			return res.status(401).json({ 'message': 'Unauthorized' });
+// 		}
+// 		let tokenHash = securityUtils.md5(token);
+// 		logger.debug(`[${req.header('txnId')}] Token hash :: ${tokenHash}`);
+// 		req.tokenHash = tokenHash;
+// 		req.user = typeof user === 'string' ? JSON.parse(user) : user;
+// 		logger.trace(`[${req.header('txnId')}] Token Data : ${JSON.stringify(req.user)}`);
 
-		// Fetching from Redis Cache
-		const permissions = await cache.getUserPermissions(req.user._id);
-		req.user.permissions = permissions || [];
+// 		// Fetching from Redis Cache
+// 		const permissions = await cache.getUserPermissions(req.user._id);
+// 		req.user.permissions = permissions || [];
 
-		// Fetching from MongoDB
-		// let authorDB = mongoose.connections[1].client.db(config.authorDB);
-		// const permissions = await authorDB.collection('userMgmt.groups').aggregate([
-		// 	{ $match: { users: userId } },
-		// 	{ $unwind: '$roles' },
-		// 	{ $match: { 'roles.type': 'appcenter' } },
-		// 	{ $group: { _id: null, perms: { $addToSet: '$roles.id' } } }
-		// ]).toArray();
-		// if (permissions && permissions.length > 0) {
-		// 	req.user.permissions = permissions[0].perms;
-		// } else {
-		// 	req.user.permissions = [];
-		// }
-		next();
-	} catch (err) {
-		logger.error(`patchUserPermissions :: ${err}`);
-		res.status(500).json({ message: err.message });
-	}
-}
+// 		// Fetching from MongoDB
+// 		// let authorDB = mongoose.connections[1].client.db(config.authorDB);
+// 		// const permissions = await authorDB.collection('userMgmt.groups').aggregate([
+// 		// 	{ $match: { users: userId } },
+// 		// 	{ $unwind: '$roles' },
+// 		// 	{ $match: { 'roles.type': 'appcenter' } },
+// 		// 	{ $group: { _id: null, perms: { $addToSet: '$roles.id' } } }
+// 		// ]).toArray();
+// 		// if (permissions && permissions.length > 0) {
+// 		// 	req.user.permissions = permissions[0].perms;
+// 		// } else {
+// 		// 	req.user.permissions = [];
+// 		// }
+// 		next();
+// 	} catch (err) {
+// 		logger.error(`patchUserPermissions :: ${err}`);
+// 		res.status(500).json({ message: err.message });
+// 	}
+// }
 
 
 module.exports.getRoles = getRoles;
 module.exports.setRoles = setRoles;
-module.exports.patchUserPermissions = patchUserPermissions;
+// module.exports.patchUserPermissions = patchUserPermissions;
 
