@@ -88,6 +88,9 @@ var definition = {
 		}
 	],
 	approvers: ['String'],
+	checkerStep: {
+		type: 'String',
+	},
 	status: {
 		type: 'String',
 		enum: ['Approved', 'Rejected', 'Pending', 'Failed', 'Draft', 'Discarded', 'Rework']

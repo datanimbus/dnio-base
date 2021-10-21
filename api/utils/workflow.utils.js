@@ -8,6 +8,7 @@ const config = require('../../config');
 const hooksUtils = require('./hooks.utils');
 const specialFields = require('./special-fields.utils');
 const commonUtils = require('./common.utils');
+const serviceData = require('../../service.json');
 
 const logger = global.logger;
 const configDB = global.authorDB;
@@ -73,7 +74,7 @@ function getApproversList() {
 function isWorkflowEnabled() {
 	let flag = false;
 	try {
-		if (typeof specialFields.hasPermissionForREVIEW === 'function') {
+		if (serviceData.workflowConfig && serviceData.workflowConfig.enabled) {
 			flag = true;
 		}
 	} catch (err) {
@@ -125,6 +126,13 @@ function hasSkipReview(req) {
 }
 
 function getWorkflowItem(req, operation, _id, status, newDoc, oldDoc) {
+	let checkerStep;
+	if (serviceData.workflowConfig
+		&& serviceData.workflowConfig.makerCheckers
+		&& serviceData.workflowConfig.makerCheckers[0]
+		&& serviceData.workflowConfig.makerCheckers[0].steps[0]) {
+		checkerStep = serviceData.workflowConfig.makerCheckers[0].steps[0].name;
+	}
 	return {
 		serviceId: config.serviceId,
 		documentId: _id,
@@ -133,6 +141,7 @@ function getWorkflowItem(req, operation, _id, status, newDoc, oldDoc) {
 		app: config.app,
 		audit: [],
 		status: status,
+		checkerStep,
 		data: {
 			old: oldDoc ? (oldDoc) : null,
 			new: newDoc ? (newDoc) : null,

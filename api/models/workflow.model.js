@@ -191,11 +191,12 @@ schema.pre('save', function (next) {
 schema.post('save', function (doc, next) {
 	const req = doc._req;
 	const txnid = req.headers[global.txnIdHeader] || req.headers['txnid'];
-	logger.debug(`[${txnid}] Workflow :: ${doc._id} :: Old status - ${this.oldStatus}, New status - ${doc.status}`);
-	if (!(this.oldStatus === doc.status)) {
+	const status = doc._status || doc.status;
+	logger.debug(`[${txnid}] Workflow :: ${doc._id} :: Old status - ${this.oldStatus}, New status - ${status}`);
+	if (!(this.oldStatus === status)) {
 		doc = doc.toObject();
 		let auditData = doc;
-		auditData.type = statusMap[doc.status];
+		auditData.type = statusMap[status];
 		auditData.txnId = txnid;
 		if (auditData.type) hooksUtils.prepWorkflowHooks(auditData);
 	}
