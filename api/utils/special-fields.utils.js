@@ -86,11 +86,6 @@ function validateDateFields() {
 
 }
 
-
-function hasPermissionForSKIP_REVIEW(permissions) {
-	return true;
-}
-module.exports.hasPermissionForSKIP_REVIEW = hasPermissionForSKIP_REVIEW;
 function hasPermissionForPOST(permissions) {
 	return true;
 }

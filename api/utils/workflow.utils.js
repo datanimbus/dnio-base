@@ -87,6 +87,7 @@ function isWorkflowEnabled() {
 
 
 /**
+ * @deprecated
  * @returns {Promise<boolean>} Returns a boolean Promise
  */
 function hasSkipReview(req) {
@@ -123,6 +124,13 @@ function hasSkipReview(req) {
 		logger.error('workflow.utils>hasSkipReview', err);
 		return [];
 	});
+}
+
+function hasAdminAccess(req, permissions) {
+	if (permissions && permissions.length > 0 && permissions.indexOf(`ADMIN_${config.serviceId}`) > -1) {
+		return true;
+	}
+	return false;
 }
 
 function getWorkflowItem(req, operation, _id, status, newDoc, oldDoc) {
@@ -398,6 +406,7 @@ async function enrichGeojson(req, newData, oldData) {
 module.exports.getApproversList = getApproversList;
 module.exports.isWorkflowEnabled = isWorkflowEnabled;
 module.exports.hasSkipReview = hasSkipReview;
+module.exports.hasAdminAccess = hasAdminAccess;
 module.exports.getWorkflowItem = getWorkflowItem;
 module.exports.getNoOfApprovals = getNoOfApprovals;
 module.exports.simulate = simulate;

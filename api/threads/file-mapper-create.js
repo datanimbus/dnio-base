@@ -47,7 +47,7 @@ async function execute() {
 		return prev.then(() => {
 			let temp = docs.map(async (doc) => {
 				try {
-					const hasSkipReview = await workflowUtils.hasSkipReview(req);
+					const hasSkipReview = await workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 					if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
 						const wfItem = workflowUtils.getWorkflowItem(req, 'POST', doc.data._id, 'Pending', doc.data, null);
 						const wfDoc = new workflowModel(wfItem);
@@ -65,7 +65,7 @@ async function execute() {
 					doc.status = 'Created';
 				} catch (e) {
 					doc.status = 'Error';
-					if(e.message) {
+					if (e.message) {
 						doc.message = e.message;
 					} else {
 						doc.message = Object.values(e).join();
@@ -88,7 +88,7 @@ async function execute() {
 			let temp = docs.map(async (doc) => {
 				try {
 					let temp = await serviceModel.findById(doc.data._id);
-					const hasSkipReview = await workflowUtils.hasSkipReview(req);
+					const hasSkipReview = await workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 					if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
 						const wfItem = workflowUtils.getWorkflowItem(req, 'PUT', doc.data._id, 'Pending', doc.data, temp.toObject());
 						const wfDoc = new workflowModel(wfItem);
@@ -108,7 +108,7 @@ async function execute() {
 					doc.status = 'Updated';
 				} catch (e) {
 					doc.status = 'Error';
-					if(e.message) {
+					if (e.message) {
 						doc.message = e.message;
 					} else {
 						doc.message = Object.values(e).join();

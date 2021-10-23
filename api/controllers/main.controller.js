@@ -157,8 +157,7 @@ router.put('/bulkUpdate', (req, res) => {
 				doc._oldDoc = doc.toObject();
 				const payload = doc.toObject();
 				_.mergeWith(payload, req.body, mergeCustomizer);
-				// const hasSkipReview = await workflowUtils.hasSkipReview(req);
-				const hasSkipReview = specialFields.hasPermissionForSKIP_REVIEW(req, req.user.appPermissions);
+				const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 				if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
 					const wfItem = workflowUtils.getWorkflowItem(
 						req,
@@ -232,8 +231,7 @@ router.delete('/utils/bulkDelete', (req, res) => {
 			const promises = docs.map(async (doc) => {
 				doc._req = req;
 				doc._oldDoc = doc.toObject();
-				// const hasSkipReview = await workflowUtils.hasSkipReview(req);
-				const hasSkipReview = specialFields.hasPermissionForSKIP_REVIEW(req, req.user.appPermissions);
+				const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 				if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
 					const wfItem = workflowUtils.getWorkflowItem(
 						req,
@@ -424,8 +422,8 @@ router.get('/', (req, res) => {
 			}
 			if (
 				specialFields.secureFields &&
-                specialFields.secureFields.length &&
-                specialFields.secureFields[0]
+				specialFields.secureFields.length &&
+				specialFields.secureFields[0]
 			) {
 				let promises = docs.map((e) =>
 					specialFields.decryptSecureFields(req, e, null)
@@ -470,8 +468,8 @@ router.get('/:id', (req, res) => {
 			}
 			if (
 				specialFields.secureFields &&
-                specialFields.secureFields.length &&
-                specialFields.secureFields[0]
+				specialFields.secureFields.length &&
+				specialFields.secureFields[0]
 			) {
 				await specialFields.decryptSecureFields(req, doc, null);
 			}
@@ -513,17 +511,16 @@ router.post('/', (req, res) => {
 		let payload = req.body;
 
 		if (serviceData.stateModel && serviceData.stateModel.enabled &&
-            !serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
+			!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
 			throw new Error('Record is not in initial state.');
 		}
 
 		try {
 			let promises;
-			// const hasSkipReview = await workflowUtils.hasSkipReview(req);
-			const hasSkipReview = specialFields.hasPermissionForSKIP_REVIEW(req, req.user.appPermissions);
+			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 			if (
 				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
-                req.query.draft
+				req.query.draft
 			) {
 				let wfItemStatus = 'Pending';
 				if (req.query.draft) {
@@ -638,14 +635,14 @@ router.put('/:id', (req, res) => {
 				doc = new model(payload);
 
 				if (serviceData.stateModel && serviceData.stateModel.enabled &&
-                    !serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
+					!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
 					throw new Error('Record is not in initial state.');
 				}
 			}
 
 			if (serviceData.stateModel && serviceData.stateModel.enabled && !isNewDoc
-                && !serviceData.stateModel.states[_.get(doc, serviceData.stateModel.attribute)].includes(_.get(payload, serviceData.stateModel.attribute))
-                && _.get(doc, serviceData.stateModel.attribute) !== _.get(payload, serviceData.stateModel.attribute)) {
+				&& !serviceData.stateModel.states[_.get(doc, serviceData.stateModel.attribute)].includes(_.get(payload, serviceData.stateModel.attribute))
+				&& _.get(doc, serviceData.stateModel.attribute) !== _.get(payload, serviceData.stateModel.attribute)) {
 				throw new Error('State transition is not allowed');
 			}
 
@@ -659,11 +656,10 @@ router.put('/:id', (req, res) => {
 				doc._oldDoc = doc.toObject();
 			}
 			doc._req = req;
-			// const hasSkipReview = await workflowUtils.hasSkipReview(req);
-			const hasSkipReview = specialFields.hasPermissionForSKIP_REVIEW(req, req.user.appPermissions);
+			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 			if (
 				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
-                req.query.draft
+				req.query.draft
 			) {
 				let wfItemStatus = 'Pending';
 				if (req.query.draft) {
@@ -733,8 +729,7 @@ router.delete('/:id', (req, res) => {
 			}
 			doc._req = req;
 			doc._oldDoc = doc.toObject();
-			// const hasSkipReview = await workflowUtils.hasSkipReview(req);
-			const hasSkipReview = specialFields.hasPermissionForSKIP_REVIEW(req, req.user.appPermissions);
+			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 			let wfId;
 			if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
 				const wfItem = workflowUtils.getWorkflowItem(
@@ -786,10 +781,9 @@ router.put('/:id/math', (req, res) => {
 					message: 'You don\'t have permission to update records',
 				});
 			}
-			// const hasSkipReview = await workflowUtils.hasSkipReview(req);
-			const hasSkipReview = specialFields.hasPermissionForSKIP_REVIEW(req, req.user.appPermissions);
+			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 			if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
-				return res.status(403).json({ message: 'User Must have SKIP_REVIEW Permission to use Math API' });
+				return res.status(403).json({ message: 'User Must have Admin Permission to use Math API' });
 			}
 			mathQueue.push({ req, res });
 		} catch (e) {
@@ -847,7 +841,7 @@ function addAuthHeader(paths, jwt) {
 		Object.keys(paths[path]).forEach((method) => {
 			if (
 				typeof paths[path][method] == 'object' &&
-                paths[path][method]['parameters']
+				paths[path][method]['parameters']
 			) {
 				let authObj = paths[path][method]['parameters'].find(
 					(obj) => obj.name == 'authorization'
@@ -1126,9 +1120,9 @@ async function processMathQueue(obj, callback) {
 		}
 		if (
 			err.message == 'CUSTOM_READ_CONFLICT' ||
-            (err.errmsg === 'WriteConflict' &&
-                err.errorLabels &&
-                err.errorLabels.indexOf('TransientTransactionError') > -1)
+			(err.errmsg === 'WriteConflict' &&
+				err.errorLabels &&
+				err.errorLabels.indexOf('TransientTransactionError') > -1)
 		) {
 			logger.error('=================');
 			req.simulateFlag = true;
