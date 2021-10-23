@@ -617,10 +617,15 @@ async function approve(req, res) {
 					doc.respondedBy = req.user._id;
 				} else {
 					isFailed = true;
-					event.action = doc.checkerStep;
-					doc.checkerStep = nextStep;
 					doc._status = 'Approved';
-					return results.push({ status: 200, message: `WF item moved to ${nextStep} step`, id: doc._id });
+					event.action = doc.checkerStep;
+					const approvalsRequired = workflowUtils.getNoOfApprovals(req, doc.checkerStep);
+					const approvalsDone = (doc.audit || []).filter(e => e.action === doc.checkerStep).length;
+					if (approvalsRequired === approvalsDone + 1) {
+						doc.checkerStep = nextStep;
+						return results.push({ status: 200, message: `WF item moved to ${nextStep} step`, id: doc._id });
+					}
+					return results.push({ status: 200, message: `${approvalsDone + 1} Approval done for the ${doc.checkerStep} step`, id: doc._id });
 				}
 			} catch (e) {
 				let error = e;

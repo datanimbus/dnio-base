@@ -149,6 +149,20 @@ function getWorkflowItem(req, operation, _id, status, newDoc, oldDoc) {
 	};
 }
 
+function getNoOfApprovals(req, currentStep) {
+	let approvals = 0;
+	if (serviceData.workflowConfig
+		&& serviceData.workflowConfig.makerCheckers
+		&& serviceData.workflowConfig.makerCheckers[0]
+		&& serviceData.workflowConfig.makerCheckers[0].steps) {
+		const step = serviceData.workflowConfig.makerCheckers[0].steps.find(e => e === currentStep);
+		if (step) {
+			approvals = step.approvals;
+		}
+	}
+	return approvals;
+}
+
 
 /**
  * @param {*} req The Incomming Request Object
@@ -385,4 +399,5 @@ module.exports.getApproversList = getApproversList;
 module.exports.isWorkflowEnabled = isWorkflowEnabled;
 module.exports.hasSkipReview = hasSkipReview;
 module.exports.getWorkflowItem = getWorkflowItem;
+module.exports.getNoOfApprovals = getNoOfApprovals;
 module.exports.simulate = simulate;
