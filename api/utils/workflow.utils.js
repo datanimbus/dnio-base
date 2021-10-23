@@ -141,13 +141,18 @@ function getWorkflowItem(req, operation, _id, status, newDoc, oldDoc) {
 		&& serviceData.workflowConfig.makerCheckers[0].steps[0]) {
 		checkerStep = serviceData.workflowConfig.makerCheckers[0].steps[0].name;
 	}
+	let audit = [];
+	if (newDoc && newDoc._workflow) {
+		audit = newDoc._workflow.audit || [];
+		delete newDoc._workflow;
+	}
 	return {
 		serviceId: config.serviceId,
 		documentId: _id,
 		operation: operation,
 		requestedBy: req.headers[global.userHeader],
 		app: config.app,
-		audit: [],
+		audit,
 		status: status,
 		checkerStep,
 		data: {

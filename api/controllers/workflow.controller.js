@@ -204,49 +204,41 @@ router.get('/:id', async (req, res) => {
 	}
 });
 
-// router.put('/:id', (req, res) => {
-//     async function execute() {
-//         try {
-//             const id = req.params.id;
-//             const payload = req.body;
-//             const remarks = payload.remarks;
-//             const attachments = payload.attachments;
-//             const audit = payload.audit;
-//             const doc = await workflowModel.findOne({ $and: [{ _id: id }, { status: { $in: ['Pending'] } }] });
-//             if (!doc) {
-//                 return res.status(400).json({ message: 'Workflow to be editted not found' });
-//             }
-//             if (audit && Array.isArray(audit) && audit.length > 0) {
-//                 doc.audit = audit;
-//             }
-//             if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-//                 doc.attachments = attachments;
-//             }
-//             if (remarks) {
-//                 doc.remarks = remarks;
-//             }
-//             doc._req = req;
-//             doc._isEncrypted = true;
-//             const savedData = await doc.save();
-//             logger.trace('Workflow Doc Updated', JSON.stringify({ savedData }));
-//             return res.status(200).json({ message: 'Edit Successful.' });
-//         } catch (err) {
-//             if (typeof e === 'string') {
-//                 throw new Error(err);
-//             }
-//             throw e;
-//         }
-//     }
-//     execute().catch(err => {
-//         logger.error(err);
-//         if (err.source) {
-//             res.status(400).json(err);
-//         } else {
-//             res.status(400).json({
-//                 message: err.message
-//             });
-//         }
-//     });
+// router.put('/:id', async (req, res) => {
+// 	try {
+// 		const id = req.params.id;
+// 		const payload = req.body;
+// 		const remarks = payload.remarks;
+// 		const attachments = payload.attachments;
+// 		const audit = payload.audit;
+// 		const doc = await workflowModel.findOne({ $and: [{ _id: id }, { status: { $in: ['Pending'] } }] });
+// 		if (!doc) {
+// 			return res.status(400).json({ message: 'Workflow to be editted not found' });
+// 		}
+// 		if (audit && Array.isArray(audit) && audit.length > 0) {
+// 			doc.audit = audit;
+// 		}
+// 		if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+// 			doc.attachments = attachments;
+// 		}
+// 		if (remarks) {
+// 			doc.remarks = remarks;
+// 		}
+// 		doc._req = req;
+// 		doc._isEncrypted = true;
+// 		const savedData = await doc.save();
+// 		logger.trace('Workflow Doc Updated', JSON.stringify({ savedData }));
+// 		return res.status(200).json({ message: 'Edit Successful.' });
+// 	} catch (err) {
+// 		logger.error(err);
+// 		if (err.source) {
+// 			res.status(400).json(err);
+// 		} else {
+// 			res.status(400).json({
+// 				message: err.message
+// 			});
+// 		}
+// 	}
 // });
 
 router.put('/doc/:id', async (req, res) => {
