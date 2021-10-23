@@ -1,3 +1,4 @@
+'use strict';
 const router = require('express').Router();
 const mongoose = require('mongoose');
 const _ = require('lodash');
@@ -19,201 +20,161 @@ const workflowModel = mongoose.model('workflow');
 /**
  * @deprecated
  */
-router.get('/count', (req, res) => {
-	async function execute() {
+router.get('/count', async (req, res) => {
+	try {
+		let filter = {};
 		try {
-			let filter = {};
-			try {
-				if (req.query.filter) {
-					filter = JSON.parse(req.query.filter);
-					filter = crudderUtils.parseFilter(filter);
-					filter = modifySecureFieldsFilter(filter, specialFields.secureFields, false, true);
-				}
-			} catch (e) {
-				logger.error(e);
-				return res.status(400).json({
-					message: e
-				});
+			if (req.query.filter) {
+				filter = JSON.parse(req.query.filter);
+				filter = crudderUtils.parseFilter(filter);
+				filter = modifySecureFieldsFilter(filter, specialFields.secureFields, false, true);
 			}
-			const count = await workflowModel.countDocuments(filter);
-			res.status(200).json(count);
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+		} catch (err) {
+			logger.error(err);
+			return res.status(400).json({
+				message: err
+			});
 		}
-	}
-	execute().catch(err => {
+		const count = await workflowModel.countDocuments(filter);
+		res.status(200).json(count);
+	} catch (err) {
 		logger.error(err);
 		res.status(400).json({
 			message: err.message
 		});
-	});
+	}
 });
 
-router.get('/users', (req, res) => {
-	async function execute() {
-		try {
-			let txnId = req.get(global.txnIdHeader);
-			let filter = req.query.filter ? req.query.filter : {};
-			filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
-			let wfData = await workflowModel.aggregate([
-				{ $match: filter },
-				{
-					$group: {
-						_id: null,
-						requestedBy: {
-							$addToSet: '$requestedBy'
-						},
-						respondedBy: {
-							$addToSet: '$respondedBy'
-						}
+router.get('/users', async (req, res) => {
+	try {
+		let txnId = req.get(global.txnIdHeader);
+		let filter = req.query.filter ? req.query.filter : {};
+		filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
+		let wfData = await workflowModel.aggregate([
+			{ $match: filter },
+			{
+				$group: {
+					_id: null,
+					requestedBy: {
+						$addToSet: '$requestedBy'
+					},
+					respondedBy: {
+						$addToSet: '$respondedBy'
 					}
 				}
-			]);
+			}
+		]);
 
-			wfData = wfData[0];
-			logger.debug(`${txnId} : WF users wfData :: `, wfData);
-			if (wfData) {
-				delete wfData._id;
-				let users = _.uniq(wfData.requestedBy.concat(wfData.respondedBy));
-				let usersCollection = authorDB.collection('userMgmt.users');
-				let usersData = await usersCollection.find({ _id: { $in: users } }).project({ '_id': 1, 'basicDetails.name': 1 });
-				let userMap = {};
-				usersData.forEach(user => userMap[user._id] = user.basicDetails ? user.basicDetails.name : '');
-				logger.debug(`${txnId} : users map :: `, userMap);
-				wfData.requestedBy = getUsersNameFromMap(userMap, wfData.requestedBy);
-				wfData.respondedBy = getUsersNameFromMap(userMap, wfData.respondedBy);
-				return res.json(wfData);
-			} else {
-				return res.json({});
-			}
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+		wfData = wfData[0];
+		logger.debug(`${txnId} : WF users wfData :: `, wfData);
+		if (wfData) {
+			delete wfData._id;
+			let users = _.uniq(wfData.requestedBy.concat(wfData.respondedBy));
+			let usersCollection = authorDB.collection('userMgmt.users');
+			let usersData = await usersCollection.find({ _id: { $in: users } }).project({ '_id': 1, 'basicDetails.name': 1 });
+			let userMap = {};
+			usersData.forEach(user => userMap[user._id] = user.basicDetails ? user.basicDetails.name : '');
+			logger.debug(`${txnId} : users map :: `, userMap);
+			wfData.requestedBy = getUsersNameFromMap(userMap, wfData.requestedBy);
+			wfData.respondedBy = getUsersNameFromMap(userMap, wfData.respondedBy);
+			return res.json(wfData);
+		} else {
+			return res.json({});
 		}
-	}
-	execute().catch(err => {
+	} catch (err) {
 		logger.error(err);
 		res.status(400).json({
 			message: err.message
 		});
-	});
+	}
 });
 
-router.get('/serviceList', (req, res) => {
-	async function execute() {
+router.get('/serviceList', async (req, res) => {
+	try {
+		const resObj = {};
+		resObj[config.serviceId] = 0;
+		let filter = req.query.filter;
+		if (filter) filter = JSON.parse(filter);
+		filter = crudderUtils.parseFilter(filter);
+		filter.serviceId = config.serviceId;
+		const count = await workflowModel.countDocuments(filter);
+		resObj[config.serviceId] = count;
+		res.status(200).json(resObj);
+	} catch (err) {
+		logger.error(err);
+		res.status(400).json({
+			message: err.message
+		});
+	}
+});
+
+router.get('/', async (req, res) => {
+	try {
+		let filter = {};
 		try {
-			const resObj = {};
-			resObj[config.serviceId] = 0;
-			let filter = req.query.filter;
-			if (filter) filter = JSON.parse(filter);
-			filter = crudderUtils.parseFilter(filter);
-			filter.serviceId = config.serviceId;
+			if (req.query.filter) {
+				filter = JSON.parse(req.query.filter);
+				filter = crudderUtils.parseFilter(filter);
+				filter = modifySecureFieldsFilter(filter, specialFields.secureFields, false, true);
+			}
+		} catch (err) {
+			logger.error(err);
+			return res.status(400).json({
+				message: err
+			});
+		}
+		if (req.query.countOnly) {
 			const count = await workflowModel.countDocuments(filter);
-			resObj[config.serviceId] = count;
-			res.status(200).json(resObj);
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+			return res.status(200).json(count);
 		}
-	}
-	execute().catch(err => {
+		let skip = 0;
+		let count = 30;
+		let select = '';
+		let sort = '';
+		if (req.query.count && (+req.query.count) > 0) {
+			count = +req.query.count;
+		}
+		if (req.query.page && (+req.query.page) > 0) {
+			skip = count * ((+req.query.page) - 1);
+		}
+		if (req.query.select && req.query.select.trim()) {
+			select = req.query.select.split(',').join(' ');
+		}
+		if (req.query.sort && req.query.sort.trim()) {
+			sort = req.query.sort.split(',').join(' ') + ' -_metadata.lastUpdated';
+		} else {
+			sort = '-_metadata.lastUpdated';
+		}
+		let docs = await workflowModel.find(filter).select(select).sort(sort).skip(skip).limit(count).lean();
+
+		docs = await decryptAndExpandWFItems(docs, req);
+		res.status(200).json(docs);
+	} catch (err) {
 		logger.error(err);
 		res.status(400).json({
 			message: err.message
 		});
-	});
+	}
 });
 
-router.get('/', (req, res) => {
-	async function execute() {
-		try {
-			let filter = {};
-			try {
-				if (req.query.filter) {
-					filter = JSON.parse(req.query.filter);
-					filter = crudderUtils.parseFilter(filter);
-					filter = modifySecureFieldsFilter(filter, specialFields.secureFields, false, true);
-				}
-			} catch (e) {
-				logger.error(e);
-				return res.status(400).json({
-					message: e
-				});
-			}
-			if (req.query.countOnly) {
-				const count = await workflowModel.countDocuments(filter);
-				return res.status(200).json(count);
-			}
-			let skip = 0;
-			let count = 30;
-			let select = '';
-			let sort = '';
-			if (req.query.count && (+req.query.count) > 0) {
-				count = +req.query.count;
-			}
-			if (req.query.page && (+req.query.page) > 0) {
-				skip = count * ((+req.query.page) - 1);
-			}
-			if (req.query.select && req.query.select.trim()) {
-				select = req.query.select.split(',').join(' ');
-			}
-			if (req.query.sort && req.query.sort.trim()) {
-				sort = req.query.sort.split(',').join(' ') + ' -_metadata.lastUpdated';
-			} else {
-				sort = '-_metadata.lastUpdated';
-			}
-			let docs = await workflowModel.find(filter).select(select).sort(sort).skip(skip).limit(count).lean();
-
-			docs = await decryptAndExpandWFItems(docs, req);
-			res.status(200).json(docs);
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+router.put('/action', async (req, res) => {
+	try {
+		if (!req.body.action) {
+			return res.status(400).json({ message: 'Action is required.' });
+		} else if (req.body.action == 'Discard') {
+			return discard(req, res);
+		} else if (req.body.action == 'Submit') {
+			return submit(req, res);
+		} else if (req.body.action == 'Rework') {
+			return rework(req, res);
+		} else if (req.body.action == 'Approve') {
+			return approve(req, res);
+		} else if (req.body.action == 'Reject') {
+			return reject(req, res);
+		} else {
+			return res.status(400).json({ message: 'Action is Invalid.' });
 		}
-	}
-	execute().catch(err => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message
-		});
-	});
-});
-
-router.put('/action', (req, res) => {
-	async function execute() {
-		try {
-			if (!req.body.action) {
-				return res.status(400).json({ message: 'Action is required.' });
-			} else if (req.body.action == 'Discard') {
-				return discard(req, res);
-			} else if (req.body.action == 'Submit') {
-				return submit(req, res);
-			} else if (req.body.action == 'Rework') {
-				return rework(req, res);
-			} else if (req.body.action == 'Approve') {
-				return approve(req, res);
-			} else if (req.body.action == 'Reject') {
-				return reject(req, res);
-			} else {
-				return res.status(400).json({ message: 'Action is Invalid.' });
-			}
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
-		}
-	}
-	execute().catch(err => {
+	} catch (err) {
 		logger.error(err);
 		if (err.source) {
 			res.status(400).json(err);
@@ -222,33 +183,25 @@ router.put('/action', (req, res) => {
 				message: err.message
 			});
 		}
-	});
+	}
 });
 
-router.get('/:id', (req, res) => {
-	async function execute() {
-		try {
-			let doc = await workflowModel.findById(req.params.id).lean();
-			if (!doc) {
-				return res.status(404).json({
-					message: 'Workflow Not Found'
-				});
-			}
-			doc = await decryptAndExpandWFItems(doc, req);
-			res.status(200).json(doc);
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+router.get('/:id', async (req, res) => {
+	try {
+		let doc = await workflowModel.findById(req.params.id).lean();
+		if (!doc) {
+			return res.status(404).json({
+				message: 'Workflow Not Found'
+			});
 		}
-	}
-	execute().catch(err => {
+		doc = await decryptAndExpandWFItems(doc, req);
+		res.status(200).json(doc);
+	} catch (err) {
 		logger.error(err);
 		res.status(400).json({
 			message: err.message
 		});
-	});
+	}
 });
 
 // router.put('/:id', (req, res) => {
@@ -277,9 +230,9 @@ router.get('/:id', (req, res) => {
 //             const savedData = await doc.save();
 //             logger.trace('Workflow Doc Updated', JSON.stringify({ savedData }));
 //             return res.status(200).json({ message: 'Edit Successful.' });
-//         } catch (e) {
+//         } catch (err) {
 //             if (typeof e === 'string') {
-//                 throw new Error(e);
+//                 throw new Error(err);
 //             }
 //             throw e;
 //         }
@@ -296,54 +249,46 @@ router.get('/:id', (req, res) => {
 //     });
 // });
 
-router.put('/doc/:id', (req, res) => {
-	async function execute() {
-		try {
-			const id = req.params.id;
-			const payload = req.body;
-			const remarks = payload.remarks;
-			const attachments = payload.attachments;
-			const newData = payload.data;
-			if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
-				return res.status(403).json({
-					message: 'You don\'t have permission to update records',
-				});
-			}
-			const doc = await workflowModel.findOne({ $and: [{ _id: id }, { status: { $nin: ['Approved', 'Rejected'] } }] });
-			if (!doc) {
-				return res.status(400).json({ message: 'Workflow to be editted not found' });
-			}
-			const data = await workflowUtils.simulate(req, newData, {
-				source: `simulate-workflow ${doc.status} edit`,
-				operation: doc.operation
+router.put('/doc/:id', async (req, res) => {
+	try {
+		const id = req.params.id;
+		const payload = req.body;
+		const remarks = payload.remarks;
+		const attachments = payload.attachments;
+		const newData = payload.data;
+		if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
+			return res.status(403).json({
+				message: 'You don\'t have permission to update records',
 			});
-			const auditData = {
-				by: 'user',
-				action: 'Edit',
-				id: req.user._id,
-				remarks: remarks,
-				attachments: attachments,
-				timestamp: Date.now(),
-				oldData: _.clone(doc.data.new),
-				newData: _.mergeWith(_.clone(doc.data.new), _.clone(newData), mergeCustomizer)
-			};
-			if (doc.documentId) {
-				data._id = doc.documentId;
-			}
-			doc.data.new = data;
-			doc.audit.push(auditData);
-			doc._req = req;
-			const savedData = await doc.save();
-			logger.debug(JSON.stringify({ savedData }));
-			return res.status(200).json({ message: 'Edit Successful.' });
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
 		}
-	}
-	execute().catch(err => {
+		const doc = await workflowModel.findOne({ $and: [{ _id: id }, { status: { $nin: ['Approved', 'Rejected'] } }] });
+		if (!doc) {
+			return res.status(400).json({ message: 'Workflow to be editted not found' });
+		}
+		const data = await workflowUtils.simulate(req, newData, {
+			source: `simulate-workflow ${doc.status} edit`,
+			operation: doc.operation
+		});
+		const auditData = {
+			by: 'user',
+			action: 'Edit',
+			id: req.user._id,
+			remarks: remarks,
+			attachments: attachments,
+			timestamp: Date.now(),
+			oldData: _.clone(doc.data.new),
+			newData: _.mergeWith(_.clone(doc.data.new), _.clone(newData), mergeCustomizer)
+		};
+		if (doc.documentId) {
+			data._id = doc.documentId;
+		}
+		doc.data.new = data;
+		doc.audit.push(auditData);
+		doc._req = req;
+		const savedData = await doc.save();
+		logger.debug(JSON.stringify({ savedData }));
+		return res.status(200).json({ message: 'Edit Successful.' });
+	} catch (err) {
 		logger.error(err);
 		if (err.source) {
 			res.status(400).json(err);
@@ -352,7 +297,7 @@ router.put('/doc/:id', (req, res) => {
 				message: err.message
 			});
 		}
-	});
+	}
 });
 
 function getUsersNameFromMap(userMap, userIds) {
@@ -364,63 +309,55 @@ function getUsersNameFromMap(userMap, userIds) {
 	});
 }
 
-router.get('/group/:app', (req, res) => {
-	async function execute() {
+router.get('/group/:app', async (req, res) => {
+	try {
+		let app = req.params.app;
+		let filter = req.query.filter;
 		try {
-			let app = req.params.app;
-			let filter = req.query.filter;
-			try {
-				if (filter) {
-					filter = JSON.parse(filter);
-					filter = crudderUtils.parseFilter(filter);
-				}
-			} catch (e) {
-				logger.error(e);
-				filter = {};
+			if (filter) {
+				filter = JSON.parse(filter);
+				filter = crudderUtils.parseFilter(filter);
 			}
-			Object.assign(filter, { 'app': app });
-			filter['serviceId'] = config.serviceId;
-			const data = await workflowModel.aggregate([
-				{ '$match': filter },
-				{ '$sort': { '_metadata.lastUpdated': 1 } },
-				{
-					'$group': {
-						'_id': '$serviceId',
-						'serviceId': { '$first': '$serviceId' }
-					}
-				},
-				{
-					'$lookup': {
-						'from': 'workflow',
-						'localField': '_id',
-						'foreignField': 'serviceId',
-						'as': 'wf'
-					}
-				},
-				{
-					'$project': {
-						'wf.operation': 1,
-						'wf.status': 1,
-						'wf.requestedBy': 1,
-						'wf._metadata.lastUpdated': 1
-					}
-				},
-				{ '$sort': { '_metadata.lastUpdated': 1 } }
-			]);
-			res.json(data);
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+		} catch (err) {
+			logger.error(err);
+			filter = {};
 		}
-	}
-	execute().catch(err => {
+		Object.assign(filter, { 'app': app });
+		filter['serviceId'] = config.serviceId;
+		const data = await workflowModel.aggregate([
+			{ '$match': filter },
+			{ '$sort': { '_metadata.lastUpdated': 1 } },
+			{
+				'$group': {
+					'_id': '$serviceId',
+					'serviceId': { '$first': '$serviceId' }
+				}
+			},
+			{
+				'$lookup': {
+					'from': 'workflow',
+					'localField': '_id',
+					'foreignField': 'serviceId',
+					'as': 'wf'
+				}
+			},
+			{
+				'$project': {
+					'wf.operation': 1,
+					'wf.status': 1,
+					'wf.requestedBy': 1,
+					'wf._metadata.lastUpdated': 1
+				}
+			},
+			{ '$sort': { '_metadata.lastUpdated': 1 } }
+		]);
+		res.json(data);
+	} catch (err) {
 		logger.error(err);
 		res.status(400).json({
 			message: err.message
 		});
-	});
+	}
 });
 
 async function discard(req, res) {
@@ -455,9 +392,9 @@ async function discard(req, res) {
 			logger.debug('Unlocked Document', status);
 		}
 		return res.status(200).json({ message: 'Discard Successful' });
-	} catch (e) {
-		logger.error(e);
-		return res.status(400).json({ message: e.message });
+	} catch (err) {
+		logger.error(err);
+		return res.status(400).json({ message: err.message });
 	}
 }
 
@@ -495,9 +432,9 @@ async function submit(req, res) {
 		doc._isEncrypted = true;
 		await doc.save();
 		return res.status(200).json({ message: 'Submission Successful' });
-	} catch (e) {
-		logger.error(e);
-		return res.status(400).json({ message: e.message });
+	} catch (err) {
+		logger.error(err);
+		return res.status(400).json({ message: err.message });
 	}
 }
 
@@ -536,9 +473,9 @@ async function rework(req, res) {
 		});
 		await Promise.all(promises);
 		return res.status(200).json({ message: 'Sent For Changes.' });
-	} catch (e) {
-		logger.error(e);
-		return res.status(400).json({ message: e.message });
+	} catch (err) {
+		logger.error(err);
+		return res.status(400).json({ message: err.message });
 	}
 }
 
@@ -627,15 +564,15 @@ async function approve(req, res) {
 					}
 					return results.push({ status: 200, message: `${approvalsDone + 1} Approval done for the ${doc.checkerStep} step`, id: doc._id });
 				}
-			} catch (e) {
-				let error = e;
+			} catch (err) {
+				let error = err;
 				try {
-					if (typeof e === 'string') {
-						error = JSON.parse(e);
+					if (typeof err === 'string') {
+						error = JSON.parse(err);
 					}
 				} catch (parseErr) {
-					logger.warn('Error was not a JSON String:', e);
-					error = e;
+					logger.warn('Error was not a JSON String:', parseErr);
+					error = err;
 				}
 				const message = typeof error === 'object' && error.message ? error.message : JSON.stringify(error);
 				isFailed = true;
@@ -669,9 +606,9 @@ async function approve(req, res) {
 			return res.status(207).json({ results });
 		}
 		return res.status(200).json({ results });
-	} catch (e) {
-		logger.error(e);
-		return res.status(400).json({ message: e.message });
+	} catch (err) {
+		logger.error(err);
+		return res.status(400).json({ message: err.message });
 	}
 }
 
@@ -714,9 +651,9 @@ async function reject(req, res) {
 		});
 		await Promise.all(promises);
 		return res.status(200).json({ message: 'Documents Rejected' });
-	} catch (e) {
-		logger.error(e);
-		return res.status(400).json({ message: e.message });
+	} catch (err) {
+		logger.error(err);
+		return res.status(400).json({ message: err.message });
 	}
 }
 
