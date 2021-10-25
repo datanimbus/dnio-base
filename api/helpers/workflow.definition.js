@@ -47,7 +47,6 @@ var definition = {
 			action: {
 				type: 'String',
 				required: true,
-				enum: ['Approved', 'Rejected', 'Declined', 'Draft', 'Submit', 'Discard', 'SentForRework', 'Edit', 'Error', 'Save & Submit']
 			},
 			remarks: {
 				type: 'String'
