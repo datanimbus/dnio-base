@@ -146,6 +146,19 @@ function getWorkflowItem(req, operation, _id, status, newDoc, oldDoc) {
 		audit = newDoc._workflow.audit || [];
 		delete newDoc._workflow;
 	}
+	if (!audit) {
+		audit = [];
+	}
+	if (audit.length === 0) {
+		audit.push({
+			by: 'user',
+			id: req.user._id,
+			action: 'Submit',
+			remarks: '',
+			timestamp: Date.now(),
+			attachments: []
+		});
+	}
 	return {
 		serviceId: config.serviceId,
 		documentId: _id,
