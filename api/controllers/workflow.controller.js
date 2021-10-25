@@ -383,7 +383,7 @@ async function discard(req, res) {
 			const status = await serviceModel.findOneAndUpdate({ _id: savedDoc.documentId }, { '_metadata.workflow': null }, { new: true });
 			logger.debug('Unlocked Document', status);
 		}
-		return res.status(200).json({ message: 'Discard Successful' });
+		return res.status(200).json({ results: [{ status: 200, message: 'Discard Successful' }] });
 	} catch (err) {
 		logger.error(err);
 		return res.status(400).json({ message: err.message });
@@ -423,7 +423,7 @@ async function submit(req, res) {
 		doc._req = req;
 		doc._isEncrypted = true;
 		await doc.save();
-		return res.status(200).json({ message: 'Submission Successful' });
+		return res.status(200).json({ results: [{ status: 200, message: 'Submission Successful' }] });
 	} catch (err) {
 		logger.error(err);
 		return res.status(400).json({ message: err.message });
@@ -464,7 +464,7 @@ async function rework(req, res) {
 			return doc.save();
 		});
 		await Promise.all(promises);
-		return res.status(200).json({ message: 'Sent For Changes.' });
+		return res.status(200).json({ results: [{ status: 200, message: 'Sent For Changes.' }] });
 	} catch (err) {
 		logger.error(err);
 		return res.status(400).json({ message: err.message });
@@ -623,24 +623,32 @@ async function reject(req, res) {
 			attachments: attachments,
 			timestamp: Date.now()
 		};
+		const results = [];
 		const promises = docs.map(async (doc) => {
-			if (doc.operation == 'PUT' || doc.operation == 'DELETE') {
-				const status = await serviceModel.findOneAndUpdate({ _id: doc.documentId }, { $unset: { '_metadata.workflow': 1 } }, { new: true });
-				logger.debug('Unlocked Document', status);
+			try {
+				if (doc.operation == 'PUT' || doc.operation == 'DELETE') {
+					const status = await serviceModel.findOneAndUpdate({ _id: doc.documentId }, { $unset: { '_metadata.workflow': 1 } }, { new: true });
+					logger.debug('Unlocked Document', status);
+				}
+				doc.status = 'Rejected';
+				doc.respondedBy = req.user._id;
+				if (!doc.audit) {
+					doc.audit = [];
+				}
+				doc.audit.push(event);
+				doc.markModified('audit');
+				doc._req = req;
+				doc._isEncrypted = true;
+				await doc.save();
+				return results.push({ status: 200, message: 'Documents Rejected', id: doc._id });
+			} catch (error) {
+				logger.error(error);
+				const message = typeof error === 'object' && error.message ? error.message : JSON.stringify(error);
+				results.push({ status: 500, message: message, id: doc._id, errors: error });
 			}
-			doc.status = 'Rejected';
-			doc.respondedBy = req.user._id;
-			if (!doc.audit) {
-				doc.audit = [];
-			}
-			doc.audit.push(event);
-			doc.markModified('audit');
-			doc._req = req;
-			doc._isEncrypted = true;
-			return await doc.save();
 		});
 		await Promise.all(promises);
-		return res.status(200).json({ message: 'Documents Rejected' });
+		return res.status(200).json({ results });
 	} catch (err) {
 		logger.error(err);
 		return res.status(400).json({ message: err.message });
