@@ -163,12 +163,12 @@ function getWorkflowItem(req, operation, _id, status, newDoc, oldDoc) {
 }
 
 function getNoOfApprovals(req, currentStep) {
-	let approvals = 0;
+	let approvals = 1;
 	if (serviceData.workflowConfig
 		&& serviceData.workflowConfig.makerCheckers
 		&& serviceData.workflowConfig.makerCheckers[0]
 		&& serviceData.workflowConfig.makerCheckers[0].steps) {
-		const step = serviceData.workflowConfig.makerCheckers[0].steps.find(e => e === currentStep);
+		const step = serviceData.workflowConfig.makerCheckers[0].steps.find(e => e.name === currentStep);
 		if (step) {
 			approvals = step.approvals;
 		}

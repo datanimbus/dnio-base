@@ -506,12 +506,9 @@ async function approve(req, res) {
 					logger.error('Relation Validation Failed:', errors);
 					return results.push({ status: 400, message: 'Error While Validating Relation', id: doc._id, errors: errors });
 				}
-
-				await specialFields.decryptSecureFields(req, doc.data.new, null);
-
 				const nextStep = specialFields.getNextWFStep(req, doc.checkerStep);
 				if (!nextStep) {
-					event.action = 'Approved';
+					await specialFields.decryptSecureFields(req, doc.data.new, null);
 					if (doc.operation == 'POST') {
 						serviceDoc = new serviceModel(_.cloneDeep(doc.data.new));
 						serviceDoc._req = tempReq;
@@ -544,6 +541,7 @@ async function approve(req, res) {
 					doc._status = 'Approved';
 					doc.status = 'Approved';
 					doc.respondedBy = req.user._id;
+					event.action = 'Approved';
 				} else {
 					isFailed = true;
 					doc._status = 'Approved';
