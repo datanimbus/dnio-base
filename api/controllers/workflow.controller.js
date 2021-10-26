@@ -515,7 +515,7 @@ async function approve(req, res) {
 						serviceDoc._req = tempReq;
 						// serviceDoc._isFromWorkflow = true;
 						serviceDoc = await serviceDoc.save();
-						return results.push({ status: 200, message: 'WF item approved, Document was created', id: doc._id });
+						results.push({ status: 200, message: 'WF item approved, Document was created', id: doc._id });
 					} else if (doc.operation == 'PUT') {
 						serviceDoc = await serviceModel.findById(doc.documentId);
 						serviceDoc._req = tempReq;
@@ -525,7 +525,7 @@ async function approve(req, res) {
 						_.mergeWith(serviceDoc, doc.data.new, mergeCustomizer);
 						serviceDoc._metadata.workflow = null;
 						serviceDoc = await serviceDoc.save();
-						return results.push({ status: 200, message: 'WF item approved, Document was updated', id: doc._id });
+						results.push({ status: 200, message: 'WF item approved, Document was updated', id: doc._id });
 					} else if (doc.operation == 'DELETE') {
 						serviceDoc = await serviceModel.findById(doc.documentId);
 						serviceDoc._req = tempReq;
@@ -537,7 +537,7 @@ async function approve(req, res) {
 							await softDeletedDoc.save();
 						}
 						serviceDoc = await serviceDoc.remove();
-						return results.push({ status: 200, message: 'WF item approved, Document was removed', id: doc._id });
+						results.push({ status: 200, message: 'WF item approved, Document was removed', id: doc._id });
 					}
 					doc._status = 'Approved';
 					doc.status = 'Approved';
