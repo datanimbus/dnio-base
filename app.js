@@ -8,6 +8,7 @@ if (process.env.NODE_ENV != 'production') {
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const bluebird = require('bluebird');
 const multer = require('multer');
 const log4js = require('log4js');
@@ -73,6 +74,7 @@ let masking = [
 
 app.use(express.json({ limit: config.MaxJSONSize }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(utils.logMiddleware.getLogMiddleware(logger));
 app.use(upload.single('file'));
 // app.use(roleUtils.patchUserPermissions);
