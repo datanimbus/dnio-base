@@ -507,6 +507,7 @@ async function approve(req, res) {
 					return results.push({ status: 400, message: 'Error While Validating Relation', id: doc._id, errors: errors });
 				}
 				const nextStep = specialFields.getNextWFStep(req, doc.checkerStep);
+				event.action = doc.checkerStep;
 				if (!nextStep) {
 					await specialFields.decryptSecureFields(req, doc.data.new, null);
 					if (doc.operation == 'POST') {
@@ -541,11 +542,9 @@ async function approve(req, res) {
 					doc._status = 'Approved';
 					doc.status = 'Approved';
 					doc.respondedBy = req.user._id;
-					event.action = 'Approved';
 				} else {
 					isFailed = true;
 					doc._status = 'Approved';
-					event.action = doc.checkerStep;
 					const approvalsRequired = workflowUtils.getNoOfApprovals(req, doc.checkerStep);
 					const approvalsDone = (doc.audit || []).filter(e => e.action === doc.checkerStep).length;
 					if (approvalsRequired === approvalsDone + 1) {
