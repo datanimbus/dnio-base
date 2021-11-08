@@ -493,6 +493,8 @@ router.post('/', (req, res) => {
 							e,
 							null
 						);
+						const doc = new model(e);
+						await doc.validate();
 						const wfDoc = new workflowModel(wfItem);
 						wfDoc._req = req;
 						const status = await wfDoc.save();
@@ -511,6 +513,8 @@ router.post('/', (req, res) => {
 						payload,
 						null
 					);
+					const doc = new model(payload);
+					await doc.validate();
 					const wfDoc = new workflowModel(wfItem);
 					wfDoc._req = req;
 					const status = await wfDoc.save();
@@ -625,6 +629,8 @@ router.put('/:id', (req, res) => {
 					payload,
 					isNewDoc ? null : doc._oldDoc
 				);
+				const document = new model(payload);
+				await document.validate();
 				const wfDoc = new workflowModel(wfItem);
 				wfDoc._req = req;
 				status = await wfDoc.save();
