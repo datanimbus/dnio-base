@@ -86,6 +86,31 @@ function validateDateFields() {
 
 }
 
+function hasPermissionForPOST(permissions) {
+	return true;
+}
+module.exports.hasPermissionForPOST = hasPermissionForPOST;
+function hasPermissionForPUT(permissions) {
+	return true;
+}
+module.exports.hasPermissionForPUT = hasPermissionForPUT;
+function hasPermissionForDELETE(permissions) {
+	return true;
+}
+module.exports.hasPermissionForDELETE = hasPermissionForDELETE;
+function hasPermissionForGET(permissions) {
+	return true;
+}
+module.exports.hasPermissionForGET = hasPermissionForGET;
+
+function filterByPermission(permissions, data) {
+}
+
+function getNextWFStep(req, currStep) {
+
+}
+
+const hasWFPermissionFor = {};
 
 module.exports.createOnlyFields = createOnlyFields;
 module.exports.precisionFields = precisionFields;
@@ -104,3 +129,6 @@ module.exports.fixBoolean = fixBoolean;
 module.exports.enrichGeojson = enrichGeojson;
 module.exports.validateDateFields = validateDateFields;
 module.exports.mongooseUniquePlugin = mongooseUniquePlugin;
+module.exports.filterByPermission = filterByPermission;
+module.exports.getNextWFStep = getNextWFStep;
+module.exports.hasWFPermissionFor = hasWFPermissionFor

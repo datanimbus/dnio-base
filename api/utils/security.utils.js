@@ -6,7 +6,6 @@ const httpClient = require('../../http-client');
 
 const logger = global.logger;
 
-
 function encryptText(data) {
 	const options = {
 		url: config.baseUrlSEC + `/enc/${config.app}/decrypt`,
@@ -65,5 +64,10 @@ function decryptText(data) {
 	});
 }
 
+function md5(text) {
+	return crypto.createHash('md5').update(text).digest('hex');
+}
+
 module.exports.encryptText = encryptText;
 module.exports.decryptText = decryptText;
+module.exports.md5 = md5;

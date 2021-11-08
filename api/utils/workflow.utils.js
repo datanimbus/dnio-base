@@ -8,6 +8,7 @@ const config = require('../../config');
 const hooksUtils = require('./hooks.utils');
 const specialFields = require('./special-fields.utils');
 const commonUtils = require('./common.utils');
+const serviceData = require('../../service.json');
 
 const logger = global.logger;
 const configDB = global.authorDB;
@@ -44,21 +45,37 @@ function getApproversList() {
 	});
 }
 
+// /**
+//  * @returns {boolean} Returns true/false
+//  */
+// function isWorkflowEnabled() {
+// 	let flag = false;
+// 	try {
+// 		const role = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'role.json'), 'utf-8'));
+// 		if (!role || role._id != config.serviceId) {
+// 			flag = false;
+// 		} else {
+// 			if (role.roles && role.roles.length > 0 && role.roles.find(r => r.operations.find(o => o.method == 'REVIEW'))) {
+// 				flag = true;
+// 			} else {
+// 				flag = false;
+// 			}
+// 		}
+// 	} catch (err) {
+// 		logger.error('workflow.utils>isWorkflowEnabled', err);
+// 		flag = false;
+// 	}
+// 	return flag;
+// }
+
 /**
  * @returns {boolean} Returns true/false
  */
 function isWorkflowEnabled() {
 	let flag = false;
 	try {
-		const role = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'role.json'), 'utf-8'));
-		if (!role || role._id != config.serviceId) {
-			flag = false;
-		} else {
-			if (role.roles && role.roles.length > 0 && role.roles.find(r => r.operations.find(o => o.method == 'REVIEW'))) {
-				flag = true;
-			} else {
-				flag = false;
-			}
+		if (serviceData.workflowConfig && serviceData.workflowConfig.enabled) {
+			flag = true;
 		}
 	} catch (err) {
 		logger.error('workflow.utils>isWorkflowEnabled', err);
@@ -67,7 +84,10 @@ function isWorkflowEnabled() {
 	return flag;
 }
 
+
+
 /**
+ * @deprecated
  * @returns {Promise<boolean>} Returns a boolean Promise
  */
 function hasSkipReview(req) {
@@ -106,20 +126,67 @@ function hasSkipReview(req) {
 	});
 }
 
+function hasAdminAccess(req, permissions) {
+	if (permissions && permissions.length > 0 && permissions.indexOf(`ADMIN_${config.serviceId}`) > -1) {
+		return true;
+	}
+	return false;
+}
+
 function getWorkflowItem(req, operation, _id, status, newDoc, oldDoc) {
+	let checkerStep;
+	if (serviceData.workflowConfig
+		&& serviceData.workflowConfig.makerCheckers
+		&& serviceData.workflowConfig.makerCheckers[0]
+		&& serviceData.workflowConfig.makerCheckers[0].steps[0]) {
+		checkerStep = serviceData.workflowConfig.makerCheckers[0].steps[0].name;
+	}
+	let audit = [];
+	if (newDoc && newDoc._workflow) {
+		audit = newDoc._workflow.audit || [];
+		delete newDoc._workflow;
+	}
+	if (!audit) {
+		audit = [];
+	}
+	if (audit.length === 0) {
+		audit.push({
+			by: 'user',
+			id: req.user._id,
+			action: 'Submit',
+			remarks: '',
+			timestamp: Date.now(),
+			attachments: []
+		});
+	}
 	return {
 		serviceId: config.serviceId,
 		documentId: _id,
 		operation: operation,
 		requestedBy: req.headers[global.userHeader],
 		app: config.app,
-		audit: [],
+		audit,
 		status: status,
+		checkerStep,
 		data: {
 			old: oldDoc ? (oldDoc) : null,
 			new: newDoc ? (newDoc) : null,
 		}
 	};
+}
+
+function getNoOfApprovals(req, currentStep) {
+	let approvals = 1;
+	if (serviceData.workflowConfig
+		&& serviceData.workflowConfig.makerCheckers
+		&& serviceData.workflowConfig.makerCheckers[0]
+		&& serviceData.workflowConfig.makerCheckers[0].steps) {
+		const step = serviceData.workflowConfig.makerCheckers[0].steps.find(e => e.name === currentStep);
+		if (step) {
+			approvals = step.approvals;
+		}
+	}
+	return approvals;
 }
 
 
@@ -238,20 +305,20 @@ async function schemaValidation(req, newData, oldData) {
  */
 async function stateModelValidation(req, newData, oldData) {
 	const serviceData = require('../../service.json');
-	
-	try {	
+
+	try {
 		if (serviceData.stateModel && serviceData.stateModel.enabled && (!oldData || _.get(oldData, serviceData.stateModel.attribute) === undefined)) {
 
 			_.set(newData, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
 
-		} else if (serviceData.stateModel && serviceData.stateModel.enabled && _.get(newData, serviceData.stateModel.attribute) && 
-				_.get(oldData, serviceData.stateModel.attribute) !== _.get(newData, serviceData.stateModel.attribute) && 
-				!serviceData.stateModel.states[_.get(oldData, serviceData.stateModel.attribute)].includes(_.get(newData, serviceData.stateModel.attribute)) ) {
-			
+		} else if (serviceData.stateModel && serviceData.stateModel.enabled && _.get(newData, serviceData.stateModel.attribute) &&
+			_.get(oldData, serviceData.stateModel.attribute) !== _.get(newData, serviceData.stateModel.attribute) &&
+			!serviceData.stateModel.states[_.get(oldData, serviceData.stateModel.attribute)].includes(_.get(newData, serviceData.stateModel.attribute))) {
+
 			logger.info('State transition is not allowed');
 			throw new Error('State transition is not allowed');
 		}
-		
+
 		return newData;
 	} catch (e) {
 		logger.error('stateModel', e);
@@ -357,5 +424,7 @@ async function enrichGeojson(req, newData, oldData) {
 module.exports.getApproversList = getApproversList;
 module.exports.isWorkflowEnabled = isWorkflowEnabled;
 module.exports.hasSkipReview = hasSkipReview;
+module.exports.hasAdminAccess = hasAdminAccess;
 module.exports.getWorkflowItem = getWorkflowItem;
+module.exports.getNoOfApprovals = getNoOfApprovals;
 module.exports.simulate = simulate;

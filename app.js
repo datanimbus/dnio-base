@@ -8,6 +8,7 @@ if (process.env.NODE_ENV != 'production') {
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const bluebird = require('bluebird');
 const multer = require('multer');
 const log4js = require('log4js');
@@ -16,6 +17,7 @@ const mongoose = require('mongoose');
 mongoose.set('useFindAndModify', false);
 const utils = require('@appveen/utils');
 const dataStackUtils = require('@appveen/data.stack-utils');
+const { AuthCacheMW } = require('@appveen/ds-auth-cache');
 
 const config = require('./config');
 
@@ -58,7 +60,7 @@ require('./db-factory');
 const queueMgmt = require('./queue');
 const init = require('./init');
 const specialFields = require('./api/utils/special-fields.utils');
-require('./api/utils/roles.utils');
+// const roleUtils = require('./api/utils/roles.utils');
 
 let timeOut = process.env.API_REQUEST_TIMEOUT || 120;
 let secureFields = specialFields.secureFields;
@@ -72,8 +74,11 @@ let masking = [
 
 app.use(express.json({ limit: config.MaxJSONSize }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(utils.logMiddleware.getLogMiddleware(logger));
 app.use(upload.single('file'));
+// app.use(roleUtils.patchUserPermissions);
+app.use(AuthCacheMW({ secret: config.TOKEN_SECRET, decodeOnly: true, app: config.app }));
 app.use(function (req, res, next) {
 	if (config.disableInsights) next();
 	else {

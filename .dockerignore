@@ -4,3 +4,4 @@ Dockerfile
 .gitignore
 .git
 *.zip
+package-lock.json

@@ -15,12 +15,12 @@ const client = queueMgmt.client;
 
 client.on('connect', () => {
 	getHooks();
-	processHooksQueue();
+	// processHooksQueue();
 });
 
 client.on('reconnect', () => {
 	getHooks();
-	processHooksQueue();
+	// processHooksQueue();
 });
 
 // Function not used. commented
@@ -564,28 +564,28 @@ function callExperienceHook(req, res) {
 	}
 }
 
-function processHooksQueue() {
-	// check if this is running inside a worker
-	if (global.doNotSubscribe) return;
-	logger.info('Starting subscription to hooks channel');
-	try {
-		var opts = client.subscriptionOptions();
-		opts.setStartWithLastReceived();
-		opts.setDurableName(config.serviceId + '-hooks-durable');
-		var subscription = client.subscribe('sm-hooks', opts);
-		subscription.on('message', function (_body) {
-			try {
-				let bodyObj = JSON.parse(_body.getData());
-				logger.debug(`Message from hooks channel :: ${config.serviceId}-hooks :: ${JSON.stringify(bodyObj)}`);
-				setHooks(bodyObj);
-			} catch (err) {
-				logger.error(`Error processing hooks message :: ${err.message}`);
-			}
-		});
-	} catch (err) {
-		logger.error(`Hooks channel :: ${err.message}`);
-	}
-}
+// function processHooksQueue() {
+// 	// check if this is running inside a worker
+// 	if (global.doNotSubscribe) return;
+// 	logger.info('Starting subscription to hooks channel');
+// 	try {
+// 		var opts = client.subscriptionOptions();
+// 		opts.setStartWithLastReceived();
+// 		opts.setDurableName(config.serviceId + '-hooks-durable');
+// 		var subscription = client.subscribe('sm-hooks', opts);
+// 		subscription.on('message', function (_body) {
+// 			try {
+// 				let bodyObj = JSON.parse(_body.getData());
+// 				logger.debug(`Message from hooks channel :: ${config.serviceId}-hooks :: ${JSON.stringify(bodyObj)}`);
+// 				setHooks(bodyObj);
+// 			} catch (err) {
+// 				logger.error(`Error processing hooks message :: ${err.message}`);
+// 			}
+// 		});
+// 	} catch (err) {
+// 		logger.error(`Hooks channel :: ${err.message}`);
+// 	}
+// }
 
 async function setHooks(data) {
 	try {

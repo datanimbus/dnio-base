@@ -47,7 +47,6 @@ var definition = {
 			action: {
 				type: 'String',
 				required: true,
-				enum: ['Approved', 'Rejected', 'Declined', 'Draft', 'Submit', 'Discard', 'SentForRework', 'Edit', 'Error', 'Save & Submit']
 			},
 			remarks: {
 				type: 'String'
@@ -88,6 +87,9 @@ var definition = {
 		}
 	],
 	approvers: ['String'],
+	checkerStep: {
+		type: 'String',
+	},
 	status: {
 		type: 'String',
 		enum: ['Approved', 'Rejected', 'Pending', 'Failed', 'Draft', 'Discarded', 'Rework']
