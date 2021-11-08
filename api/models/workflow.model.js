@@ -39,6 +39,22 @@ const schema = new mongoose.Schema(definition, {
 schema.plugin(mongooseUtils.metadataPlugin());
 schema.index({ operation: 1, status: 1, documentId: 1, requestedBy: 1 });
 
+schema.pre('validate', async function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	const req = this._req;
+	try {
+		const errors = await specialFields.fixBoolean(req, newDoc, oldDoc);
+		if (errors) {
+			next(errors);
+		} else {
+			next();
+		}
+	} catch (e) {
+		next(e);
+	}
+});
+
 schema.pre('save', utils.counter.getIdGenerator('WF', 'workflow', null, null, 1000));
 // schema.pre('save', mongooseUtils.generateId('WF', 'workflow', null, null, 1000));
 
@@ -233,28 +249,6 @@ schema.pre('save', async function (next) {
 			let txnId = req.headers['txnid'];
 			logger.error(`[${txnId}] Error in validation date fields :: `, errors);
 			next(errors);
-		} else {
-			next();
-		}
-	} catch (e) {
-		next(e);
-	}
-});
-
-schema.pre('save', async function (next) {
-	const newDoc = this;
-	const oldDoc = this._oldDoc;
-	const req = this._req;
-	try {
-		if (req.query) {
-			const errors = await specialFields.cascadeRelation(req, newDoc, oldDoc);
-			if (errors) {
-				let txnId = req.headers['txnid'];
-				logger.error(`[${txnId}] Error in cascading relations :: `, errors);
-				next(errors);
-			} else {
-				next();
-			}
 		} else {
 			next();
 		}
