@@ -10,6 +10,7 @@ const hooksUtils = require('../utils/hooks.utils');
 const specialFields = require('../utils/special-fields.utils');
 const { removeNullForUniqueAttribute } = require('../utils/common.utils');
 const serviceData = require('../../service.json');
+const workflowUtils = require('../utils/workflow.utils');
 
 
 const logger = global.logger;
@@ -94,15 +95,18 @@ schema.pre('save', async function (next) {
 schema.pre('save', function (next) {
 	const newDoc = this;
 	const oldDoc = this._oldDoc;
+	const req = this._req;
 	
 	if ( serviceData.stateModel && serviceData.stateModel.enabled && !oldDoc && 
-		!serviceData.stateModel.initialStates.includes( _.get(newDoc, serviceData.stateModel.attribute) ) ) {
+		!serviceData.stateModel.initialStates.includes( _.get(newDoc, serviceData.stateModel.attribute) ) &&
+		!workflowUtils.hasAdminAccess(req, req.user.appPermissions) ) {
 		return next(new Error('Record is not in initial state.'));
 	}
 
 	if (serviceData.stateModel && serviceData.stateModel.enabled && oldDoc 
 		&& !serviceData.stateModel.states[_.get(oldDoc, serviceData.stateModel.attribute)].includes(_.get(newDoc, serviceData.stateModel.attribute)) 
-		&& _.get(oldDoc, serviceData.stateModel.attribute) !== _.get(newDoc, serviceData.stateModel.attribute)) {
+		&& _.get(oldDoc, serviceData.stateModel.attribute) !== _.get(newDoc, serviceData.stateModel.attribute) 
+		&& !workflowUtils.hasAdminAccess(req, req.user.appPermissions)) {
 		return next(new Error('State transition is not allowed'));
 	}
 	next();
