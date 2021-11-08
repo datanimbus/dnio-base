@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const utils = require('@appveen/utils');
+const _ = require('lodash');
 // const dataStackUtils = require('@appveen/data.stack-utils');
 
 const config = require('../../config');
@@ -7,6 +8,7 @@ const definition = require('../helpers/workflow.definition').definition;
 const mongooseUtils = require('../utils/mongoose.utils');
 const hooksUtils = require('../utils/hooks.utils');
 const specialFields = require('../utils/special-fields.utils');
+const serviceData = require('../../service.json');
 
 // const client = queue.client;
 const logger = global.logger;
@@ -141,6 +143,52 @@ schema.pre('save', async function (next) {
 	}
 });
 
+schema.pre('save', function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	
+	if ( serviceData.stateModel && serviceData.stateModel.enabled && !oldDoc && 
+		!serviceData.stateModel.initialStates.includes( _.get(newDoc, serviceData.stateModel.attribute) ) ) {
+		return next(new Error('Record is not in initial state.'));
+	}
+
+	if (serviceData.stateModel && serviceData.stateModel.enabled && oldDoc 
+		&& !serviceData.stateModel.states[_.get(oldDoc, serviceData.stateModel.attribute)].includes(_.get(newDoc, serviceData.stateModel.attribute)) 
+		&& _.get(oldDoc, serviceData.stateModel.attribute) !== _.get(newDoc, serviceData.stateModel.attribute)) {
+		return next(new Error('State transition is not allowed'));
+	}
+	next();
+
+});
+
+schema.pre('save', function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	const req = this._req;
+	const errors = specialFields.validateCreateOnly(req, newDoc, oldDoc);
+	if (errors) {
+		next(errors);
+	} else {
+		next();
+	}
+});
+
+schema.pre('save', async function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	const req = this._req;
+	try {
+		const errors = await specialFields.validateRelation(req, newDoc, oldDoc);
+		if (errors) {
+			next(errors);
+		} else {
+			next();
+		}
+	} catch (e) {
+		next(e);
+	}
+});
+
 schema.pre('save', async function (next) {
 	const newDoc = this.data.new;
 	const oldDoc = this.data.old;
@@ -153,6 +201,62 @@ schema.pre('save', async function (next) {
 			} else {
 				next();
 			}
+		}
+	} catch (e) {
+		next(e);
+	}
+});
+
+schema.pre('save', async function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	const req = this._req;
+	try {
+		const errors = await specialFields.enrichGeojson(req, newDoc, oldDoc);
+		if (errors) {
+			next(errors);
+		} else {
+			next();
+		}
+	} catch (e) {
+		next(e);
+	}
+});
+
+schema.pre('save', async function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	const req = this._req;
+	try {
+		const errors = await specialFields.validateDateFields(req, newDoc.data.new, oldDoc);
+		if (errors) {
+			let txnId = req.headers['txnid'];
+			logger.error(`[${txnId}] Error in validation date fields :: `, errors);
+			next(errors);
+		} else {
+			next();
+		}
+	} catch (e) {
+		next(e);
+	}
+});
+
+schema.pre('save', async function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	const req = this._req;
+	try {
+		if (req.query) {
+			const errors = await specialFields.cascadeRelation(req, newDoc, oldDoc);
+			if (errors) {
+				let txnId = req.headers['txnid'];
+				logger.error(`[${txnId}] Error in cascading relations :: `, errors);
+				next(errors);
+			} else {
+				next();
+			}
+		} else {
+			next();
 		}
 	} catch (e) {
 		next(e);
