@@ -75,6 +75,21 @@ schema.pre('save', function (next) {
 
 schema.pre('save', utils.counter.getIdGenerator(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER));
 
+schema.pre('save', function (next, req) {
+	let self = this;
+	if (self._metadata.version) {
+		self._metadata.version.release = process.env.RELEASE;
+	}
+	const headers = {};
+	const headersLen = this._req.rawHeaders.length;
+	for (let index = 0; index < headersLen; index += 2) {
+		headers[this._req.rawHeaders[index]] = this._req.rawHeaders[index + 1];
+	}
+	req.headers = headers;
+	this._req.headers = headers;
+	next();
+});
+
 schema.pre('save', async function (next) {
 	const req = this._req;
 	try {

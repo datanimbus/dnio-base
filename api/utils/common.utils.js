@@ -30,6 +30,7 @@ async function getDocumentIds(req, serviceId, filter) {
 			headers: {
 				'txnId': req ? req.headers[global.txnIdHeader] : '',
 				'user': req ? req.headers[global.userHeader] : '',
+				'authorization': req ? req.headers.authorization : '',
 				'Content-Type': 'application/json'
 			},
 			qs: {
@@ -114,6 +115,7 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 				headers: {
 					'txnId': req ? req.headers[global.txnIdHeader] : '',
 					'user': req ? req.headers[global.userHeader] : '',
+					'authorization': req ? req.headers.authorization : '',
 					'Content-Type': 'application/json'
 				},
 				qs: {
@@ -179,6 +181,7 @@ async function encryptText(req, data) {
 		headers: {
 			'txnId': req ? req.headers[global.txnIdHeader] : '',
 			'user': req ? req.headers[global.userHeader] : '',
+			'authorization': req ? req.headers.authorization : '',
 			'Content-Type': 'application/json',
 		},
 		body: { data },
@@ -222,6 +225,7 @@ async function decryptText(req, data) {
 		headers: {
 			'txnId': req ? req.headers[global.txnIdHeader] : '',
 			'user': req ? req.headers[global.userHeader] : '',
+			'authorization': req ? req.headers.authorization : '',
 			'Content-Type': 'application/json',
 		},
 		body: { data },
@@ -351,6 +355,7 @@ async function upsertDocument(req, serviceId, document) {
 				headers: {
 					'txnId': req ? req.headers[global.txnIdHeader] : '',
 					'user': req ? req.headers[global.userHeader] : '',
+					'authorization': req ? req.headers.authorization : '',
 					'Content-Type': 'application/json'
 				},
 				qs: {
