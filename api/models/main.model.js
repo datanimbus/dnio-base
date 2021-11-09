@@ -12,7 +12,7 @@ const { removeNullForUniqueAttribute } = require('../utils/common.utils');
 const serviceData = require('../../service.json');
 const helperUtil = require('../utils/common.utils');
 const workflowUtils = require('../utils/workflow.utils');
-const dataStackNS = process.env.DATA_STACK_NAMESPACE
+const dataStackNS = process.env.DATA_STACK_NAMESPACE;
 
 
 const logger = global.logger;
