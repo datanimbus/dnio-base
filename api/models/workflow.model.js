@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const utils = require('@appveen/utils');
+const _ = require('lodash');
 // const dataStackUtils = require('@appveen/data.stack-utils');
 
 const config = require('../../config');
@@ -7,6 +8,8 @@ const definition = require('../helpers/workflow.definition').definition;
 const mongooseUtils = require('../utils/mongoose.utils');
 const hooksUtils = require('../utils/hooks.utils');
 const specialFields = require('../utils/special-fields.utils');
+const serviceData = require('../../service.json');
+const workflowUtils = require('../utils/workflow.utils');
 
 // const client = queue.client;
 const logger = global.logger;
@@ -36,6 +39,22 @@ const schema = new mongoose.Schema(definition, {
 
 schema.plugin(mongooseUtils.metadataPlugin());
 schema.index({ operation: 1, status: 1, documentId: 1, requestedBy: 1 });
+
+schema.pre('validate', async function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	const req = this._req;
+	try {
+		const errors = await specialFields.fixBoolean(req, newDoc, oldDoc);
+		if (errors) {
+			next(errors);
+		} else {
+			next();
+		}
+	} catch (e) {
+		next(e);
+	}
+});
 
 schema.pre('save', utils.counter.getIdGenerator('WF', 'workflow', null, null, 1000));
 // schema.pre('save', mongooseUtils.generateId('WF', 'workflow', null, null, 1000));
@@ -141,6 +160,55 @@ schema.pre('save', async function (next) {
 	}
 });
 
+schema.pre('save', function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	const req = this._req;
+	
+	if ( serviceData.stateModel && serviceData.stateModel.enabled && !oldDoc && 
+		!serviceData.stateModel.initialStates.includes( _.get(newDoc, serviceData.stateModel.attribute) ) &&
+		!workflowUtils.hasAdminAccess(req, req.user.appPermissions) ) {
+		return next(new Error('Record is not in initial state.'));
+	}
+
+	if (serviceData.stateModel && serviceData.stateModel.enabled && oldDoc 
+		&& !serviceData.stateModel.states[_.get(oldDoc, serviceData.stateModel.attribute)].includes(_.get(newDoc, serviceData.stateModel.attribute)) 
+		&& _.get(oldDoc, serviceData.stateModel.attribute) !== _.get(newDoc, serviceData.stateModel.attribute) &&
+		!workflowUtils.hasAdminAccess(req, req.user.appPermissions)) {
+		return next(new Error('State transition is not allowed'));
+	}
+	next();
+
+});
+
+schema.pre('save', function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	const req = this._req;
+	const errors = specialFields.validateCreateOnly(req, newDoc, oldDoc);
+	if (errors) {
+		next(errors);
+	} else {
+		next();
+	}
+});
+
+schema.pre('save', async function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	const req = this._req;
+	try {
+		const errors = await specialFields.validateRelation(req, newDoc, oldDoc);
+		if (errors) {
+			next(errors);
+		} else {
+			next();
+		}
+	} catch (e) {
+		next(e);
+	}
+});
+
 schema.pre('save', async function (next) {
 	const newDoc = this.data.new;
 	const oldDoc = this.data.old;
@@ -153,6 +221,40 @@ schema.pre('save', async function (next) {
 			} else {
 				next();
 			}
+		}
+	} catch (e) {
+		next(e);
+	}
+});
+
+schema.pre('save', async function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	const req = this._req;
+	try {
+		const errors = await specialFields.enrichGeojson(req, newDoc, oldDoc);
+		if (errors) {
+			next(errors);
+		} else {
+			next();
+		}
+	} catch (e) {
+		next(e);
+	}
+});
+
+schema.pre('save', async function (next) {
+	const newDoc = this;
+	const oldDoc = this._oldDoc;
+	const req = this._req;
+	try {
+		const errors = await specialFields.validateDateFields(req, newDoc.data.new, oldDoc);
+		if (errors) {
+			let txnId = req.headers['txnid'];
+			logger.error(`[${txnId}] Error in validation date fields :: `, errors);
+			next(errors);
+		} else {
+			next();
 		}
 	} catch (e) {
 		next(e);
@@ -191,11 +293,12 @@ schema.pre('save', function (next) {
 schema.post('save', function (doc, next) {
 	const req = doc._req;
 	const txnid = req.headers[global.txnIdHeader] || req.headers['txnid'];
-	logger.debug(`[${txnid}] Workflow :: ${doc._id} :: Old status - ${this.oldStatus}, New status - ${doc.status}`);
-	if (!(this.oldStatus === doc.status)) {
+	const status = doc._status || doc.status;
+	logger.debug(`[${txnid}] Workflow :: ${doc._id} :: Old status - ${this.oldStatus}, New status - ${status}`);
+	if (!(this.oldStatus === status)) {
 		doc = doc.toObject();
 		let auditData = doc;
-		auditData.type = statusMap[doc.status];
+		auditData.type = statusMap[status];
 		auditData.txnId = txnid;
 		if (auditData.type) hooksUtils.prepWorkflowHooks(auditData);
 	}

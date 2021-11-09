@@ -8,6 +8,7 @@ const config = require('../../config');
 const hooksUtils = require('./hooks.utils');
 const specialFields = require('./special-fields.utils');
 const commonUtils = require('./common.utils');
+const serviceData = require('../../service.json');
 
 const logger = global.logger;
 const configDB = global.authorDB;
@@ -73,7 +74,7 @@ function getApproversList() {
 function isWorkflowEnabled() {
 	let flag = false;
 	try {
-		if (typeof specialFields.hasPermissionForREVIEW === 'function') {
+		if (serviceData.workflowConfig && serviceData.workflowConfig.enabled) {
 			flag = true;
 		}
 	} catch (err) {
@@ -86,6 +87,7 @@ function isWorkflowEnabled() {
 
 
 /**
+ * @deprecated
  * @returns {Promise<boolean>} Returns a boolean Promise
  */
 function hasSkipReview(req) {
@@ -124,20 +126,67 @@ function hasSkipReview(req) {
 	});
 }
 
+function hasAdminAccess(req, permissions) {
+	if (permissions && permissions.length > 0 && permissions.indexOf(`ADMIN_${config.serviceId}`) > -1) {
+		return true;
+	}
+	return false;
+}
+
 function getWorkflowItem(req, operation, _id, status, newDoc, oldDoc) {
+	let checkerStep;
+	if (serviceData.workflowConfig
+		&& serviceData.workflowConfig.makerCheckers
+		&& serviceData.workflowConfig.makerCheckers[0]
+		&& serviceData.workflowConfig.makerCheckers[0].steps[0]) {
+		checkerStep = serviceData.workflowConfig.makerCheckers[0].steps[0].name;
+	}
+	let audit = [];
+	if (newDoc && newDoc._workflow) {
+		audit = newDoc._workflow.audit || [];
+		delete newDoc._workflow;
+	}
+	if (!audit) {
+		audit = [];
+	}
+	if (audit.length === 0) {
+		audit.push({
+			by: 'user',
+			id: req.user._id,
+			action: 'Submit',
+			remarks: '',
+			timestamp: Date.now(),
+			attachments: []
+		});
+	}
 	return {
 		serviceId: config.serviceId,
 		documentId: _id,
 		operation: operation,
 		requestedBy: req.headers[global.userHeader],
 		app: config.app,
-		audit: [],
+		audit,
 		status: status,
+		checkerStep,
 		data: {
 			old: oldDoc ? (oldDoc) : null,
 			new: newDoc ? (newDoc) : null,
 		}
 	};
+}
+
+function getNoOfApprovals(req, currentStep) {
+	let approvals = 1;
+	if (serviceData.workflowConfig
+		&& serviceData.workflowConfig.makerCheckers
+		&& serviceData.workflowConfig.makerCheckers[0]
+		&& serviceData.workflowConfig.makerCheckers[0].steps) {
+		const step = serviceData.workflowConfig.makerCheckers[0].steps.find(e => e.name === currentStep);
+		if (step) {
+			approvals = step.approvals;
+		}
+	}
+	return approvals;
 }
 
 
@@ -375,5 +424,7 @@ async function enrichGeojson(req, newData, oldData) {
 module.exports.getApproversList = getApproversList;
 module.exports.isWorkflowEnabled = isWorkflowEnabled;
 module.exports.hasSkipReview = hasSkipReview;
+module.exports.hasAdminAccess = hasAdminAccess;
 module.exports.getWorkflowItem = getWorkflowItem;
+module.exports.getNoOfApprovals = getNoOfApprovals;
 module.exports.simulate = simulate;

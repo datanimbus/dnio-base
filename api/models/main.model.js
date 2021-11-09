@@ -10,7 +10,9 @@ const hooksUtils = require('../utils/hooks.utils');
 const specialFields = require('../utils/special-fields.utils');
 const { removeNullForUniqueAttribute } = require('../utils/common.utils');
 const serviceData = require('../../service.json');
-const helperUtil = require("../utils/common.utils");
+const helperUtil = require('../utils/common.utils');
+const workflowUtils = require('../utils/workflow.utils');
+const dataStackNS = process.env.DATA_STACK_NAMESPACE
 
 
 const logger = global.logger;
@@ -97,15 +99,18 @@ schema.pre('save', async function (next) {
 schema.pre('save', function (next) {
 	const newDoc = this;
 	const oldDoc = this._oldDoc;
-	
-	if ( serviceData.stateModel && serviceData.stateModel.enabled && !oldDoc && 
-		!serviceData.stateModel.initialStates.includes( _.get(newDoc, serviceData.stateModel.attribute) ) ) {
+	const req = this._req;
+
+	if (serviceData.stateModel && serviceData.stateModel.enabled && !oldDoc &&
+		!serviceData.stateModel.initialStates.includes(_.get(newDoc, serviceData.stateModel.attribute)) &&
+		!workflowUtils.hasAdminAccess(req, req.user.appPermissions)) {
 		return next(new Error('Record is not in initial state.'));
 	}
 
-	if (serviceData.stateModel && serviceData.stateModel.enabled && oldDoc 
-		&& !serviceData.stateModel.states[_.get(oldDoc, serviceData.stateModel.attribute)].includes(_.get(newDoc, serviceData.stateModel.attribute)) 
-		&& _.get(oldDoc, serviceData.stateModel.attribute) !== _.get(newDoc, serviceData.stateModel.attribute)) {
+	if (serviceData.stateModel && serviceData.stateModel.enabled && oldDoc
+		&& !serviceData.stateModel.states[_.get(oldDoc, serviceData.stateModel.attribute)].includes(_.get(newDoc, serviceData.stateModel.attribute))
+		&& _.get(oldDoc, serviceData.stateModel.attribute) !== _.get(newDoc, serviceData.stateModel.attribute)
+		&& !workflowUtils.hasAdminAccess(req, req.user.appPermissions)) {
 		return next(new Error('State transition is not allowed'));
 	}
 	next();
@@ -303,67 +308,67 @@ schema.post('save', function (error, doc, next) {
 });
 
 
-schema.pre("remove", function (next, req) {
+schema.pre('remove', function (next, req) {
 	this._req = req;
-	
-let promiseArr = [];
-let self = this;
-let inService = [];
-helperUtil.getServiceDetail(serviceId, this._req)
-	.then((serviceDetail) => {
-		let incoming = serviceDetail.relatedSchemas.incoming;
-		if (incoming && incoming.length !== 0) {
-			inService = incoming.map(obj => {
-				obj.uri = obj.uri.replace('{{id}}', self._id);
-				return obj;
-			});
-		}
-	})
-	.then(() => {
-		inService.forEach(obj => {
-			if(process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT){
-				let split = obj.uri.split('/');
-				obj.host=split[2].split("?")[0].toLowerCase() + "." + dataStackNS + "-"+split[1].toLowerCase().replace(/ /g, "");
-				obj.port = 80;
-			}else{
-				obj.host = "localhost"
+
+	let promiseArr = [];
+	let self = this;
+	let inService = [];
+	helperUtil.getServiceDetail(serviceId, this._req)
+		.then((serviceDetail) => {
+			let incoming = serviceDetail.relatedSchemas.incoming;
+			if (incoming && incoming.length !== 0) {
+				inService = incoming.map(obj => {
+					obj.uri = obj.uri.replace('{{id}}', self._id);
+					return obj;
+				});
 			}
-			promiseArr.push(getRelationCheckObj(obj, req));
-		});
-		return Promise.all(promiseArr);
-	})
-	.then((_relObj)=>{
-		if(_relObj && _relObj.length === inService.length){
-			_relObj.forEach(_o => {
-				if(_o.documents.length !== 0 && _o.isRequired){
-					next(new Error("Document still in use. Cannot Delete"));
+		})
+		.then(() => {
+			inService.forEach(obj => {
+				if (process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT) {
+					let split = obj.uri.split('/');
+					obj.host = split[2].split('?')[0].toLowerCase() + '.' + dataStackNS + '-' + split[1].toLowerCase().replace(/ /g, '');
+					obj.port = 80;
+				} else {
+					obj.host = 'localhost';
 				}
+				promiseArr.push(getRelationCheckObj(obj, req));
 			});
-		} else{
-			next(new Error("Cannot complete request"));
-		}
-		self._relObj = _relObj;
-		next();
-	})
-	.catch((err)=>{
-		next(err);
-	});
+			return Promise.all(promiseArr);
+		})
+		.then((_relObj) => {
+			if (_relObj && _relObj.length === inService.length) {
+				_relObj.forEach(_o => {
+					if (_o.documents.length !== 0 && _o.isRequired) {
+						next(new Error('Document still in use. Cannot Delete'));
+					}
+				});
+			} else {
+				next(new Error('Cannot complete request'));
+			}
+			self._relObj = _relObj;
+			next();
+		})
+		.catch((err) => {
+			next(err);
+		});
 });
 
 
-schema.post("remove", function (doc) {
+schema.post('remove', function (doc) {
 	let updateList = [];
 	doc._relObj.forEach(_o => {
 		_o.documents.forEach(_oDoc => {
-			let filter = _o.uri.split("?")[1].split("filter=")[1].split('&')[0];
+			let filter = _o.uri.split('?')[1].split('filter=')[1].split('&')[0];
 			filter = JSON.parse(filter);
-			let uriSplit = _o.uri.split("/");
-			let _service = { port: _o.port, uri: _o.uri.split("?")[0] + "/" + _oDoc._id }
+			let uriSplit = _o.uri.split('/');
+			let _service = { port: _o.port, uri: _o.uri.split('?')[0] + '/' + _oDoc._id };
 			if (process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT) {
 				_service.port = 80;
-				_service.host = uriSplit[2].split("?")[0].toLowerCase() + "." + dataStackNS + "-" + uriSplit[1].toLowerCase().replace(/ /g, "");
+				_service.host = uriSplit[2].split('?')[0].toLowerCase() + '.' + dataStackNS + '-' + uriSplit[1].toLowerCase().replace(/ /g, '');
 			} else {
-				_service.host = "localhost";
+				_service.host = 'localhost';
 			}
 			let ulObj = updateList.find(_ul => _ul.serviceId === _o.service && _ul.doc._id === _oDoc._id);
 			if (ulObj) {
@@ -371,12 +376,12 @@ schema.post("remove", function (doc) {
 			} else {
 				updateList.push({ serviceId: _o.service, doc: helperUtil.generateDocumentObj(filter, _oDoc, doc._id), _service: _service });
 			}
-		})
-	})
-	logger.debug(JSON.stringify({updateList}));
+		});
+	});
+	logger.debug(JSON.stringify({ updateList }));
 	updateList.forEach(ulObj => {
-		helperUtil.crudDocuments(ulObj._service, "PUT", ulObj.doc, null, doc._req)
-	})
+		helperUtil.crudDocuments(ulObj._service, 'PUT', ulObj.doc, null, doc._req);
+	});
 });
 
 
@@ -426,11 +431,11 @@ function isEqual(a, b) {
 	return (_.isEqual(a, b));
 }
 
-function getRelationCheckObj(obj, req){
-	return helperUtil.crudDocuments(obj, "GET", null, null, req)
-			.then(docs=>{
-				let retObj = JSON.parse(JSON.stringify(obj));
-				retObj.documents = docs;
-				return retObj;
-			})
+function getRelationCheckObj(obj, req) {
+	return helperUtil.crudDocuments(obj, 'GET', null, null, req)
+		.then(docs => {
+			let retObj = JSON.parse(JSON.stringify(obj));
+			retObj.documents = docs;
+			return retObj;
+		});
 }

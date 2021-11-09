@@ -29,7 +29,7 @@ const mathQueue = async.priorityQueue(processMathQueue);
 router.get('/doc', (req, res) => {
 	async function execute() {
 		try {
-			if (!specialFields.hasPermissionForGET(req, req.user.permissions)) {
+			if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
 				return res.status(403).json({
 					message: 'You don\'t have permission to fetch documentation',
 				});
@@ -57,7 +57,7 @@ router.get('/doc', (req, res) => {
 router.get('/utils/securedFields', (req, res) => {
 	async function execute() {
 		try {
-			if (!specialFields.hasPermissionForGET(req, req.user.permissions)) {
+			if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
 				return res.status(403).json({
 					message: 'You don\'t have permission to fetch secure fields',
 				});
@@ -81,7 +81,7 @@ router.get('/utils/securedFields', (req, res) => {
 router.get('/utils/bulkShow', (req, res) => {
 	async function execute() {
 		try {
-			if (!specialFields.hasPermissionForGET(req, req.user.permissions)) {
+			if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
 				return res.status(403).json({
 					message: 'You don\'t have permission to fetch records',
 				});
@@ -102,7 +102,7 @@ router.get('/utils/bulkShow', (req, res) => {
 				sort = req.query.sort.split(',').join(' ');
 			}
 			const docs = await model.find(filter).select(select).sort(sort).lean();
-			docs.forEach(doc => specialFields.filterByPermission(req, req.user.permissions, doc));
+			docs.forEach(doc => specialFields.filterByPermission(req, req.user.appPermissions, doc));
 			res.status(200).json(docs);
 		} catch (e) {
 			if (typeof e === 'string') {
@@ -127,7 +127,7 @@ router.put('/bulkUpdate', (req, res) => {
 				message: 'Invalid IDs',
 			});
 		}
-		if (!specialFields.hasPermissionForPUT(req, req.user.permissions)) {
+		if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
 			return res.status(403).json({
 				message: 'You don\'t have permission to update records',
 			});
@@ -157,8 +157,7 @@ router.put('/bulkUpdate', (req, res) => {
 				doc._oldDoc = doc.toObject();
 				const payload = doc.toObject();
 				_.mergeWith(payload, req.body, mergeCustomizer);
-				// const hasSkipReview = await workflowUtils.hasSkipReview(req);
-				const hasSkipReview = specialFields.hasPermissionForSKIP_REVIEW(req, req.user.permissions);
+				const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 				if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
 					const wfItem = workflowUtils.getWorkflowItem(
 						req,
@@ -210,7 +209,7 @@ router.delete('/utils/bulkDelete', (req, res) => {
 				message: 'Invalid IDs',
 			});
 		}
-		if (!specialFields.hasPermissionForDELETE(req, req.user.permissions)) {
+		if (!specialFields.hasPermissionForDELETE(req, req.user.appPermissions)) {
 			return res.status(403).json({
 				message: 'You don\'t have permission to delete records',
 			});
@@ -232,8 +231,7 @@ router.delete('/utils/bulkDelete', (req, res) => {
 			const promises = docs.map(async (doc) => {
 				doc._req = req;
 				doc._oldDoc = doc.toObject();
-				// const hasSkipReview = await workflowUtils.hasSkipReview(req);
-				const hasSkipReview = specialFields.hasPermissionForSKIP_REVIEW(req, req.user.permissions);
+				const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 				if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
 					const wfItem = workflowUtils.getWorkflowItem(
 						req,
@@ -349,7 +347,7 @@ router.get('/', (req, res) => {
 		try {
 			let filter = {};
 			let errors = {};
-			if (!specialFields.hasPermissionForGET(req, req.user.permissions)) {
+			if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
 				return res.status(403).json({
 					message: 'You don\'t have permission to fetch records',
 				});
@@ -414,7 +412,7 @@ router.get('/', (req, res) => {
 				.skip(skip)
 				.limit(count)
 				.lean();
-			docs.forEach(doc => specialFields.filterByPermission(req, req.user.permissions, doc));
+			docs.forEach(doc => specialFields.filterByPermission(req, req.user.appPermissions, doc));
 			if (req.query.expand == true || req.query.expand == 'true') {
 				let promises = docs.map((e) =>
 					specialFields.expandDocument(req, e, null, true)
@@ -424,8 +422,8 @@ router.get('/', (req, res) => {
 			}
 			if (
 				specialFields.secureFields &&
-                specialFields.secureFields.length &&
-                specialFields.secureFields[0]
+				specialFields.secureFields.length &&
+				specialFields.secureFields[0]
 			) {
 				let promises = docs.map((e) =>
 					specialFields.decryptSecureFields(req, e, null)
@@ -452,7 +450,7 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
 	async function execute() {
 		try {
-			if (!specialFields.hasPermissionForGET(req, req.user.permissions)) {
+			if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
 				return res.status(403).json({
 					message: 'You don\'t have permission to fetch a record',
 				});
@@ -463,15 +461,15 @@ router.get('/:id', (req, res) => {
 					message: `Record With ID  ${req.params.id} Not Found.`,
 				});
 			}
-			specialFields.filterByPermission(req, req.user.permissions, doc);
+			specialFields.filterByPermission(req, req.user.appPermissions, doc);
 			const expandLevel = (req.header('expand-level') || 0) + 1;
 			if ((req.query.expand == true || req.query.expand == 'true') && expandLevel < 3) {
 				doc = await specialFields.expandDocument(req, doc);
 			}
 			if (
 				specialFields.secureFields &&
-                specialFields.secureFields.length &&
-                specialFields.secureFields[0]
+				specialFields.secureFields.length &&
+				specialFields.secureFields[0]
 			) {
 				await specialFields.decryptSecureFields(req, doc, null);
 			}
@@ -501,7 +499,7 @@ router.post('/', (req, res) => {
 		} catch (err) {
 			return res.status(400).json({ message: err.message });
 		}
-		if (!specialFields.hasPermissionForPOST(req, req.user.permissions)) {
+		if (!specialFields.hasPermissionForPOST(req, req.user.appPermissions)) {
 			return res.status(403).json({
 				message: 'You don\'t have permission to create records',
 			});
@@ -512,18 +510,18 @@ router.post('/', (req, res) => {
 
 		let payload = req.body;
 
-		if (serviceData.stateModel && serviceData.stateModel.enabled &&
-            !serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
-			throw new Error('Record is not in initial state.');
-		}
-
 		try {
 			let promises;
-			// const hasSkipReview = await workflowUtils.hasSkipReview(req);
-			const hasSkipReview = specialFields.hasPermissionForSKIP_REVIEW(req, req.user.permissions);
+			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
+
+			if (serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview &&
+				!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
+				throw new Error('Record is not in initial state.');
+			}
+
 			if (
 				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
-                req.query.draft
+				req.query.draft
 			) {
 				let wfItemStatus = 'Pending';
 				if (req.query.draft) {
@@ -539,6 +537,8 @@ router.post('/', (req, res) => {
 							e,
 							null
 						);
+						const doc = new model(e);
+						await doc.validate();
 						const wfDoc = new workflowModel(wfItem);
 						wfDoc._req = req;
 						const status = await wfDoc.save();
@@ -557,6 +557,8 @@ router.post('/', (req, res) => {
 						payload,
 						null
 					);
+					const doc = new model(payload);
+					await doc.validate();
 					const wfDoc = new workflowModel(wfItem);
 					wfDoc._req = req;
 					const status = await wfDoc.save();
@@ -608,7 +610,7 @@ router.put('/:id', (req, res) => {
 		} catch (err) {
 			return res.status(400).json({ message: err.message });
 		}
-		if (!specialFields.hasPermissionForPUT(req, req.user.permissions)) {
+		if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
 			return res.status(403).json({
 				message: 'You don\'t have permission to update records',
 			});
@@ -623,6 +625,7 @@ router.put('/:id', (req, res) => {
 			let wfId;
 			let isNewDoc = false;
 			let doc = await model.findById(req.params.id);
+			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 
 			if (!doc && !upsert) {
 				return res.status(404).json({
@@ -637,15 +640,15 @@ router.put('/:id', (req, res) => {
 				delete payload.__v;
 				doc = new model(payload);
 
-				if (serviceData.stateModel && serviceData.stateModel.enabled &&
-                    !serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
+				if (serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview &&
+					!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
 					throw new Error('Record is not in initial state.');
 				}
 			}
 
-			if (serviceData.stateModel && serviceData.stateModel.enabled && !isNewDoc
-                && !serviceData.stateModel.states[_.get(doc, serviceData.stateModel.attribute)].includes(_.get(payload, serviceData.stateModel.attribute))
-                && _.get(doc, serviceData.stateModel.attribute) !== _.get(payload, serviceData.stateModel.attribute)) {
+			if (serviceData.stateModel && serviceData.stateModel.enabled && !isNewDoc && !hasSkipReview
+				&& !serviceData.stateModel.states[_.get(doc, serviceData.stateModel.attribute)].includes(_.get(payload, serviceData.stateModel.attribute))
+				&& _.get(doc, serviceData.stateModel.attribute) !== _.get(payload, serviceData.stateModel.attribute)) {
 				throw new Error('State transition is not allowed');
 			}
 
@@ -659,11 +662,10 @@ router.put('/:id', (req, res) => {
 				doc._oldDoc = doc.toObject();
 			}
 			doc._req = req;
-			// const hasSkipReview = await workflowUtils.hasSkipReview(req);
-			const hasSkipReview = specialFields.hasPermissionForSKIP_REVIEW(req, req.user.permissions);
+			
 			if (
 				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
-                req.query.draft
+				req.query.draft
 			) {
 				let wfItemStatus = 'Pending';
 				if (req.query.draft) {
@@ -677,6 +679,8 @@ router.put('/:id', (req, res) => {
 					payload,
 					isNewDoc ? null : doc._oldDoc
 				);
+				const document = new model(payload);
+				await document.validate();
 				const wfDoc = new workflowModel(wfItem);
 				wfDoc._req = req;
 				status = await wfDoc.save();
@@ -710,7 +714,7 @@ router.delete('/:id', (req, res) => {
 		if (req.query.txn == true) {
 			return transactionUtils.transferToTransaction(req, res);
 		}
-		if (!specialFields.hasPermissionForDELETE(req, req.user.permissions)) {
+		if (!specialFields.hasPermissionForDELETE(req, req.user.appPermissions)) {
 			return res.status(403).json({
 				message: 'You don\'t have permission to update records',
 			});
@@ -733,8 +737,7 @@ router.delete('/:id', (req, res) => {
 			}
 			doc._req = req;
 			doc._oldDoc = doc.toObject();
-			// const hasSkipReview = await workflowUtils.hasSkipReview(req);
-			const hasSkipReview = specialFields.hasPermissionForSKIP_REVIEW(req, req.user.permissions);
+			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 			let wfId;
 			if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
 				const wfItem = workflowUtils.getWorkflowItem(
@@ -781,15 +784,14 @@ router.delete('/:id', (req, res) => {
 router.put('/:id/math', (req, res) => {
 	async function execute() {
 		try {
-			if (!specialFields.hasPermissionForPUT(req, req.user.permissions)) {
+			if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
 				return res.status(403).json({
 					message: 'You don\'t have permission to update records',
 				});
 			}
-			// const hasSkipReview = await workflowUtils.hasSkipReview(req);
-			const hasSkipReview = specialFields.hasPermissionForSKIP_REVIEW(req, req.user.permissions);
+			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 			if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
-				return res.status(403).json({ message: 'User Must have SKIP_REVIEW Permission to use Math API' });
+				return res.status(403).json({ message: 'User Must have Admin Permission to use Math API' });
 			}
 			mathQueue.push({ req, res });
 		} catch (e) {
@@ -847,7 +849,7 @@ function addAuthHeader(paths, jwt) {
 		Object.keys(paths[path]).forEach((method) => {
 			if (
 				typeof paths[path][method] == 'object' &&
-                paths[path][method]['parameters']
+				paths[path][method]['parameters']
 			) {
 				let authObj = paths[path][method]['parameters'].find(
 					(obj) => obj.name == 'authorization'
@@ -1126,9 +1128,9 @@ async function processMathQueue(obj, callback) {
 		}
 		if (
 			err.message == 'CUSTOM_READ_CONFLICT' ||
-            (err.errmsg === 'WriteConflict' &&
-                err.errorLabels &&
-                err.errorLabels.indexOf('TransientTransactionError') > -1)
+			(err.errmsg === 'WriteConflict' &&
+				err.errorLabels &&
+				err.errorLabels.indexOf('TransientTransactionError') > -1)
 		) {
 			logger.error('=================');
 			req.simulateFlag = true;

@@ -86,11 +86,6 @@ function validateDateFields() {
 
 }
 
-
-function hasPermissionForSKIP_REVIEW(permissions) {
-	return true;
-}
-module.exports.hasPermissionForSKIP_REVIEW = hasPermissionForSKIP_REVIEW;
 function hasPermissionForPOST(permissions) {
 	return true;
 }
@@ -111,6 +106,11 @@ module.exports.hasPermissionForGET = hasPermissionForGET;
 function filterByPermission(permissions, data) {
 }
 
+function getNextWFStep(req, currStep) {
+
+}
+
+const hasWFPermissionFor = {};
 
 module.exports.createOnlyFields = createOnlyFields;
 module.exports.precisionFields = precisionFields;
@@ -130,3 +130,5 @@ module.exports.enrichGeojson = enrichGeojson;
 module.exports.validateDateFields = validateDateFields;
 module.exports.mongooseUniquePlugin = mongooseUniquePlugin;
 module.exports.filterByPermission = filterByPermission;
+module.exports.getNextWFStep = getNextWFStep;
+module.exports.hasWFPermissionFor = hasWFPermissionFor
