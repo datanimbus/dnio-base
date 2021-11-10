@@ -323,7 +323,7 @@ schema.post('save', function (error, doc, next) {
 });
 
 
-schema.pre('remove', function (next, req) {
+schema.pre('remove', function (next) {
 	let promiseArr = [];
 	let self = this;
 	let inService = [];

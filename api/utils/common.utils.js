@@ -78,6 +78,9 @@ async function getUserDoc(req, userId) {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
+					'TxnId': req ? req.headers[global.txnIdHeader] : '',
+					'User': req ? req.headers[global.userHeader] : '',
+					'Authorization': req ? req.headers.authorization : '',
 				},
 				json: true
 			}).then(res => {
@@ -401,7 +404,7 @@ e.getServiceDetail = function (serviceId, req) {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
-			'TxnId': req.headers ? req.headers[global.txnIdHeader]: '',
+			'TxnId': req.headers ? req.headers[global.txnIdHeader] : '',
 			'Authorization': req.headers ? req.headers.authorization : ''
 		},
 		json: true
