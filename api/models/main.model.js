@@ -324,8 +324,6 @@ schema.post('save', function (error, doc, next) {
 
 
 schema.pre('remove', function (next, req) {
-	this._req = req;
-
 	let promiseArr = [];
 	let self = this;
 	let inService = [];
@@ -348,7 +346,7 @@ schema.pre('remove', function (next, req) {
 				} else {
 					obj.host = 'localhost';
 				}
-				promiseArr.push(getRelationCheckObj(obj, req));
+				promiseArr.push(getRelationCheckObj(obj, this._req));
 			});
 			return Promise.all(promiseArr);
 		})
