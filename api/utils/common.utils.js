@@ -30,6 +30,7 @@ async function getDocumentIds(req, serviceId, filter) {
 			headers: {
 				'txnId': req ? req.headers[global.txnIdHeader] : '',
 				'user': req ? req.headers[global.userHeader] : '',
+				'authorization': req ? req.headers.authorization : '',
 				'Content-Type': 'application/json'
 			},
 			qs: {
@@ -114,6 +115,7 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 				headers: {
 					'txnId': req ? req.headers[global.txnIdHeader] : '',
 					'user': req ? req.headers[global.userHeader] : '',
+					'authorization': req ? req.headers.authorization : '',
 					'Content-Type': 'application/json'
 				},
 				qs: {
@@ -179,6 +181,7 @@ async function encryptText(req, data) {
 		headers: {
 			'txnId': req ? req.headers[global.txnIdHeader] : '',
 			'user': req ? req.headers[global.userHeader] : '',
+			'authorization': req ? req.headers.authorization : '',
 			'Content-Type': 'application/json',
 		},
 		body: { data },
@@ -222,6 +225,7 @@ async function decryptText(req, data) {
 		headers: {
 			'txnId': req ? req.headers[global.txnIdHeader] : '',
 			'user': req ? req.headers[global.userHeader] : '',
+			'authorization': req ? req.headers.authorization : '',
 			'Content-Type': 'application/json',
 		},
 		body: { data },
@@ -351,6 +355,7 @@ async function upsertDocument(req, serviceId, document) {
 				headers: {
 					'txnId': req ? req.headers[global.txnIdHeader] : '',
 					'user': req ? req.headers[global.userHeader] : '',
+					'authorization': req ? req.headers.authorization : '',
 					'Content-Type': 'application/json'
 				},
 				qs: {
@@ -396,8 +401,8 @@ e.getServiceDetail = function (serviceId, req) {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
-			'TxnId': req.headers[global.txnIdHeader],
-			'Authorization': req.headers.authorization
+			'TxnId': req.headers ? req.headers[global.txnIdHeader]: '',
+			'Authorization': req.headers ? req.headers.authorization : ''
 		},
 		json: true
 	};
@@ -903,9 +908,9 @@ function crudDocuments(_service, method, body, qs, req) {
 		method: method.toUpperCase(),
 		headers: {
 			'Content-Type': 'application/json',
-			'TxnId': req.headers['txnid'],
-			'Authorization': req.headers['authorization'],
-			'Cache': req.headers['cache']
+			'TxnId': req.headers ? req.headers['txnid'] : '',
+			'Authorization': req.headers ? req.headers['authorization'] : '',
+			'Cache': req.headers ? req.headers['cache'] : ''
 		},
 		json: true
 	};
