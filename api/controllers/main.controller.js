@@ -510,14 +510,15 @@ router.post('/', (req, res) => {
 
 		let payload = req.body;
 
-		if (serviceData.stateModel && serviceData.stateModel.enabled &&
-			!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
-			throw new Error('Record is not in initial state.');
-		}
-
 		try {
 			let promises;
 			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
+
+			if (serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview &&
+				!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
+				throw new Error('Record is not in initial state.');
+			}
+
 			if (
 				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
 				req.query.draft
@@ -536,6 +537,8 @@ router.post('/', (req, res) => {
 							e,
 							null
 						);
+						const doc = new model(e);
+						await doc.validate();
 						const wfDoc = new workflowModel(wfItem);
 						wfDoc._req = req;
 						const status = await wfDoc.save();
@@ -554,6 +557,8 @@ router.post('/', (req, res) => {
 						payload,
 						null
 					);
+					const doc = new model(payload);
+					await doc.validate();
 					const wfDoc = new workflowModel(wfItem);
 					wfDoc._req = req;
 					const status = await wfDoc.save();
@@ -620,6 +625,7 @@ router.put('/:id', (req, res) => {
 			let wfId;
 			let isNewDoc = false;
 			let doc = await model.findById(req.params.id);
+			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 
 			if (!doc && !upsert) {
 				return res.status(404).json({
@@ -634,13 +640,13 @@ router.put('/:id', (req, res) => {
 				delete payload.__v;
 				doc = new model(payload);
 
-				if (serviceData.stateModel && serviceData.stateModel.enabled &&
+				if (serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview &&
 					!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
 					throw new Error('Record is not in initial state.');
 				}
 			}
 
-			if (serviceData.stateModel && serviceData.stateModel.enabled && !isNewDoc
+			if (serviceData.stateModel && serviceData.stateModel.enabled && !isNewDoc && !hasSkipReview
 				&& !serviceData.stateModel.states[_.get(doc, serviceData.stateModel.attribute)].includes(_.get(payload, serviceData.stateModel.attribute))
 				&& _.get(doc, serviceData.stateModel.attribute) !== _.get(payload, serviceData.stateModel.attribute)) {
 				throw new Error('State transition is not allowed');
@@ -656,7 +662,7 @@ router.put('/:id', (req, res) => {
 				doc._oldDoc = doc.toObject();
 			}
 			doc._req = req;
-			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
+			
 			if (
 				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
 				req.query.draft
@@ -673,6 +679,8 @@ router.put('/:id', (req, res) => {
 					payload,
 					isNewDoc ? null : doc._oldDoc
 				);
+				const document = new model(payload);
+				await document.validate();
 				const wfDoc = new workflowModel(wfItem);
 				wfDoc._req = req;
 				status = await wfDoc.save();
