@@ -116,9 +116,9 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 				url: config.baseUrlSM + '/service/' + serviceId,
 				method: 'GET',
 				headers: {
-					'txnId': req ? req.headers[global.txnIdHeader] : '',
-					'user': req ? req.headers[global.userHeader] : '',
-					'authorization': req ? req.headers.authorization : '',
+					'TxnId': req ? req.headers[global.txnIdHeader] : '',
+					'User': req ? req.headers[global.userHeader] : '',
+					'Authorization': req ? req.headers.authorization : '',
 					'Content-Type': 'application/json'
 				},
 				qs: {
@@ -139,8 +139,8 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 				url: api,
 				method: 'GET',
 				headers: {
-					'txnId': req ? req.headers[global.txnIdHeader] : '',
-					'authorization': req ? req.headers.authorization : '',
+					'TxnId': req ? req.headers[global.txnIdHeader] : '',
+					'Authorization': req ? req.headers.authorization : '',
 					'Content-Type': 'application/json',
 					'Expand-Level': expandLevel
 				},
@@ -182,9 +182,9 @@ async function encryptText(req, data) {
 		url: config.baseUrlSEC + '/enc/' + config.app + '/encrypt',
 		method: 'POST',
 		headers: {
-			'txnId': req ? req.headers[global.txnIdHeader] : '',
-			'user': req ? req.headers[global.userHeader] : '',
-			'authorization': req ? req.headers.authorization : '',
+			'TxnId': req ? req.headers[global.txnIdHeader] : '',
+			'User': req ? req.headers[global.userHeader] : '',
+			'Authorization': req ? req.headers.authorization : '',
 			'Content-Type': 'application/json',
 		},
 		body: { data },
@@ -226,9 +226,9 @@ async function decryptText(req, data) {
 		url: config.baseUrlSEC + '/enc/' + config.app + '/decrypt',
 		method: 'POST',
 		headers: {
-			'txnId': req ? req.headers[global.txnIdHeader] : '',
-			'user': req ? req.headers[global.userHeader] : '',
-			'authorization': req ? req.headers.authorization : '',
+			'TxnId': req ? req.headers[global.txnIdHeader] : '',
+			'User': req ? req.headers[global.userHeader] : '',
+			'Authorization': req ? req.headers.authorization : '',
 			'Content-Type': 'application/json',
 		},
 		body: { data },
