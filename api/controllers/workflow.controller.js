@@ -486,9 +486,6 @@ async function approve(req, res) {
 		const attachments = req.body.attachments || [];
 		const results = [];
 		const promises = docs.map(async (doc) => {
-			if (!specialFields.hasWFPermissionFor[doc.checkerStep](req, req.user.appPermissions)) {
-				return results.push({ status: 400, message: 'No Permission to approve WF record', id: doc._id });
-			}
 			let isFailed = false;
 			const event = {
 				by: 'user',
@@ -497,6 +494,11 @@ async function approve(req, res) {
 				attachments: attachments,
 				timestamp: Date.now()
 			};
+			if (!specialFields.hasWFPermissionFor[doc.checkerStep](req, req.user.appPermissions)) {
+				isFailed = true;
+				event._noInsert = true;
+				return results.push({ status: 400, message: 'No Permission to approve WF record', id: doc._id });
+			}
 			try {
 				let serviceDoc;
 				const tempReq = _.cloneDeep(req);
@@ -504,6 +506,8 @@ async function approve(req, res) {
 				const errors = await specialFields.validateRelation(req, doc.data.new, doc.data.old);
 				if (errors) {
 					logger.error('Relation Validation Failed:', errors);
+					isFailed = true;
+					event._noInsert = true;
 					return results.push({ status: 400, message: 'Error While Validating Relation', id: doc._id, errors: errors });
 				}
 				const nextStep = specialFields.getNextWFStep(req, doc.checkerStep);
