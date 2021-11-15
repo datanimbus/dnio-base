@@ -70,11 +70,11 @@ async function getDocumentIds(req, serviceId, filter) {
 async function getUserDoc(req, userId) {
 	let key = 'USER_' + userId + '_' + req.headers[global.userHeader];
 	let user = documentCache.get(key);
-	const userUrl = `/api/a/rbac/usr/${userId}`;
+	const userUrl = `/api/a/rbac/usr/app/${config.app}/${userId}`;
 	try {
 		if (!user) {
 			user = await httpClient.httpRequest({
-				url: `${config.baseUrlUSR}/usr/${userId}?app=${config.app}`,
+				url: `${config.baseUrlUSR}/usr/app/${config.app}/${userId}`,
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
