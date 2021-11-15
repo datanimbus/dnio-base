@@ -25,7 +25,7 @@ async function getDocumentIds(req, serviceId, filter) {
 	let document;
 	if (!service) {
 		service = httpClient.httpRequest({
-			url: config.baseUrlSM + '/service/' + serviceId,
+			url: config.baseUrlSM + '/service/' + serviceId + `?app=${config.app}`,
 			method: 'GET',
 			headers: {
 				'txnId': req ? req.headers[global.txnIdHeader] : '',
@@ -74,7 +74,7 @@ async function getUserDoc(req, userId) {
 	try {
 		if (!user) {
 			user = await httpClient.httpRequest({
-				url: `${config.baseUrlUSR}/usr/${userId}`,
+				url: `${config.baseUrlUSR}/usr/${userId}?app=${config.app}`,
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 	try {
 		if (!service) {
 			service = httpClient.httpRequest({
-				url: config.baseUrlSM + '/service/' + serviceId,
+				url: config.baseUrlSM + '/service/' + serviceId + `?app=${config.app}`,
 				method: 'GET',
 				headers: {
 					'TxnId': req ? req.headers[global.txnIdHeader] : '',
