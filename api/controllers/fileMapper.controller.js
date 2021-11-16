@@ -90,7 +90,8 @@ router.post('/:fileId/create', (req, res) => {
 			const result = await threadUtils.executeThread(txnId, 'file-mapper-create', {
 				req: {
 					headers: req.headers,
-					user: req.user
+					user: req.user,
+					rawHeaders: req.rawHeaders
 				},
 				fileId,
 				data
@@ -140,7 +141,8 @@ router.put('/:fileId/mapping', (req, res) => {
 			const result = await threadUtils.executeThread(txnId, 'file-mapper-validation', {
 				req: {
 					headers: req.headers,
-					user: req.user
+					user: req.user,
+					rawHeaders: req.rawHeaders
 				},
 				fileId,
 				data

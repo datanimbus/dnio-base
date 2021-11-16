@@ -50,16 +50,18 @@ router.post('/', (req, res) => {
 		try {
 			let txnId = req.get(global.txnIdHeader);
 			const fileId = uuid();
-			res.status(200).json({_id: fileId, message: 'Process queued' });
+			res.status(200).json({ _id: fileId, message: 'Process queued' });
 			const result = await threadUtils.executeThread(txnId, 'export', {
 				fileId,
 				reqData: {
 					headers: req.headers,
-					query: req.body
+					query: req.body,
+					rawHeaders: req.rawHeaders,
+					user: req.user
 				}
 			});
 			logger.info(`[${txnId}] : File export result :: `, result);
-			informGW(result , req.get('Authorization'));
+			informGW(result, req.get('Authorization'));
 		} catch (e) {
 			if (typeof e === 'string') {
 				throw new Error(e);
@@ -69,7 +71,7 @@ router.post('/', (req, res) => {
 	}
 	execute().catch(err => {
 		logger.error('Error in /utils/export execute :: ', err);
-		if(!res.headersSent) {
+		if (!res.headersSent) {
 			res.status(500).json({
 				message: err.message
 			});
@@ -77,10 +79,10 @@ router.post('/', (req, res) => {
 	});
 });
 
-function informGW(data, jwtToken){
- 
+function informGW(data, jwtToken) {
+
 	var options = {
-		url: config.baseUrlGW +  '/gw/fileStatus/export',
+		url: config.baseUrlGW + '/gw/fileStatus/export',
 		method: 'PUT',
 		headers: {
 			'Content-Type': 'application/json',

@@ -149,7 +149,9 @@ router.put('/review', async (req, res) => {
 			dedupeId,
 			dedupeFields,
 			reqData: {
-				headers: req.headers
+				headers: req.headers,
+				rawHeaders: req.rawHeaders,
+				user: req.user
 			}
 		});
 		logger.info(`[${txnId}] : Dedupe ID ${dedupeId} result :: `, result);
@@ -300,7 +302,9 @@ router.put('/:dedupeId/apply', async (req, res) => {
 			dedupeId,
 			dedupeFields,
 			reqData: {
-				headers: req.headers
+				headers: req.headers,
+				rawHeaders: req.rawHeaders,
+				user: req.user
 			}
 		});
 		logger.info(`[${txnId}] : Apply Dedupe ID ${dedupeId} result :: `, result);
