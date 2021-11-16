@@ -41,8 +41,8 @@ schema.plugin(mongooseUtils.metadataPlugin());
 schema.index({ operation: 1, status: 1, documentId: 1, requestedBy: 1 });
 
 schema.pre('validate', async function (next) {
-	const newDoc = this;
-	const oldDoc = this._oldDoc;
+	const newDoc = this.data.new;
+	const oldDoc = this.data.old;
 	const req = this._req;
 	try {
 		const errors = await specialFields.fixBoolean(req, newDoc, oldDoc);
@@ -161,8 +161,8 @@ schema.pre('save', async function (next) {
 });
 
 schema.pre('save', function (next) {
-	const newDoc = this;
-	const oldDoc = this._oldDoc;
+	const newDoc = this.data.new;
+	const oldDoc = this.data.old;
 	const req = this._req;
 	
 	if ( serviceData.stateModel && serviceData.stateModel.enabled && !oldDoc && 
@@ -182,8 +182,8 @@ schema.pre('save', function (next) {
 });
 
 schema.pre('save', function (next) {
-	const newDoc = this;
-	const oldDoc = this._oldDoc;
+	const newDoc = this.data.new;
+	const oldDoc = this.data.old;
 	const req = this._req;
 	const errors = specialFields.validateCreateOnly(req, newDoc, oldDoc);
 	if (errors) {
@@ -194,8 +194,8 @@ schema.pre('save', function (next) {
 });
 
 schema.pre('save', async function (next) {
-	const newDoc = this;
-	const oldDoc = this._oldDoc;
+	const newDoc = this.data.new;
+	const oldDoc = this.data.old;
 	const req = this._req;
 	try {
 		const errors = await specialFields.validateRelation(req, newDoc, oldDoc);
@@ -228,8 +228,8 @@ schema.pre('save', async function (next) {
 });
 
 schema.pre('save', async function (next) {
-	const newDoc = this;
-	const oldDoc = this._oldDoc;
+	const newDoc = this.data.new;
+	const oldDoc = this.data.old;
 	const req = this._req;
 	try {
 		const errors = await specialFields.enrichGeojson(req, newDoc, oldDoc);
@@ -244,8 +244,8 @@ schema.pre('save', async function (next) {
 });
 
 schema.pre('save', async function (next) {
-	const newDoc = this;
-	const oldDoc = this._oldDoc;
+	const newDoc = this.data.new;
+	const oldDoc = this.data.old;
 	const req = this._req;
 	try {
 		const errors = await specialFields.validateDateFields(req, newDoc.data.new, oldDoc);
