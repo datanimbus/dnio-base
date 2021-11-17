@@ -540,6 +540,7 @@ async function approve(req, res) {
 				}
 				const nextStep = specialFields.getNextWFStep(req, doc.checkerStep);
 				event.action = doc.checkerStep;
+				doc.respondedBy = req.user._id;
 				if (!nextStep) {
 					await specialFields.decryptSecureFields(req, doc.data.new, null);
 					if (doc.operation == 'POST') {
@@ -573,7 +574,6 @@ async function approve(req, res) {
 					}
 					doc._status = 'Approved';
 					doc.status = 'Approved';
-					doc.respondedBy = req.user._id;
 				} else {
 					isFailed = true;
 					doc._status = 'Approved';
@@ -609,14 +609,14 @@ async function approve(req, res) {
 				}
 				if (!event._noInsert) {
 					doc.audit.push(event);
+					doc.markModified('audit');
 				}
-				doc.markModified('audit');
 				doc._req = req;
 				if (!isFailed) {
 					doc._isEncrypted = true;
 				}
 				// eslint-disable-next-line no-unsafe-finally
-				if (!event._noInsert && !isFailed) {
+				if (!event._noInsert) {
 					await doc.save();
 				}
 			}
