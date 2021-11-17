@@ -400,7 +400,7 @@ async function upsertDocument(req, serviceId, document) {
 
 e.getServiceDetail = function (serviceId, req) {
 	var options = {
-		url: config.baseUrlSM + '/service/' + serviceId + '?select=port,api,relatedSchemas,app,preHooks',
+		url: config.baseUrlSM + '/service/' + serviceId + '?select=port,api,relatedSchemas,app,preHooks&app=' + config.app,
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
