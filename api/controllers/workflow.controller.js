@@ -542,11 +542,11 @@ async function approve(req, res) {
 				event.action = doc.checkerStep;
 				doc.respondedBy = req.user._id;
 				if (!nextStep) {
-					isFailed = true;
-					doc._status = 'Approved';
 					const approvalsRequired = workflowUtils.getNoOfApprovals(req, doc.checkerStep);
 					const approvalsDone = (doc.audit || []).filter(e => e.action === doc.checkerStep).length;
 					if (approvalsRequired != approvalsDone + 1) {
+						isFailed = true;
+						doc._status = 'Approved';
 						return results.push({ status: 200, message: `${approvalsDone + 1} Approval done for the ${doc.checkerStep} step`, id: doc._id });
 					}
 					await specialFields.decryptSecureFields(req, doc.data.new, null);
