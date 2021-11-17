@@ -616,7 +616,9 @@ async function approve(req, res) {
 					doc._isEncrypted = true;
 				}
 				// eslint-disable-next-line no-unsafe-finally
-				return await doc.save();
+				if (!event._noInsert && !isFailed) {
+					await doc.save();
+				}
 			}
 		});
 		// let savedDocs = await Promise.all(promises);
