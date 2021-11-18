@@ -527,6 +527,14 @@ async function approve(req, res) {
 				event._noInsert = true;
 				return results.push({ status: 400, message: 'No Permission to approve WF record', id: doc._id });
 			}
+
+			const prevApprovalDone = (doc.audit || []).filter(e => e.action === doc.checkerStep && e.id == req.user._id).length;
+			if (prevApprovalDone > 0) {
+				isFailed = true;
+				event._noInsert = true;
+				return results.push({ status: 400, message: 'Cannot respond more then once for same step', id: doc._id });
+			}
+
 			try {
 				let serviceDoc;
 				const tempReq = _.cloneDeep(req);
@@ -538,60 +546,58 @@ async function approve(req, res) {
 					event._noInsert = true;
 					return results.push({ status: 400, message: 'Error While Validating Relation', id: doc._id, errors: errors });
 				}
+
 				const nextStep = specialFields.getNextWFStep(req, doc.checkerStep);
+				const approvalsRequired = workflowUtils.getNoOfApprovals(req, doc.checkerStep);
+				const approvalsDone = (doc.audit || []).filter(e => e.action === doc.checkerStep).length;
 				event.action = doc.checkerStep;
 				doc.respondedBy = req.user._id;
-				if (!nextStep) {
-					const approvalsRequired = workflowUtils.getNoOfApprovals(req, doc.checkerStep);
-					const approvalsDone = (doc.audit || []).filter(e => e.action === doc.checkerStep).length;
-					if (approvalsRequired != approvalsDone + 1) {
-						isFailed = true;
-						doc._status = 'Approved';
-						return results.push({ status: 200, message: `${approvalsDone + 1} Approval done for the ${doc.checkerStep} step`, id: doc._id });
-					}
-					await specialFields.decryptSecureFields(req, doc.data.new, null);
-					if (doc.operation == 'POST') {
-						serviceDoc = new serviceModel(_.cloneDeep(doc.data.new));
-						serviceDoc._req = tempReq;
-						// serviceDoc._isFromWorkflow = true;
-						serviceDoc = await serviceDoc.save();
-						results.push({ status: 200, message: 'WF item approved, Document was created', id: doc._id });
-					} else if (doc.operation == 'PUT') {
-						serviceDoc = await serviceModel.findById(doc.documentId);
-						serviceDoc._req = tempReq;
-						// serviceDoc._isFromWorkflow = true;
-						serviceDoc._oldDoc = serviceDoc.toObject();
-						delete doc.data.new._metadata;
-						_.mergeWith(serviceDoc, doc.data.new, mergeCustomizer);
-						serviceDoc._metadata.workflow = null;
-						serviceDoc = await serviceDoc.save();
-						results.push({ status: 200, message: 'WF item approved, Document was updated', id: doc._id });
-					} else if (doc.operation == 'DELETE') {
-						serviceDoc = await serviceModel.findById(doc.documentId);
-						serviceDoc._req = tempReq;
-						// serviceDoc._isFromWorkflow = true;
-						serviceDoc._oldDoc = serviceDoc.toObject();
-						if (!config.permanentDelete) {
-							let softDeletedDoc = new softDeletedModel(doc);
-							softDeletedDoc.isNew = true;
-							await softDeletedDoc.save();
-						}
-						serviceDoc = await serviceDoc.remove();
-						results.push({ status: 200, message: 'WF item approved, Document was removed', id: doc._id });
-					}
-					doc._status = 'Approved';
-					doc.status = 'Approved';
-				} else {
+
+				if (approvalsRequired != approvalsDone + 1) {
 					isFailed = true;
 					doc._status = 'Approved';
-					const approvalsRequired = workflowUtils.getNoOfApprovals(req, doc.checkerStep);
-					const approvalsDone = (doc.audit || []).filter(e => e.action === doc.checkerStep).length;
-					if (approvalsRequired === approvalsDone + 1) {
-						doc.checkerStep = nextStep;
-						return results.push({ status: 200, message: `WF item moved to ${nextStep} step`, id: doc._id });
-					}
 					return results.push({ status: 200, message: `${approvalsDone + 1} Approval done for the ${doc.checkerStep} step`, id: doc._id });
 				}
+
+				if ((approvalsRequired === approvalsDone + 1) && nextStep) {
+					isFailed = true;
+					doc._status = 'Approved';
+					doc.checkerStep = nextStep;
+					return results.push({ status: 200, message: `WF item moved to ${nextStep} step`, id: doc._id });
+				}
+
+				await specialFields.decryptSecureFields(req, doc.data.new, null);
+				if (doc.operation == 'POST') {
+					serviceDoc = new serviceModel(_.cloneDeep(doc.data.new));
+					serviceDoc._req = tempReq;
+					// serviceDoc._isFromWorkflow = true;
+					serviceDoc = await serviceDoc.save();
+					results.push({ status: 200, message: 'WF item approved, Document was created', id: doc._id });
+				} else if (doc.operation == 'PUT') {
+					serviceDoc = await serviceModel.findById(doc.documentId);
+					serviceDoc._req = tempReq;
+					// serviceDoc._isFromWorkflow = true;
+					serviceDoc._oldDoc = serviceDoc.toObject();
+					delete doc.data.new._metadata;
+					_.mergeWith(serviceDoc, doc.data.new, mergeCustomizer);
+					serviceDoc._metadata.workflow = null;
+					serviceDoc = await serviceDoc.save();
+					results.push({ status: 200, message: 'WF item approved, Document was updated', id: doc._id });
+				} else if (doc.operation == 'DELETE') {
+					serviceDoc = await serviceModel.findById(doc.documentId);
+					serviceDoc._req = tempReq;
+					// serviceDoc._isFromWorkflow = true;
+					serviceDoc._oldDoc = serviceDoc.toObject();
+					if (!config.permanentDelete) {
+						let softDeletedDoc = new softDeletedModel(doc);
+						softDeletedDoc.isNew = true;
+						await softDeletedDoc.save();
+					}
+					serviceDoc = await serviceDoc.remove();
+					results.push({ status: 200, message: 'WF item approved, Document was removed', id: doc._id });
+				}
+				doc._status = 'Approved';
+				doc.status = 'Approved';
 			} catch (err) {
 				let error = err;
 				try {
