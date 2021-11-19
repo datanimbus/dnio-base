@@ -514,9 +514,14 @@ router.post('/', (req, res) => {
 			let promises;
 			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 
-			if (serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview &&
-				!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
-				throw new Error('Record is not in initial state.');
+			if (serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
+				if (!_.get(payload, serviceData.stateModel.attribute)) {
+					_.set(payload, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
+				}
+
+				if (!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
+					throw new Error('Record is not in initial state.');
+				}
 			}
 
 			if (
@@ -640,9 +645,13 @@ router.put('/:id', (req, res) => {
 				delete payload.__v;
 				doc = new model(payload);
 
-				if (serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview &&
-					!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
-					throw new Error('Record is not in initial state.');
+				if (serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
+					if (!_.get(payload, serviceData.stateModel.attribute)) {
+						_.set(payload, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
+					}
+					if (!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
+						throw new Error('Record is not in initial state.');
+					}
 				}
 			}
 
