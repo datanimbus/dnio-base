@@ -138,8 +138,9 @@ function flatten(obj, deep, parent) {
 }
 
 function getUserDocuments(select, filter) {
+	const userUrl = `/usr/app/${config.app}`;
 	var options = {
-		url: `${config.baseUrlUSR}/usr`,
+		url: `${config.baseUrlUSR}/${userUrl}`,
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
