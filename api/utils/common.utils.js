@@ -353,7 +353,7 @@ async function upsertDocument(req, serviceId, document) {
 	try {
 		if (!service) {
 			service = httpClient.httpRequest({
-				url: config.baseUrlSM + '/service/' + serviceId,
+				url: config.baseUrlSM + '/service/' + serviceId + `?app=${config.app}`,
 				method: 'GET',
 				headers: {
 					'txnId': req ? req.headers[global.txnIdHeader] : '',
@@ -437,7 +437,7 @@ e.getStoredServiceDetail = function (serviceId, serviceDetailsObj, req) {
 		return Promise.resolve();
 	} else {
 		var options = {
-			url: config.baseUrlSM + '/service/' + serviceId + '?select=port,api,relatedSchemas,app,preHooks,definition',
+			url: config.baseUrlSM + '/service/' + serviceId + '?select=port,api,relatedSchemas,app,preHooks,definition' + `&app=${config.app}`,
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
@@ -498,7 +498,7 @@ e.bulkDelete = function (relatedService) {
 			return dropCollections(collectionsToDrop);
 		}).then(() => {
 			var options = {
-				url: config.baseUrlSM + '/service/' + (process.env.SERVICE_ID) + '/statusChangeFromMaintenance',
+				url: config.baseUrlSM + '/service/' + (process.env.SERVICE_ID) + '/statusChangeFromMaintenance' + `?app=${config.app}`,
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json'
@@ -663,7 +663,7 @@ let secureFields = ''.split(',');
 
 function decryptSecureData(d) {
 	var options = {
-		url: config.baseUrlSEC + '/enc/Adam/decrypt',
+		url: config.baseUrlSEC + `/enc/${config.app}/decrypt`,
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
