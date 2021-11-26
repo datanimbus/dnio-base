@@ -514,16 +514,6 @@ router.post('/', (req, res) => {
 			let promises;
 			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 
-			if (serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
-				if (!_.get(payload, serviceData.stateModel.attribute)) {
-					_.set(payload, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
-				}
-
-				if (!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
-					throw new Error('Record is not in initial state.');
-				}
-			}
-
 			if (
 				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
 				req.query.draft
@@ -576,6 +566,17 @@ router.post('/', (req, res) => {
 			} else {
 				if (Array.isArray(payload)) {
 					promises = payload.map(async (data) => {
+
+						if (serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
+							if (!_.get(data, serviceData.stateModel.attribute)) {
+								_.set(data, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
+							}
+			
+							if (!serviceData.stateModel.initialStates.includes(_.get(data, serviceData.stateModel.attribute))) {
+								return { message: 'Record is not in initial state.' };
+							}
+						}
+
 						const doc = new model(data);
 						doc._req = req;
 						try {
@@ -587,6 +588,17 @@ router.post('/', (req, res) => {
 					});
 					promises = await Promise.all(promises);
 				} else {
+
+					if (serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
+						if (!_.get(payload, serviceData.stateModel.attribute)) {
+							_.set(payload, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
+						}
+		
+						if (!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
+							throw new Error('Record is not in initial state.');
+						}
+					}
+
 					const doc = new model(payload);
 					doc._req = req;
 					promises = (await doc.save()).toObject();
@@ -656,6 +668,7 @@ router.put('/:id', (req, res) => {
 			}
 
 			if (serviceData.stateModel && serviceData.stateModel.enabled && !isNewDoc && !hasSkipReview
+				&& _.get(payload, serviceData.stateModel.attribute)
 				&& !serviceData.stateModel.states[_.get(doc, serviceData.stateModel.attribute)].includes(_.get(payload, serviceData.stateModel.attribute))
 				&& _.get(doc, serviceData.stateModel.attribute) !== _.get(payload, serviceData.stateModel.attribute)) {
 				throw new Error('State transition is not allowed');
