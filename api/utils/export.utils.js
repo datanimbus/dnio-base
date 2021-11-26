@@ -20,7 +20,7 @@ function getSelect(obj, key) {
 	}
 }
 
-function expandUserDoc(pathList, doc, selectionObject) {
+function expandUserDoc(req, pathList, doc, selectionObject) {
 	let sel = '';
 	let temp = [];
 	let usrIds = [];
@@ -29,8 +29,8 @@ function expandUserDoc(pathList, doc, selectionObject) {
 	let allData = false;
 	let allDetails = 'basicDetails,username,description,attributes';
 	let flatternPathList = getSelect(pathList, '');
-	let idList  = [];
-	temp.push(getUserIdList(pathList, doc,idList));
+	let idList = [];
+	temp.push(getUserIdList(pathList, doc, idList));
 	temp.forEach(usrId => {
 		usrId.forEach(doc => {
 			usrIds.push(doc);
@@ -46,7 +46,7 @@ function expandUserDoc(pathList, doc, selectionObject) {
 		sel = allDetails;
 	}
 	usrIds.map(usr => {
-		promises.push(getUserDocuments(sel, { _id: usr }));
+		promises.push(getUserDocuments(req, sel, { _id: usr }));
 	});
 	return Promise.all(promises)
 		.then(usrDocs => {
@@ -60,7 +60,7 @@ function expandUserDoc(pathList, doc, selectionObject) {
 		});
 }
 
-function getUserIdList(path, doc,idList) {
+function getUserIdList(path, doc, idList) {
 	if (!doc) return idList;
 	if (typeof path === 'object' && Object.keys(path)[0] === '_self') {
 		doc.forEach(obj => {
@@ -69,11 +69,11 @@ function getUserIdList(path, doc,idList) {
 					idList.push(obj._id);
 				}
 			} else {
-				return getUserIdList(path['_self'], obj,idList);
+				return getUserIdList(path['_self'], obj, idList);
 			}
 		});
 	} else if (typeof path === 'object') {
-		return getUserIdList(path[Object.keys(path)[0]], doc[Object.keys(path)[0]],idList);
+		return getUserIdList(path[Object.keys(path)[0]], doc[Object.keys(path)[0]], idList);
 	} else {
 		if (doc._id) {
 			idList.push(doc._id);
@@ -85,7 +85,7 @@ function getUserIdList(path, doc,idList) {
 function substituteUserDoc(doc, path, userDocs) {
 	let pathSplit = path.split('.');
 	let key = pathSplit.shift();
-	if(key == '_self') key = pathSplit.shift();
+	if (key == '_self') key = pathSplit.shift();
 	if (doc.constructor == {}.constructor && key && doc[key] && key != '_id') {
 		if (Array.isArray(doc[key])) {
 			let newKey = pathSplit.join('.');
@@ -120,29 +120,33 @@ function flatten(obj, deep, parent) {
 					} else {
 						temp[thisKey] = obj[key];
 					}
-				} 
-				else if(obj[key] instanceof Date){
-					temp[thisKey] = obj[key]; 
+				}
+				else if (obj[key] instanceof Date) {
+					temp[thisKey] = obj[key];
 				}
 				else {
 					temp = Object.assign(temp, flatten(obj[key], deep, thisKey));
 				}
 			}
 			else {
-				if(typeof obj[key] =='boolean' ) obj[key] = obj[key].toString();
-				if(!(parent && key == '_id' && typeof(obj[key])=='object'))temp[thisKey] = obj[key];  
+				if (typeof obj[key] == 'boolean') obj[key] = obj[key].toString();
+				if (!(parent && key == '_id' && typeof (obj[key]) == 'object')) temp[thisKey] = obj[key];
 			}
 		});
 		return temp;
 	}
 }
 
-function getUserDocuments(select, filter) {
+function getUserDocuments(req, select, filter) {
+	const userUrl = `${config.baseUrlUSR}/usr/app/${config.app}`;
 	var options = {
-		url: `${config.baseUrlUSR}/usr`,
+		url: `${userUrl}`,
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
+			'TxnId': req ? req.headers[global.txnIdHeader] : '',
+			'User': req ? req.headers[global.userHeader] : '',
+			'Authorization': req ? req.headers.authorization : '',
 		},
 		qs: {
 			filter: JSON.stringify(filter),
@@ -177,11 +181,11 @@ function createFilterForARelation(filter, path, service, req) {
 		let promises = filter.map(_f => createFilterForARelation(_f, path, service, req));
 		return Promise.all(promises);
 	}
-	if (filter!=null && typeof filter === 'object') {
+	if (filter != null && typeof filter === 'object') {
 		let newFilter = {};
 		let promises = Object.keys(filter).map(_k => {
 			if (_k.startsWith(path)) {
-				if(filter[_k] == null || filter[_k] == undefined){
+				if (filter[_k] == null || filter[_k] == undefined) {
 					newFilter[path + '._id'] = { $exists: false };
 					return Promise.resolve();
 				} else {
@@ -208,10 +212,10 @@ function createFilterForARelation(filter, path, service, req) {
 	}
 }
 
-function getExtIds(filter, service, req){
+function getExtIds(filter, service, req) {
 	return commonUtils.getServiceDetail(service, req)
-		.then(_sd=>{
-			let _service = {port: _sd.port, uri: '/'+_sd.app+_sd.api};
+		.then(_sd => {
+			let _service = { port: _sd.port, uri: '/' + _sd.app + _sd.api };
 			if (process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT) {
 				_service.port = 80;
 				_service.host = _sd.api.substr(1).toLowerCase() + '.' + config.namespace + '-' + _sd.app.toLowerCase().replace(/ /g, '');
@@ -226,12 +230,12 @@ function getExtIds(filter, service, req){
 			};
 			return commonUtils.crudDocuments(_service, 'get', null, qs, req);
 		})
-		.then(docs=>{
+		.then(docs => {
 			return docs.map(_d => _d._id);
 		});
 }
 
-e.getSelectionObject = function(_sd, select, deepExpand = true) {
+e.getSelectionObject = function (_sd, select, deepExpand = true) {
 	let querySelect = [];
 	let extSelect = [];
 	let userSel = [];
@@ -268,7 +272,7 @@ e.getSelectionObject = function(_sd, select, deepExpand = true) {
 							if (selObj) selObj.field.push(_sel.replace(new RegExp(`^(${pathSelect}.)`), ''));
 							else extSelect.push({ service: _rs.service, 'field': [_sel.replace(new RegExp(`^(${pathSelect}.)`), '')], path: _rs.path });
 						}
-					}  else if(_sel === pathSelect || pathSelect.startsWith(_sel + '.')) {
+					} else if (_sel === pathSelect || pathSelect.startsWith(_sel + '.')) {
 						querySelect.push(_sel);
 						let selObj = extSelect.find(_e => _e.service == _rs.service && _e.path == _rs.path);
 						if (!selObj) extSelect.push({ service: _rs.service, 'field': [], path: _rs.path });
@@ -318,30 +322,30 @@ e.getSelectionObject = function(_sd, select, deepExpand = true) {
 e.createFilter = function (_sd, filter, req) {
 	if (_sd.relatedSchemas && _sd.relatedSchemas.outgoing && _sd.relatedSchemas.outgoing.length > 0) {
 		let promise = _sd.relatedSchemas.outgoing.reduce((acc, _rs) => {
-			return acc.then(_filter=>{
+			return acc.then(_filter => {
 				let path = getSelect(JSON.parse(_rs.path), '');
 				return createFilterForARelation(_filter, path, _rs.service, req);
 			});
 		}, Promise.resolve(filter));
-		return promise.then(_filter=>{
+		return promise.then(_filter => {
 			return _filter;
 		});
-	}else{
+	} else {
 		return Promise.resolve(filter);
 	}
 };
 
 
-e.expandInBatch = function(documents, selectionObject, count, fileName, req,resul, serviceDetailsObj, options) {
+e.expandInBatch = function (documents, selectionObject, count, fileName, req, resul, serviceDetailsObj, options) {
 	let serviceId = config.serviceId;
 	let returnDocuments = [];
-	let documentCache = {};  
+	let documentCache = {};
 	let promises = documents.map(doc => {
 		let newDoc = doc;
 		returnDocuments.push(newDoc);
 		let visitedDocs = {};
 		visitedDocs[serviceId] = [doc._id];
-		return expandStoredRelation(serviceId, newDoc, visitedDocs, selectionObject, req, true,serviceDetailsObj, documentCache, options);
+		return expandStoredRelation(serviceId, newDoc, visitedDocs, selectionObject, req, true, serviceDetailsObj, documentCache, options);
 	});
 	return Promise.all(promises)
 		.then(() => {
@@ -364,7 +368,7 @@ function expandStoredRelation(serviceId, document, visitedDocs, selectionObject,
 							return Promise.resolve(document);
 						}
 						let path = Object.keys(JSON.parse(_rs.path))[0];
-						if(!document[path]){ return Promise.resolve(document);}
+						if (!document[path]) { return Promise.resolve(document); }
 						return enrichForARelationCache(_rs.service, JSON.parse(_rs.path), document, newSelectionObject.querySelect, documentCache, serviceDetailsObj, visitedDocs, req, deepExpand, options);
 					}
 				});
@@ -378,7 +382,7 @@ function expandStoredRelation(serviceId, document, visitedDocs, selectionObject,
 			if (srvcObj.relatedSchemas && srvcObj.relatedSchemas.internal && srvcObj.relatedSchemas.internal.users && srvcObj.relatedSchemas.internal.users.length > 0) {
 				promises = srvcObj.relatedSchemas.internal.users.map(_rs => {
 					let path = JSON.parse(_rs.path);
-					return expandUserDoc(path, document, selectionObject);
+					return expandUserDoc(req, path, document, selectionObject);
 				});
 				return Promise.all(promises);
 			}
@@ -390,10 +394,10 @@ function expandStoredRelation(serviceId, document, visitedDocs, selectionObject,
 }
 
 function enrichForARelationCache(srvcId, path, document, select, documentCache, serviceDetailsCache, visitedDocs, req, deepExpand, options) {
-	if(!document) return Promise.resolve(document);
+	if (!document) return Promise.resolve(document);
 	if (typeof path == 'string') {
 		let id = document._id;
-		if(!id) return Promise.resolve(id);
+		if (!id) return Promise.resolve(id);
 		if (visitedDocs[srvcId] && visitedDocs[srvcId].indexOf(id) > -1) return Promise.resolve(document);
 		// if select has only _href or _id no need to expand;
 		if (select.length > 0 && !select.some(_s => ['_id', '_href'].indexOf(_s) == -1)) {
@@ -406,18 +410,18 @@ function enrichForARelationCache(srvcId, path, document, select, documentCache, 
 				return fetchExtData(id, srvcId, newSelectionObject.querySelect.join(','), documentCache, serviceDetailsCache, req, options);
 			})
 			.then(_d => {
-				if(deepExpand || newSelectionObject.extSelect.length || newSelectionObject.userSel.length) {
-					if(!visitedDocs[srvcId]) visitedDocs[srvcId] = [];
+				if (deepExpand || newSelectionObject.extSelect.length || newSelectionObject.userSel.length) {
+					if (!visitedDocs[srvcId]) visitedDocs[srvcId] = [];
 					(visitedDocs[srvcId]).push(_d._id);
 					return expandStoredRelation(srvcId, _d, visitedDocs, newSelectionObject, req, deepExpand, serviceDetailsCache, documentCache, options);
-				} else 
+				} else
 					return Promise.resolve(_d);
 			});
 	} else if (path && {}.constructor == path.constructor) {
 		let key = Object.keys(path)[0];
 		if (key == '_self' && Array.isArray(document)) {
 			let val = path[key];
-			let promises =  document.map(_d => {
+			let promises = document.map(_d => {
 				return enrichForARelationCache(srvcId, val, _d, select, documentCache, serviceDetailsCache, visitedDocs, req, deepExpand, options);
 			});
 			return Promise.all(promises);
@@ -454,10 +458,10 @@ function fetchExtData(id, serviceId, select, documentCache, serviceDetailCache, 
 				'select': select,
 				'count': 1
 			};
-			if(options && options.forFile) qs['forFile'] = options.forFile;
+			if (options && options.forFile) qs['forFile'] = options.forFile;
 			return commonUtils.crudDocuments(_service, 'get', null, qs, req)
 				.then(_d => {
-					if(_d && _d[0]) {
+					if (_d && _d[0]) {
 						delete _d[0]._metadata;
 						delete _d[0].__v;
 						return _d[0];
