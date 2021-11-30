@@ -514,7 +514,6 @@ async function approve(req, res) {
 		const attachments = req.body.attachments || [];
 		const results = [];
 		const promises = docs.map(async (doc) => {
-			let isFailed = false;
 			const event = {
 				by: 'user',
 				id: req.user._id,
@@ -523,14 +522,12 @@ async function approve(req, res) {
 				timestamp: Date.now()
 			};
 			if (!specialFields.hasWFPermissionFor[doc.checkerStep](req, req.user.appPermissions)) {
-				isFailed = true;
 				event._noInsert = true;
 				return results.push({ status: 400, message: 'No Permission to approve WF record', id: doc._id });
 			}
 
 			const prevApprovalDone = (doc.audit || []).filter(e => e.action === doc.checkerStep && e.id == req.user._id).length;
 			if (prevApprovalDone > 0) {
-				isFailed = true;
 				event._noInsert = true;
 				return results.push({ status: 400, message: 'Cannot respond more then once for same step', id: doc._id });
 			}
@@ -542,7 +539,6 @@ async function approve(req, res) {
 				const errors = await specialFields.validateRelation(req, doc.data.new, doc.data.old);
 				if (errors) {
 					logger.error('Relation Validation Failed:', errors);
-					isFailed = true;
 					event._noInsert = true;
 					return results.push({ status: 400, message: 'Error While Validating Relation', id: doc._id, errors: errors });
 				}
@@ -554,13 +550,11 @@ async function approve(req, res) {
 				doc.respondedBy = req.user._id;
 
 				if (approvalsRequired != approvalsDone + 1) {
-					isFailed = true;
 					doc._status = 'Approved';
 					return results.push({ status: 200, message: `${approvalsDone + 1} Approval done for the ${doc.checkerStep} step`, id: doc._id });
 				}
 
 				if ((approvalsRequired === approvalsDone + 1) && nextStep) {
-					isFailed = true;
 					doc._status = 'Approved';
 					doc.checkerStep = nextStep;
 					return results.push({ status: 200, message: `WF item moved to ${nextStep} step`, id: doc._id });
@@ -609,7 +603,6 @@ async function approve(req, res) {
 					error = err;
 				}
 				const message = typeof error === 'object' && error.message ? error.message : JSON.stringify(error);
-				isFailed = true;
 				event._noInsert = true;
 				// event.by = 'Entity';
 				// event.action = 'Process';
@@ -620,16 +613,12 @@ async function approve(req, res) {
 				if (!doc.audit) {
 					doc.audit = [];
 				}
+				doc._req = req;
+				// eslint-disable-next-line no-unsafe-finally
 				if (!event._noInsert) {
 					doc.audit.push(event);
 					doc.markModified('audit');
-				}
-				doc._req = req;
-				if (!isFailed) {
 					doc._isEncrypted = true;
-				}
-				// eslint-disable-next-line no-unsafe-finally
-				if (!event._noInsert) {
 					await doc.save();
 				}
 			}
