@@ -526,8 +526,9 @@ async function approve(req, res) {
 				return results.push({ status: 400, message: 'No Permission to approve WF record', id: doc._id });
 			}
 
-			const prevApprovalDone = (doc.audit || []).filter(e => e.action === doc.checkerStep && e.id == req.user._id).length;
-			if (prevApprovalDone > 0) {
+			const prevApprovalIndex = _.findLastIndex((doc.audit || []), { action: doc.checkerStep, id: req.user._id });
+
+			if (prevApprovalIndex > -1 && (prevApprovalIndex + 1) === (doc.audit || []).length) {
 				event._noInsert = true;
 				return results.push({ status: 400, message: 'Cannot respond more then once for same step', id: doc._id });
 			}
