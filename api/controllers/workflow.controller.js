@@ -546,7 +546,22 @@ async function approve(req, res) {
 
 				const nextStep = specialFields.getNextWFStep(req, doc.checkerStep);
 				const approvalsRequired = workflowUtils.getNoOfApprovals(req, doc.checkerStep);
-				const approvalsDone = (doc.audit || []).filter(e => e.action === doc.checkerStep).length;
+				// const approvalsDone = (doc.audit || []).filter(e => e.action === doc.checkerStep).length;
+
+				let approvalsDone = 0;
+				let approvalIndex = _.findLastIndex((doc.audit || []), { action: doc.checkerStep });
+				if (approvalIndex > -1) {
+					approvalsDone++;
+					while (approvalIndex > -1) {
+						approvalIndex--;
+						if ((doc.audit || [])[approvalIndex].action == doc.checkerStep) {
+							approvalsDone++;
+						} else {
+							break;
+						}
+					}
+				}
+
 				event.action = doc.checkerStep;
 				doc.respondedBy = req.user._id;
 
