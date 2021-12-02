@@ -550,7 +550,7 @@ async function approve(req, res) {
 
 				let approvalsDone = 0;
 				let approvalIndex = _.findLastIndex((doc.audit || []), { action: doc.checkerStep });
-				if (approvalIndex > -1) {
+				if (approvalIndex > -1 && (doc.audit || []).length === (approvalIndex + 1)) {
 					approvalsDone++;
 					while (approvalIndex > -1) {
 						approvalIndex--;
