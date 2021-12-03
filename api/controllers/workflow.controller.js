@@ -167,6 +167,8 @@ router.put('/action', async (req, res) => {
 			return submit(req, res);
 		} else if (req.body.action == 'Rework') {
 			return rework(req, res);
+		} else if (req.body.action == 'Revert') {
+			return revert(req, res);
 		} else if (req.body.action == 'Approve') {
 			return approve(req, res);
 		} else if (req.body.action == 'Reject') {
@@ -459,6 +461,77 @@ async function rework(req, res) {
 					return results.push({ status: 400, message: 'No Permission to Respond this WF record', id: doc._id });
 				}
 				doc.status = 'Rework';
+				doc.respondedBy = req.user._id;
+				if (!doc.audit) {
+					doc.audit = [];
+				}
+				doc.audit.push(event);
+				doc.markModified('audit');
+				doc._req = req;
+				doc._isEncrypted = true;
+				doc.checkerStep = workflowUtils.getFirstCheckerStep();
+				await doc.save();
+				return results.push({ status: 200, message: 'WF record Sent for Changes', id: doc._id });
+			} catch (err) {
+				let error = err;
+				try {
+					if (typeof err === 'string') {
+						error = JSON.parse(err);
+					}
+				} catch (parseErr) {
+					logger.warn('Error was not a JSON String:', parseErr);
+					error = err;
+				}
+				const message = typeof error === 'object' && error.message ? error.message : JSON.stringify(error);
+				logger.error(error);
+				results.push({ status: 500, message: message, id: doc._id, errors: error });
+			}
+		});
+		// return res.status(200).json({ results: [{ status: 200, message: 'Sent For Changes.' }] });
+		await Promise.all(promises);
+		if (results.every(e => e.status == 200)) {
+			return res.status(200).json({ results });
+		}
+		if (results.every(e => e.status != 200)) {
+			return res.status(400).json({ results });
+		}
+		return res.status(207).json({ results });
+	} catch (err) {
+		logger.error(err);
+		return res.status(400).json({ message: err.message });
+	}
+}
+
+
+async function revert(req, res) {
+	try {
+		const ids = req.body.ids;
+		const docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.user._id } }] });
+		if (!docs || docs.length == 0) {
+			return res.status(400).json({ message: 'Rework Failed' });
+		}
+		// const approvers = await workflowUtils.getApproversList();
+		// if (approvers.indexOf(req.user._id) == -1) {
+		// 	return res.status(403).json({ message: 'You Don\'t have Permission to any Action' });
+		// }
+		const results = [];
+		const remarks = req.body.remarks;
+		const attachments = req.body.attachments || [];
+		const event = {
+			by: 'user',
+			action: 'Revert',
+			id: req.user._id,
+			remarks: remarks,
+			attachments: attachments,
+			timestamp: Date.now()
+		};
+		const promises = docs.map(async (doc) => {
+			try {
+				if (!specialFields.hasWFPermissionFor[doc.checkerStep](req, req.user.appPermissions)) {
+					event._noInsert = true;
+					return results.push({ status: 400, message: 'No Permission to Respond this WF record', id: doc._id });
+				}
+				doc.status = 'Revert';
 				doc.respondedBy = req.user._id;
 				if (!doc.audit) {
 					doc.audit = [];

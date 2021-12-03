@@ -175,6 +175,17 @@ function getWorkflowItem(req, operation, _id, status, newDoc, oldDoc) {
 	};
 }
 
+function getFirstCheckerStep() {
+	let checkerStep;
+	if (serviceData.workflowConfig
+		&& serviceData.workflowConfig.makerCheckers
+		&& serviceData.workflowConfig.makerCheckers[0]
+		&& serviceData.workflowConfig.makerCheckers[0].steps[0]) {
+		checkerStep = serviceData.workflowConfig.makerCheckers[0].steps[0].name;
+	}
+	return checkerStep;
+}
+
 function getNoOfApprovals(req, currentStep) {
 	let approvals = 1;
 	if (serviceData.workflowConfig
@@ -428,3 +439,4 @@ module.exports.hasAdminAccess = hasAdminAccess;
 module.exports.getWorkflowItem = getWorkflowItem;
 module.exports.getNoOfApprovals = getNoOfApprovals;
 module.exports.simulate = simulate;
+module.exports.getFirstCheckerStep = getFirstCheckerStep;
