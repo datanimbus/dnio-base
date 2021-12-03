@@ -394,7 +394,7 @@ async function submit(req, res) {
 	try {
 		const id = req.body.ids[0];
 		const newData = req.body.data;
-		const doc = await workflowModel.findOne({ $and: [{ _id: id }, { status: { $in: ['Draft', 'Rework'] } }] });
+		const doc = await workflowModel.findOne({ $and: [{ _id: id }, { status: { $nin: ['Approved', 'Rejected'] } }] });
 		if (!doc) {
 			return res.status(400).json({ message: 'Submit Failed' });
 		}
