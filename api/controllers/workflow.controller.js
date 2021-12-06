@@ -601,7 +601,10 @@ async function approve(req, res) {
 
 			const prevApprovalIndex = _.findLastIndex((doc.audit || []), { action: doc.checkerStep, id: req.user._id });
 
-			if (prevApprovalIndex > -1 && (prevApprovalIndex + 1) === (doc.audit || []).length) {
+			const editIndex = _.findLastIndex((doc.audit || []), { action: 'Edit' });
+			const reworkIndex = _.findLastIndex((doc.audit || []), { action: 'SentForRework' });
+
+			if (prevApprovalIndex > -1 && (prevApprovalIndex > editIndex && prevApprovalIndex > reworkIndex)) {
 				event._noInsert = true;
 				return results.push({ status: 400, message: 'Cannot respond more then once for same step', id: doc._id });
 			}
