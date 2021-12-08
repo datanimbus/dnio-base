@@ -164,7 +164,7 @@ schema.pre('save', function (next) {
 	const newDoc = this.data.new;
 	const oldDoc = this.data.old;
 	const req = this._req;
-	
+	if (this.operation === 'DELETE') return next();
 	if ( serviceData.stateModel && serviceData.stateModel.enabled && !oldDoc && 
 		!serviceData.stateModel.initialStates.includes( _.get(newDoc, serviceData.stateModel.attribute) ) &&
 		!workflowUtils.hasAdminAccess(req, req.user.appPermissions) ) {
