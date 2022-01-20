@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const log4js = require('log4js');
 const mongoose = require('mongoose');
 const _ = require('lodash');
 const cron = require('node-cron');
@@ -9,7 +10,7 @@ const httpClient = require('./http-client');
 const controller = require('./api/utils/common.utils');
 
 const fileFields = ''.split(',');
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 
 function init() {
 	try {
@@ -19,21 +20,22 @@ function init() {
 	} catch (e) {
 		logger.error(e);
 	}
-	return controller.fixSecureText() 
-		.then(() => informSM());
+	return controller.fixSecureText()
+		.then(() => informSM())
+		.then(() => GetKeys());
 }
 
 function setDefaultTimezone() {
 	try {
 		let authorDB = mongoose.connections[1].client.db(config.authorDB);
-		authorDB.collection('userMgmt.apps').findOne({_id: config.app})
+		authorDB.collection('userMgmt.apps').findOne({ _id: config.app })
 			.then(_d => {
-				if(!_d) {
+				if (!_d) {
 					logger.error(`Timezone of ${config.app} :: Unable to find ${config.app}`);
 					return;
 				}
 				logger.trace(`Timezone of ${config.app} :: data :: ${JSON.stringify(_d)}`);
-				if(!_d.defaultTimezone) {
+				if (!_d.defaultTimezone) {
 					logger.info(`Timezone of ${config.app} :: Not set, switching to data.stack default config`);
 					global.defaultTimezone = config.dataStackDefaultTimezone;
 					logger.info(`Timezone of ${config.app} :: Set as ${config.dataStackDefaultTimezone}`);
@@ -182,5 +184,32 @@ async function informSM() {
 	}).catch(err => {
 		logger.error(`Error pinging service-manager :: ${err.message}`);
 	});
+}
+
+
+async function GetKeys() {
+	try {
+		logger.trace('Ping USER service');
+		const options = {
+			url: config.baseUrlUSR + '/' + config.app + '/keys',
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			json: true
+		};
+		const res = await httpClient.httpRequest(options);
+		if (res.statusCode === 200) {
+			const body = res.body;
+			global.baseKey = body.baseKey;
+			global.baseCert = body.baseCert;
+			global.encryptionKey = body.encryptionKey;
+			logger.trace('Found Keys', body);
+		} else {
+			throw new Error('Service not found');
+		}
+	} catch (err) {
+		logger.error(`Error pinging service-manager :: ${err.message}`);
+	}
 }
 module.exports = init;
