@@ -2,8 +2,9 @@ const router = require('express').Router();
 const fs = require('fs');
 const uuid = require('uuid/v1');
 const crypto = require('crypto');
+const log4js = require('log4js');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 
 router.get('/:id/view', (req, res) => {
 	async function execute() {

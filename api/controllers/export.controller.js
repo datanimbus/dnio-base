@@ -1,11 +1,12 @@
 const router = require('express').Router();
+const log4js = require('log4js');
+const uuid = require('uuid/v1');
 
 const config = require('../../config');
 const threadUtils = require('../utils/thread.utils');
-const uuid = require('uuid/v1');
 const httpClient = require('./../../http-client');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 
 router.get('/download/:id', (req, res) => {
 	async function execute() {

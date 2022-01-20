@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const _ = require('lodash');
 const mongoose = require('mongoose');
 const utils = require('@appveen/utils');
+const log4js = require('log4js');
+const _ = require('lodash');
 
 const config = require('../../config');
 const hooksUtils = require('./hooks.utils');
@@ -10,7 +11,7 @@ const specialFields = require('./special-fields.utils');
 const commonUtils = require('./common.utils');
 const serviceData = require('../../service.json');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 const configDB = global.authorDB;
 
 

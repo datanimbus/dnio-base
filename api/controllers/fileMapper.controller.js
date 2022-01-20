@@ -1,12 +1,13 @@
 const router = require('express').Router();
 const mongoose = require('mongoose');
+const log4js = require('log4js');
 
 const commonUtils = require('../utils/common.utils');
 const threadUtils = require('../utils/thread.utils');
 const crudderUtils = require('../utils/crudder.utils');
 const specialFields = require('../utils/special-fields.utils');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 const model = mongoose.model('fileMapper');
 const fileTransfersModel = mongoose.model('fileTransfers');
 

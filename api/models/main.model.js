@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const utils = require('@appveen/utils');
+const log4js = require('log4js');
 const _ = require('lodash');
 
 const config = require('../../config');
@@ -15,7 +16,7 @@ const workflowUtils = require('../utils/workflow.utils');
 const dataStackNS = process.env.DATA_STACK_NAMESPACE;
 
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 let softDeletedModel;
 if (!config.permanentDelete) softDeletedModel = mongoose.model(config.serviceId + '.deleted');
 

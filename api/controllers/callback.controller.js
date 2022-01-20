@@ -1,8 +1,9 @@
 const router = require('express').Router();
+const log4js = require('log4js');
 
 const config = require('../../config');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 
 router.post('/:id', (req, res) => {
 	let txnId = req.get(global.txnIdHeader);

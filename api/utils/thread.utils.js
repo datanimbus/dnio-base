@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const { Worker } = require('worker_threads');
+const log4js = require('log4js');
 
-let logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 
 /**
  * 

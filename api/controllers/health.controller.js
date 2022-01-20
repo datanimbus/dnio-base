@@ -1,10 +1,11 @@
 const router = require('express').Router();
 const mongoose = require('mongoose');
-const client = require('../../queue').client;
+const log4js = require('log4js');
 
+const client = require('../../queue').client;
 const init = require('../../init');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 let runInit = true;
 
 router.get('/live', (req, res) => {

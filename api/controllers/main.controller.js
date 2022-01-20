@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const mongoose = require('mongoose');
+const log4js = require('log4js');
 const swaggerParser = require('swagger-parser');
 const async = require('async');
 const _ = require('lodash');
@@ -19,7 +20,7 @@ const {
 } = require('./../utils/common.utils');
 const serviceData = require('../../service.json');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 const model = mongoose.model(config.serviceId);
 let softDeletedModel;
 if (!config.permanentDelete)

@@ -1,6 +1,7 @@
 "use strict";
 
 const mongoose = require("mongoose");
+const log4js = require('log4js');
 const definition = require("../helpers/srvc2006.definition.js").definition;
 const exportDefinition = require('../helpers/bulkAction.definition').definition;
 const SMCrud = require("@appveen/swagger-mongoose-crud");
@@ -14,7 +15,7 @@ const crypto = require('crypto');
 // const streamifier = require('streamifier');
 const uuid = require("uuid/v1");
 const BATCH = 500;
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 const _ = require('lodash');
 const init = require("../../init");
 const dataStackNS = process.env.DATA_STACK_NAMESPACE
