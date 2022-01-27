@@ -3,8 +3,8 @@ const fs = require('fs');
 const uuid = require('uuid/v1');
 const crypto = require('crypto');
 const log4js = require('log4js');
-const storageEngine = require("@appveen/data.stack-utils").storageEngine;
-const config = require("../../config");
+const storageEngine = require('@appveen/data.stack-utils').storageEngine;
+const config = require('../../config');
 const mongoose = require('mongoose');
 const moment = require('moment');
 
