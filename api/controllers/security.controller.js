@@ -14,8 +14,8 @@ router.post('/decrypt', async (req, res) => {
 			});
 		}
 		const data = req.body.data;
-		const decryptedText = await secUtils.decryptText(data);
-		res.status(200).json({ data: decryptedText });
+		const resData = await secUtils.decryptText(data);
+		res.status(resData.statusCode).json(resData.body);
 	} catch (err) {
 		logger.error(err);
 		res.status(500).json({
