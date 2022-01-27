@@ -11,5 +11,6 @@ router.use('/utils/fileMapper', require('./fileMapper.controller'));
 router.use('/utils/fileTransfers', require('./fileTransfers.controller'));
 router.use('/utils/health', require('./health.controller'));
 router.use('/utils/workflow', require('./workflow.controller'));
+router.use('/utils/sec', require('./security.controller'));
 
 module.exports = router;
