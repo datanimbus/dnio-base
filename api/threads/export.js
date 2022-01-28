@@ -12,6 +12,10 @@ let dateFields = [];
 
 mongoose.set('useFindAndModify', false);
 
+global.baseKey = workerData.baseKey;
+global.baseCert = workerData.baseCert;
+global.encryptionKey = workerData.encryptionKey;
+
 const config = require('../../config');
 
 const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} v.${config.serviceVersion}] [Worker]` : `[${config.serviceName} v.${config.serviceVersion}] [Worker]`;
