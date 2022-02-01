@@ -16,24 +16,36 @@ router.get('/:id/view', (req, res) => {
 	async function execute() {
 		try {
 			const id = req.params.id;
-			logger.info(`[${req.get(txnid)}] File view request received for id ${id}`);
+			const storage = config.fileStorage.storage;
+			let txnId = req.get('txnid');
 
-			let file;
-			try {
-				file = (await global.gfsBucket.find({ filename: id }).toArray())[0];
-			} catch (e) {
-				logger.error(e);
-				res.status(500).json({ message: e.message });
+			logger.info(`[${txnId}] File view request received for id ${id}`);
+			logger.info(`[${txnId}] Storage Enigne - ${storage}`);
+
+			if (storage === 'GRIDFS') {
+				let file;
+				try {
+					file = (await global.gfsBucket.find({ filename: id }).toArray())[0];
+				} catch (e) {
+					logger.error(`[${txnId}] Error finding file - ${e}`);
+					return res.status(500).json({ message: e.message });
+				}
+				if (!file) {
+					logger.error(`[${txnId}] File Not Found`);
+					return res.status(400).json({ message: 'File not found' });
+				}
+				const readstream = global.gfsBucket.openDownloadStream(file._id);
+				readstream.on('error', function (err) {
+					logger.error(err);
+					return res.end();
+				});
+				readstream.pipe(res);
+			} else if (storage === 'AZURE') {
+				return await downloadFileFromAzure(id, storage, txnId, res);
+			} else {
+				logger.error(`[${txnId}] External Storage type is not allowed`);
+				throw new error({ message: `External Storage ${storage} not allowed`});
 			}
-			if (!file) {
-				return res.status(400).json({ message: 'File not found' });
-			}
-			const readstream = global.gfsBucket.openDownloadStream(file._id);
-			readstream.on('error', function (err) {
-				logger.error(err);
-				return res.end();
-			});
-			readstream.pipe(res);
 		} catch (e) {
 			if (typeof e === 'string') {
 				throw new Error(e);
@@ -54,17 +66,18 @@ router.get('/download/:id', (req, res) => {
 		try {
 			const id = req.params.id;
 			const storage = config.fileStorage.storage;
+			let txnId = req.get('txnid');
 
-			logger.info(`[${req.get(txnid)}] File download request received for id ${id}`);
-			logger.info(`[${req.get(txnid)}] Storage Enigne - ${storage}`);
+			logger.info(`[${txnId}] File download request received for id ${id}`);
+			logger.info(`[${txnId}] Storage Enigne - ${storage}`);
 
 			if (storage === 'GRIDFS') {
 				let file;
 				try {
 					file = (await global.gfsBucket.find({ filename: id }).toArray())[0];
 				} catch (e) {
-					logger.error(`[${req.get(txnid)}] Error finding file - ${e}`);
-					res.status(500).json({ message: e.message });
+					logger.error(`[${txnId}] Error finding file - ${e}`);
+					return res.status(500).json({ message: e.message });
 				}
 				if (!file) {
 					return res.status(400).json({ message: 'File not found' });
@@ -73,37 +86,15 @@ router.get('/download/:id', (req, res) => {
 				res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
 				const readstream = global.gfsBucket.openDownloadStream(file._id);
 				readstream.on('error', function (err) {
-					logger.error(`[${req.get(txnid)}] Error streaming file - ${err}`);
+					logger.error(`[${txnId}] Error streaming file - ${err}`);
 					return res.end();
 				});
 				readstream.pipe(res);
 
 			} else if (storage === 'AZURE') {
-				try {
-					let file = await mongoose.model('files').findOne({ filename: id });
-
-					if (!file) {
-						logger.error(`[${req.get(txnid)}] File not found`);
-						throw new Error(`File Not Found`);
-					}
-
-					logger.debug(`[${req.get(txnid)}] File Found, generating download link.`);
-					logger.trace(`[${req.get(txnid)}] File details - ${JSON.stringify(file)}`);
-
-					let downloadUrl = await storageEngine.azureBlob.downloadFileLink(file, config.fileStorage[storage].connectionString,
-						config.fileStorage[storage].container,
-						config.fileStorage[storage].sharedKey,
-						config.fileStorage[storage].timeout);
-
-					logger.debug(`[${req.get(txnid)}] Redirecting response to Azure download link`);
-
-					res.redirect(downloadUrl);
-				} catch (err) {
-					logger.error(`[${req.get(txnid)}] Error downloading file - ${err.message}`);
-					return res.end();
-				}
+				return await downloadFileFromAzure(id, storage, txnId, res);
 			} else {
-				logger.error(`[${req.get(txnid)}] External Storage type is not allowed`);
+				logger.error(`[${txnId}] External Storage type is not allowed`);
 				throw new error({ message: `External Storage ${storage} not allowed`});
 			}
 		} catch (e) {
@@ -125,9 +116,10 @@ router.post('/upload', (req, res) => {
 	async function execute() {
 		try {
 			const storage = config.fileStorage.storage;
+			let txnId = req.get('txnid');
 
-			logger.info(`[${req.get(txnid)}] File upload request received`);
-			logger.info(`[${req.get(txnid)}] Storage Enigne -  ${config.fileStorage.storage}`);
+			logger.info(`[${txnId}] File upload request received`);
+			logger.info(`[${txnId}] Storage Enigne -  ${config.fileStorage.storage}`);
 
 			const sampleFile = req.file;
 			const filename = sampleFile.originalname;
@@ -139,24 +131,24 @@ router.post('/upload', (req, res) => {
 						metadata: { filename }
 					})).
 					on('error', function (error) {
-						logger.error(`[${req.get(txnid)}] Error uploading file - ${error}`);
+						logger.error(`[${txnId}] Error uploading file - ${error}`);
 
-						res.status(500).json({
+						return res.status(500).json({
 							message: `Error uploading File - ${error.message}`
 						});
 					}).
 					on('finish', function (file) {
-						logger.info(`[${req.get(txnid)}] File uploaded to GridFS`);
-						logger.trace(`[${req.get(txnid)}] File details - ${JSON.stringify(file)}`);
+						logger.info(`[${txnId}] File uploaded to GridFS`);
+						logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
 
-						res.status(200).json(file);
+						return res.status(200).json(file);
 					});
 
 			} else if (storage === 'AZURE') {
 				try {
 					let file = await createFileObject(req.file);
 
-					logger.trace(`[${req.get(txnid)}] File object details - ${JSON.stringify(file)}`);
+					logger.trace(`[${txnId}] File object details - ${JSON.stringify(file)}`);
 
 					let pathFile = JSON.parse(JSON.stringify(file));
 					pathFile.path = req.file.path;
@@ -168,19 +160,19 @@ router.post('/upload', (req, res) => {
 
 					file._id = resp._id;
 					
-					logger.info(`[${req.get(txnid)}] File uploaded to Azure`);
-					logger.trace(`[${req.get(txnid)}] File details - ${JSON.stringify(file)}`);
+					logger.info(`[${txnId}] File uploaded to Azure`);
+					logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
 
-					res.status(200).json(file);
+					return res.status(200).json(file);
 				} catch (error) {
-					logger.error(`[${req.get(txnid)}] Error while upploading file - ${error}`);
+					logger.error(`[${txnId}] Error while upploading file - ${error}`);
 
-					res.status(500).json({
+					return res.status(500).json({
 						message: `Error uploading file - ${error.message}`
 					});
 				}
 			} else {
-				logger.error(`[${req.get(txnid)}] External Storage type is not allowed`);
+				logger.error(`[${txnId}] External Storage type is not allowed`);
 				throw new error({ message: `External Storage ${storage} not allowed`});
 			}
 		} catch (e) {
@@ -197,6 +189,32 @@ router.post('/upload', (req, res) => {
 		});
 	});
 });
+
+async function downloadFileFromAzure(id, storage, txnId, res) {
+	try {
+		let file = await mongoose.model('files').findOne({ filename: id });
+
+		if (!file) {
+			logger.error(`[${txnId}] File not found`);
+			throw new Error(`File Not Found`);
+		}
+
+		logger.debug(`[${txnId}] File Found, generating download link.`);
+		logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
+
+		let downloadUrl = await storageEngine.azureBlob.downloadFileLink(file, config.fileStorage[storage].connectionString,
+			config.fileStorage[storage].container,
+			config.fileStorage[storage].sharedKey,
+			config.fileStorage[storage].timeout);
+
+		logger.debug(`[${txnId}] Redirecting response to Azure download link`);
+
+		return res.redirect(downloadUrl);
+	} catch (err) {
+		logger.error(`[${txnId}] Error downloading file - ${err.message}`);
+		return res.end();
+	}
+}
 
 // Read a request file object and convert to ds file object format
 async function createFileObject(file) {
