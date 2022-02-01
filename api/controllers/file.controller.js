@@ -82,6 +82,11 @@ router.get('/download/:id', (req, res) => {
 				try {
 					let file = await mongoose.model('files').findOne({ filename: id });
 
+					if (!file) {
+						logger.error(`[${req.get(txnid)}] File not found`);
+						throw new Error(`File Not Found`);
+					}
+
 					logger.debug(`[${req.get(txnid)}] File Found, generating download link.`);
 					logger.trace(`[${req.get(txnid)}] File details - ${JSON.stringify(file)}`);
 
@@ -97,6 +102,9 @@ router.get('/download/:id', (req, res) => {
 					logger.error(`[${req.get(txnid)}] Error downloading file - ${err.message}`);
 					return res.end();
 				}
+			} else {
+				logger.error(`[${req.get(txnid)}] External Storage type is not allowed`);
+				throw new error({ message: `External Storage ${storage} not allowed`});
 			}
 		} catch (e) {
 			if (typeof e === 'string') {
@@ -171,6 +179,9 @@ router.post('/upload', (req, res) => {
 						message: `Error uploading file - ${error.message}`
 					});
 				}
+			} else {
+				logger.error(`[${req.get(txnid)}] External Storage type is not allowed`);
+				throw new error({ message: `External Storage ${storage} not allowed`});
 			}
 		} catch (e) {
 			if (typeof e === 'string') {
