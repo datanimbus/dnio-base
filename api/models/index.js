@@ -6,4 +6,5 @@ module.exports.init = function () {
 	require('./workflow.model');
 	require('./fileTransfers.model');
 	require('./dedupe.model');
+	require('./files.model');
 };
