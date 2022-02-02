@@ -44,7 +44,7 @@ router.get('/:id/view', (req, res) => {
 				return await downloadFileFromAzure(id, storage, txnId, res);
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
-				throw new Error({ message: `External Storage ${storage} not allowed`});
+				throw new Error(`External Storage ${storage} not allowed`);
 			}
 		} catch (e) {
 			if (typeof e === 'string') {
@@ -95,7 +95,7 @@ router.get('/download/:id', (req, res) => {
 				return await downloadFileFromAzure(id, storage, txnId, res);
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
-				throw new Error({ message: `External Storage ${storage} not allowed`});
+				throw new Error(`External Storage ${storage} not allowed`);
 			}
 		} catch (e) {
 			if (typeof e === 'string') {
@@ -173,7 +173,7 @@ router.post('/upload', (req, res) => {
 				}
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
-				throw new Error({ message: `External Storage ${storage} not allowed`});
+				throw new Error(`External Storage ${storage} not allowed`);
 			}
 		} catch (e) {
 			if (typeof e === 'string') {
