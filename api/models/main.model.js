@@ -23,7 +23,7 @@ let serviceId = process.env.SERVICE_ID || 'SRVC2006';
 let schema;
 
 if (serviceData.schemaFree) {
-	schema = new mongoose.Schema({}, {
+	schema = new mongoose.Schema({ _id: "String" }, {
 		strict: false,
 		usePushEach: true
 	});
