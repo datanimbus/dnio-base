@@ -4,7 +4,6 @@ const log4js = require('log4js');
 const _ = require('lodash');
 
 const config = require('../../config');
-// const queue = require('../../queue');
 const definition = require('../helpers/service.definition').definition;
 const mongooseUtils = require('../utils/mongoose.utils');
 const hooksUtils = require('../utils/hooks.utils');
@@ -13,37 +12,181 @@ const { removeNullForUniqueAttribute } = require('../utils/common.utils');
 const serviceData = require('../../service.json');
 const helperUtil = require('../utils/common.utils');
 const workflowUtils = require('../utils/workflow.utils');
+
 const dataStackNS = process.env.DATA_STACK_NAMESPACE;
-
-
 const logger = log4js.getLogger(global.loggerName);
+
 let softDeletedModel;
 if (!config.permanentDelete) softDeletedModel = mongoose.model(config.serviceId + '.deleted');
 
 let serviceId = process.env.SERVICE_ID || 'SRVC2006';
+let schema;
 
-const schema = new mongoose.Schema(definition, {
-	usePushEach: true
-});
+if (serviceData.schemaFree) {
+	schema = new mongoose.Schema({}, {
+		strict: false,
+		usePushEach: true
+	});
+} else {
+	schema = new mongoose.Schema(definition, {
+		usePushEach: true
+	});
 
-schema.plugin(mongooseUtils.metadataPlugin());
-schema.plugin(specialFields.mongooseUniquePlugin());
+	schema.plugin(specialFields.mongooseUniquePlugin());
 
-schema.pre('validate', async function (next) {
-	const newDoc = this;
-	const oldDoc = this._oldDoc;
-	const req = this._req;
-	try {
-		const errors = await specialFields.fixBoolean(req, newDoc, oldDoc);
+	schema.pre('validate', function (next) {
+		let self = this;
+		specialFields.uniqueFields.forEach(_k => removeNullForUniqueAttribute(self, _k.key));
+		next();
+	});
+	
+	schema.pre('save', function (next) {
+		let self = this;
+		specialFields.uniqueFields.forEach(_k => removeNullForUniqueAttribute(self, _k.key));
+		next();
+	});
+	
+	schema.pre('save', utils.counter.getIdGenerator(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER));
+	
+	schema.pre('save', function (next, req) {
+		let self = this;
+		if (self._metadata.version) {
+			self._metadata.version.release = process.env.RELEASE;
+		}
+		const headers = {};
+		const headersLen = this._req.rawHeaders.length;
+		for (let index = 0; index < headersLen; index += 2) {
+			headers[this._req.rawHeaders[index]] = this._req.rawHeaders[index + 1];
+		}
+		req.headers = headers;
+		this._req.headers = headers;
+		next();
+	});
+
+	schema.pre('save', function (next) {
+		const newDoc = this;
+		const oldDoc = this._oldDoc;
+		const req = this._req;
+		const errors = specialFields.validateCreateOnly(req, newDoc, oldDoc);
 		if (errors) {
 			next(errors);
 		} else {
 			next();
 		}
-	} catch (e) {
-		next(e);
-	}
-});
+	});
+	
+	schema.pre('save', async function (next) {
+		const newDoc = this;
+		const oldDoc = this._oldDoc;
+		const req = this._req;
+		try {
+			const errors = await specialFields.validateRelation(req, newDoc, oldDoc);
+			if (errors) {
+				next(errors);
+			} else {
+				next();
+			}
+		} catch (e) {
+			next(e);
+		}
+	});
+	
+	schema.pre('save', async function (next) {
+		const newDoc = this;
+		const oldDoc = this._oldDoc;
+		const req = this._req;
+		try {
+			const errors = await specialFields.encryptSecureFields(req, newDoc, oldDoc);
+			if (errors) {
+				next(errors);
+			} else {
+				next();
+			}
+		} catch (e) {
+			next(e);
+		}
+	});
+	
+	schema.pre('save', async function (next) {
+		const newDoc = this;
+		const oldDoc = this._oldDoc;
+		const req = this._req;
+		try {
+			const errors = await specialFields.enrichGeojson(req, newDoc, oldDoc);
+			if (errors) {
+				next(errors);
+			} else {
+				next();
+			}
+		} catch (e) {
+			next(e);
+		}
+	});
+	
+	schema.pre('save', async function (next) {
+		const newDoc = this;
+		const oldDoc = this._oldDoc;
+		const req = this._req;
+		try {
+			const errors = await specialFields.validateDateFields(req, newDoc, oldDoc);
+			if (errors) {
+				let txnId = req.headers['txnid'];
+				logger.error(`[${txnId}] Error in validation date fields :: `, errors);
+				next(errors);
+			} else {
+				next();
+			}
+		} catch (e) {
+			next(e);
+		}
+	});
+	
+	schema.pre('save', async function (next) {
+		const newDoc = this;
+		const oldDoc = this._oldDoc;
+		const req = this._req;
+		try {
+			if (req.query) {
+				const errors = await specialFields.cascadeRelation(req, newDoc, oldDoc);
+				if (errors) {
+					let txnId = req.headers['txnid'];
+					logger.error(`[${txnId}] Error in cascading relations :: `, errors);
+					next(errors);
+				} else {
+					next();
+				}
+			} else {
+				next();
+			}
+		} catch (e) {
+			next(e);
+		}
+	});
+
+	schema.post('save', function (error, doc, next) {
+		if (!error) return next();
+		if (error.code == 11000) {
+			if (error.errmsg) {
+				if (!error.errmsg.match(/(.*)index:(.*)_1 collation(.*)/g)) {
+					next(new Error(`ID ${doc._id} already exists.`));
+				} else {
+					var uniqueAttributeFailed = error.errmsg.replace(/(.*)index: (.*)_1 collation(.*)/, '$2').split('\n')[0];
+					if (uniqueAttributeFailed.endsWith('._id'))
+						uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -4);
+					if (uniqueAttributeFailed.endsWith('.checksum') && specialFields.secureFields.includes(uniqueAttributeFailed.slice(0, -9)))
+						uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -9);
+					next(new Error('Unique check validation failed for ' + uniqueAttributeFailed));
+				}
+			} else {
+				next(new Error('Unique check validation failed'));
+			}
+		} else {
+			next();
+		}
+	});
+}
+
+schema.plugin(mongooseUtils.metadataPlugin());
 
 schema.pre('validate', async function (next) {
 	const self = this;
@@ -62,35 +205,6 @@ schema.pre('validate', async function (next) {
 	}
 });
 
-schema.pre('validate', function (next) {
-	let self = this;
-	specialFields.uniqueFields.forEach(_k => removeNullForUniqueAttribute(self, _k.key));
-	next();
-});
-
-schema.pre('save', function (next) {
-	let self = this;
-	specialFields.uniqueFields.forEach(_k => removeNullForUniqueAttribute(self, _k.key));
-	next();
-});
-
-schema.pre('save', utils.counter.getIdGenerator(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER));
-
-schema.pre('save', function (next, req) {
-	let self = this;
-	if (self._metadata.version) {
-		self._metadata.version.release = process.env.RELEASE;
-	}
-	const headers = {};
-	const headersLen = this._req.rawHeaders.length;
-	for (let index = 0; index < headersLen; index += 2) {
-		headers[this._req.rawHeaders[index]] = this._req.rawHeaders[index + 1];
-	}
-	req.headers = headers;
-	this._req.headers = headers;
-	next();
-});
-
 schema.pre('save', async function (next) {
 	const req = this._req;
 	try {
@@ -99,9 +213,6 @@ schema.pre('save', async function (next) {
 			simulate: false,
 			source: 'presave'
 		};
-		// if (this._isFromWorkflow) {
-		// 	await specialFields.decryptSecureFields(req, this, null);
-		// }
 		const data = await hooksUtils.callAllPreHooks(req, this, options);
 		logger.trace(`[${req.headers[global.txnIdHeader]}] Prehook data :: ${JSON.stringify(data)}`);
 		delete data._metadata;
@@ -117,13 +228,13 @@ schema.pre('save', function (next) {
 	const oldDoc = this._oldDoc;
 	const req = this._req;
 
-	if (serviceData.stateModel && serviceData.stateModel.enabled && !oldDoc &&
+	if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !oldDoc &&
 		!serviceData.stateModel.initialStates.includes(_.get(newDoc, serviceData.stateModel.attribute)) &&
 		!workflowUtils.hasAdminAccess(req, req.user.appPermissions)) {
 		return next(new Error('Record is not in initial state.'));
 	}
 
-	if (serviceData.stateModel && serviceData.stateModel.enabled && oldDoc
+	if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && oldDoc
 		&& !serviceData.stateModel.states[_.get(oldDoc, serviceData.stateModel.attribute)].includes(_.get(newDoc, serviceData.stateModel.attribute))
 		&& _.get(oldDoc, serviceData.stateModel.attribute) !== _.get(newDoc, serviceData.stateModel.attribute)
 		&& !workflowUtils.hasAdminAccess(req, req.user.appPermissions)) {
@@ -134,129 +245,10 @@ schema.pre('save', function (next) {
 });
 
 schema.pre('save', function (next) {
-	const newDoc = this;
-	const oldDoc = this._oldDoc;
-	const req = this._req;
-	const errors = specialFields.validateCreateOnly(req, newDoc, oldDoc);
-	if (errors) {
-		next(errors);
-	} else {
-		next();
-	}
-});
-
-schema.pre('save', async function (next) {
-	const newDoc = this;
-	const oldDoc = this._oldDoc;
-	const req = this._req;
-	try {
-		const errors = await specialFields.validateRelation(req, newDoc, oldDoc);
-		if (errors) {
-			next(errors);
-		} else {
-			next();
-		}
-	} catch (e) {
-		next(e);
-	}
-});
-
-// Commenting as unique calidation is handled at post save level
-// schema.pre('save', async function (next) {
-//     const newDoc = this;
-//     const oldDoc = this._oldDoc;
-//     const req = this._req;
-//     try {
-//         const errors = await specialFields.validateUnique(req, newDoc, oldDoc);
-//         if (errors) {
-//             next(errors);
-//         } else {
-//             next();
-//         }
-//     } catch (e) {
-//         next(e);
-//     }
-// });
-
-schema.pre('save', async function (next) {
-	const newDoc = this;
-	const oldDoc = this._oldDoc;
-	const req = this._req;
-	try {
-		const errors = await specialFields.encryptSecureFields(req, newDoc, oldDoc);
-		if (errors) {
-			next(errors);
-		} else {
-			next();
-		}
-	} catch (e) {
-		next(e);
-	}
-});
-
-schema.pre('save', async function (next) {
-	const newDoc = this;
-	const oldDoc = this._oldDoc;
-	const req = this._req;
-	try {
-		const errors = await specialFields.enrichGeojson(req, newDoc, oldDoc);
-		if (errors) {
-			next(errors);
-		} else {
-			next();
-		}
-	} catch (e) {
-		next(e);
-	}
-});
-
-schema.pre('save', async function (next) {
-	const newDoc = this;
-	const oldDoc = this._oldDoc;
-	const req = this._req;
-	try {
-		const errors = await specialFields.validateDateFields(req, newDoc, oldDoc);
-		if (errors) {
-			let txnId = req.headers['txnid'];
-			logger.error(`[${txnId}] Error in validation date fields :: `, errors);
-			next(errors);
-		} else {
-			next();
-		}
-	} catch (e) {
-		next(e);
-	}
-});
-
-
-schema.pre('save', async function (next) {
-	const newDoc = this;
-	const oldDoc = this._oldDoc;
-	const req = this._req;
-	try {
-		if (req.query) {
-			const errors = await specialFields.cascadeRelation(req, newDoc, oldDoc);
-			if (errors) {
-				let txnId = req.headers['txnid'];
-				logger.error(`[${txnId}] Error in cascading relations :: `, errors);
-				next(errors);
-			} else {
-				next();
-			}
-		} else {
-			next();
-		}
-	} catch (e) {
-		next(e);
-	}
-});
-
-schema.pre('save', function (next) {
 	let doc = this.toObject();
 	Object.keys(doc).forEach(el => this.markModified(el));
 	next();
 });
-
 
 schema.post('save', function (doc, next) {
 	const req = doc._req;
@@ -270,7 +262,6 @@ schema.post('save', function (doc, next) {
 	webHookData.old = JSON.parse(JSON.stringify(oldData));
 	next();
 	hooksUtils.prepPostHooks(JSON.parse(JSON.stringify(webHookData)));
-	// queue.sendToQueue(webHookData);
 	if (!config.disableAudits) {
 		let auditData = {};
 		auditData.versionValue = '-1';
@@ -295,42 +286,24 @@ schema.post('save', function (doc, next) {
 		if (!_.isEqual(auditData.data.old, auditData.data.new)) {
 			if (oldLastUpdated) auditData.data.old._metadata.lastUpdated = oldLastUpdated;
 			if (newLastUpdated) auditData.data.new._metadata.lastUpdated = newLastUpdated;
-			// client.publish('auditQueue', JSON.stringify(auditData))
 			hooksUtils.insertAuditLog(webHookData.txnId, auditData);
 		}
 	}
 });
 
-schema.post('save', function (error, doc, next) {
-	if (!error) return next();
-	if (error.code == 11000) {
-		if (error.errmsg) {
-			if (!error.errmsg.match(/(.*)index:(.*)_1 collation(.*)/g)) {
-				next(new Error(`ID ${doc._id} already exists.`));
-			} else {
-				var uniqueAttributeFailed = error.errmsg.replace(/(.*)index: (.*)_1 collation(.*)/, '$2').split('\n')[0];
-				if (uniqueAttributeFailed.endsWith('._id'))
-					uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -4);
-				if (uniqueAttributeFailed.endsWith('.checksum') && specialFields.secureFields.includes(uniqueAttributeFailed.slice(0, -9)))
-					uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -9);
-				next(new Error('Unique check validation failed for ' + uniqueAttributeFailed));
-			}
-		} else {
-			next(new Error('Unique check validation failed'));
-		}
-	} else {
-		next();
-	}
-});
-
-
 schema.pre('remove', function (next) {
+	let txnId = this._req.get('txnId');
+ 	logger.info(`[${txnId}] Pre remove hook - checking relations ${this._id}`);
 	let promiseArr = [];
 	let self = this;
 	let inService = [];
 	helperUtil.getServiceDetail(serviceId, this._req)
 		.then((serviceDetail) => {
+			logger.trace(`[${txnId}] Service details ${serviceId} :: ${JSON.stringify(serviceDetail)}`);
+
 			let incoming = serviceDetail.relatedSchemas.incoming;
+			logger.trace(`[${txnId}] Incoming relations ${JSON.stringify(incoming)}`);
+			
 			if (incoming && incoming.length !== 0) {
 				inService = incoming.map(obj => {
 					obj.uri = obj.uri.replace('{{id}}', self._id);
@@ -339,6 +312,7 @@ schema.pre('remove', function (next) {
 			}
 		})
 		.then(() => {
+			logger.trace(`[${txnId}] Incoming Services ${JSON.stringify(inService)}`);
 			inService.forEach(obj => {
 				if (process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT) {
 					let split = obj.uri.split('/');
@@ -361,6 +335,7 @@ schema.pre('remove', function (next) {
 			} else {
 				next(new Error('Cannot complete request'));
 			}
+			logger.trace(`[${txnId}] Relations :: ${_relObj}`);
 			self._relObj = _relObj;
 			next();
 		})
@@ -369,8 +344,10 @@ schema.pre('remove', function (next) {
 		});
 });
 
-
 schema.post('remove', function (doc) {
+	let txnId = this._req.get('txnId');
+ 	logger.info(`[${txnId}] Post remove hook - updating relations ${this._id}`);
+
 	let updateList = [];
 	doc._relObj.forEach(_o => {
 		_o.documents.forEach(_oDoc => {
@@ -397,7 +374,6 @@ schema.post('remove', function (doc) {
 		helperUtil.crudDocuments(ulObj._service, 'PUT', ulObj.doc, null, doc._req);
 	});
 });
-
 
 mongoose.model(config.serviceId, schema, config.serviceCollection);
 
