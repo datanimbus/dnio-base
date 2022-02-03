@@ -32,7 +32,7 @@ async function getDocumentIds(req, serviceId, filter) {
 			headers: {
 				'txnId': req ? req.headers[global.txnIdHeader] : '',
 				'user': req ? req.headers[global.userHeader] : '',
-				'authorization': req ? req.headers.authorization : '',
+				'authorization': req ? req.headers.authorization || req.headers.Authorization : '',
 				'Content-Type': 'application/json'
 			},
 			qs: {
@@ -50,7 +50,7 @@ async function getDocumentIds(req, serviceId, filter) {
 			method: 'GET',
 			headers: {
 				'txnId': req ? req.headers[global.txnIdHeader] : '',
-				'authorization': req ? req.headers.authorization : '',
+				'authorization': req ? req.headers.authorization || req.headers.Authorization : '',
 				'Content-Type': 'application/json'
 			},
 			qs: {
@@ -82,7 +82,7 @@ async function getUserDoc(req, userId) {
 					'Content-Type': 'application/json',
 					'TxnId': req ? req.headers[global.txnIdHeader] : '',
 					'User': req ? req.headers[global.userHeader] : '',
-					'Authorization': req ? req.headers.authorization : '',
+					'Authorization': req ? req.headers.authorization || req.headers.Authorization : '',
 				},
 				json: true
 			}).then(res => {
@@ -120,7 +120,7 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 				headers: {
 					'TxnId': req ? req.headers[global.txnIdHeader] : '',
 					'User': req ? req.headers[global.userHeader] : '',
-					'Authorization': req ? req.headers.authorization : '',
+					'Authorization': req ? req.headers.authorization || req.headers.Authorization : '',
 					'Content-Type': 'application/json'
 				},
 				qs: {
@@ -142,7 +142,7 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 				method: 'GET',
 				headers: {
 					'TxnId': req ? req.headers[global.txnIdHeader] : '',
-					'Authorization': req ? req.headers.authorization : '',
+					'Authorization': req ? req.headers.authorization || req.headers.Authorization : '',
 					'Content-Type': 'application/json',
 					'Expand-Level': expandLevel
 				},
@@ -370,7 +370,7 @@ async function informThroughSocket(req, data) {
 		headers: {
 			'TxnId': req ? req.headers[global.txnIdHeader] : '',
 			'User': req ? req.headers[global.userHeader] : '',
-			'Authorization': req ? req.headers.authorization : '',
+			'Authorization': req ? req.headers.authorization || req.headers.Authorization : '',
 			'Content-Type': 'application/json',
 		},
 		json: true,
@@ -399,7 +399,7 @@ async function upsertDocument(req, serviceId, document) {
 				headers: {
 					'txnId': req ? req.headers[global.txnIdHeader] : '',
 					'user': req ? req.headers[global.userHeader] : '',
-					'authorization': req ? req.headers.authorization : '',
+					'authorization': req ? req.headers.authorization || req.headers.Authorization : '',
 					'Content-Type': 'application/json'
 				},
 				qs: {
@@ -422,7 +422,7 @@ async function upsertDocument(req, serviceId, document) {
 			method: method,
 			headers: {
 				'txnId': req ? req.headers[global.txnIdHeader] : '',
-				'authorization': req ? req.headers.authorization : '',
+				'authorization': req ? req.headers.authorization || req.headers.Authorization : '',
 				'Content-Type': 'application/json',
 			},
 			json: true,
@@ -446,7 +446,7 @@ e.getServiceDetail = function (serviceId, req) {
 		headers: {
 			'Content-Type': 'application/json',
 			'TxnId': req.headers ? req.headers[global.txnIdHeader] : '',
-			'Authorization': req.headers ? req.headers.authorization : ''
+			'Authorization': req.headers ? req.headers.authorization || req.headers.Authorization : ''
 		},
 		json: true
 	};
@@ -483,7 +483,7 @@ e.getStoredServiceDetail = function (serviceId, serviceDetailsObj, req) {
 			headers: {
 				'Content-Type': 'application/json',
 				'TxnId': txnId,
-				'Authorization': req.headers['authorization']
+				'Authorization': req.headers['authorization'] || req.headers['Authorization']
 			},
 			json: true
 		};
@@ -953,7 +953,7 @@ function crudDocuments(_service, method, body, qs, req) {
 		headers: {
 			'Content-Type': 'application/json',
 			'TxnId': req.headers ? req.headers['txnid'] : '',
-			'Authorization': req.headers ? req.headers['authorization'] : '',
+			'Authorization': req.headers ? req.headers['authorization'] || req.headers['Authorization'] : '',
 			'Cache': req.headers ? req.headers['cache'] : ''
 		},
 		json: true
