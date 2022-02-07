@@ -371,7 +371,7 @@ router.get('/', (req, res) => {
 							errors
 						);
 					}
-					
+
 					if (Array.isArray(tempFilter) && tempFilter.length > 0) {
 						filter = tempFilter[0];
 					} else if (tempFilter) {
@@ -429,7 +429,7 @@ router.get('/', (req, res) => {
 				.skip(skip)
 				.limit(count)
 				.lean();
-			
+
 			if (!serviceData.schemaFree) {
 				docs.forEach(doc => specialFields.filterByPermission(req, req.user.appPermissions, doc));
 				if (req.query.expand == true || req.query.expand == 'true') {
@@ -488,7 +488,7 @@ router.get('/:id', (req, res) => {
 					message: `Record With ID  ${id} Not Found.`,
 				});
 			}
-			
+
 			if (!serviceData.schemaFree) {
 				specialFields.filterByPermission(req, req.user.appPermissions, doc);
 				const expandLevel = (req.header('expand-level') || 0) + 1;
@@ -614,7 +614,7 @@ router.post('/', (req, res) => {
 							if (!_.get(data, serviceData.stateModel.attribute)) {
 								_.set(data, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
 							}
-			
+
 							if (!serviceData.stateModel.initialStates.includes(_.get(data, serviceData.stateModel.attribute))) {
 								return { message: 'Record is not in initial state.' };
 							}
@@ -639,7 +639,7 @@ router.post('/', (req, res) => {
 						if (!_.get(payload, serviceData.stateModel.attribute)) {
 							_.set(payload, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
 						}
-		
+
 						if (!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
 							throw new Error('Record is not in initial state.');
 						}
@@ -686,7 +686,7 @@ router.put('/:id', (req, res) => {
 				message: 'You don\'t have permission to update records',
 			});
 		}
-		
+
 		const workflowModel = mongoose.model('workflow');
 		try {
 			const upsert = req.query.upsert == 'true';
@@ -745,7 +745,7 @@ router.put('/:id', (req, res) => {
 				doc._oldDoc = doc.toObject();
 			}
 			doc._req = req;
-			
+
 			if (
 				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
 				req.query.draft
@@ -777,7 +777,14 @@ router.put('/:id', (req, res) => {
 				});
 			} else {
 				logger.debug(`[${txnId}] Merging and saving doc`);
-				_.mergeWith(doc, payload, mergeCustomizer);
+				if (!serviceData.schemaFree) {
+					_.mergeWith(doc, payload, mergeCustomizer);
+				} else {
+					Object.keys(payload).forEach(key => {
+						if (doc.get(key) != payload[key])
+							doc.set(key, payload[key]);
+					});
+				}
 				status = await doc.save();
 				logger.debug(`[${txnId}] Update status - ${status}`);
 				return res.status(200).json(status);
@@ -810,7 +817,7 @@ router.delete('/:id', (req, res) => {
 				message: 'You don\'t have permission to update records',
 			});
 		}
-		
+
 		const workflowModel = mongoose.model('workflow');
 		try {
 			let doc = await model.findById(id);
@@ -838,7 +845,7 @@ router.delete('/:id', (req, res) => {
 			let wfId;
 			if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
 				logger.debug(`[${txnId}] Creating workflow.`);
-				
+
 				const wfItem = workflowUtils.getWorkflowItem(
 					req,
 					'DELETE',
@@ -847,7 +854,7 @@ router.delete('/:id', (req, res) => {
 					null,
 					doc.toObject()
 				);
-				
+
 				logger.trace(`[${txnId}] Workflow Item for record ${id} :: ${JSON.stringify(wfItem)}`);
 
 				const wfDoc = new workflowModel(wfItem);
