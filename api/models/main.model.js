@@ -342,7 +342,7 @@ schema.pre('remove', function (next) {
 			} else {
 				next(new Error('Cannot complete request'));
 			}
-			logger.trace(`[${txnId}] Relations :: ${_relObj}`);
+			logger.trace(`[${txnId}] Relations :: ${JSON.stringify(_relObj)}`);
 			self._relObj = _relObj;
 			next();
 		})
