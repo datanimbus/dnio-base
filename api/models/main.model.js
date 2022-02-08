@@ -216,7 +216,14 @@ schema.pre('save', async function (next) {
 		const data = await hooksUtils.callAllPreHooks(req, this, options);
 		logger.trace(`[${req.headers[global.txnIdHeader]}] Prehook data :: ${JSON.stringify(data)}`);
 		delete data._metadata;
-		_.assign(this, data);
+		if (serviceData.schemaFree) {
+			Object.keys(data).forEach(key => {
+				if(this.get(key) != data[key])
+					this.set(key, data[key]);
+			});
+		} else {
+			_.assign(this, data);
+		}
 		next();
 	} catch (e) {
 		next(e);
@@ -335,7 +342,7 @@ schema.pre('remove', function (next) {
 			} else {
 				next(new Error('Cannot complete request'));
 			}
-			logger.trace(`[${txnId}] Relations :: ${_relObj}`);
+			logger.trace(`[${txnId}] Relations :: ${JSON.stringify(_relObj)}`);
 			self._relObj = _relObj;
 			next();
 		})
