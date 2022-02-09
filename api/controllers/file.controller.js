@@ -154,7 +154,10 @@ router.post('/upload', (req, res) => {
 					pathFile.path = req.file.path;
 
 					await storageEngine.azureBlob.uploadFile(pathFile,
-						config.fileStorage[storage].connectionString, config.fileStorage[storage].container);
+						config.fileStorage[storage].connectionString,
+						config.fileStorage[storage].container,
+						config.app,
+						config.serviceName);
 
 					let resp = await mongoose.model('files').create(file);
 
