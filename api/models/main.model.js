@@ -46,8 +46,6 @@ if (serviceData.schemaFree) {
 		next();
 	});
 	
-	schema.pre('save', utils.counter.getIdGenerator(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER));
-	
 	schema.pre('save', function (next, req) {
 		let self = this;
 		if (self._metadata.version) {
@@ -187,6 +185,8 @@ if (serviceData.schemaFree) {
 }
 
 schema.plugin(mongooseUtils.metadataPlugin());
+
+schema.pre('save', utils.counter.getIdGenerator(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER));
 
 schema.pre('validate', async function (next) {
 	const self = this;
