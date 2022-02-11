@@ -48,7 +48,7 @@ if (serviceData.schemaFree) {
 	
 	schema.pre('save', function (next, req) {
 		let self = this;
-		if (self._metadata.version) {
+		if (self._metadata && self._metadata.version) {
 			self._metadata.version.release = process.env.RELEASE;
 		}
 		const headers = {};
