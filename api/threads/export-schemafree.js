@@ -154,37 +154,19 @@ async function execute() {
                 return doc;
             });
 
-            /******** Flatenning documents to write in TXT file *******/
-            documents = documents.map(doc => flatten(doc, true));
-            logger.debug(`[${txnId}] Flattened Documents for batch :: ${i + 1}`);
-            logger.trace(`[${txnId}] Flattened documents for batch :: ${i + 1} :: ${JSON.stringify(documents)}`);
-
-            /******** Writing documents in TXT file *******/
-            documents.reduce((acc, curr) => {
-                Object.assign(headersObj, curr);
-                return acc.then(() => txtWriteStream.write(JSON.stringify(curr) + '\n', () => Promise.resolve()));
-            }, Promise.resolve());
-        }, Promise.resolve());
-
-        logger.debug(`[${txnId}] Txt file is ready. Creating JSONs...`);
-
-        var readStream = fs.createReadStream(outputDir + fileName + '.txt');
-
-        /******** Praparing JSON files from TXT file *******/
-        await new Promise((resolve) => {
-            lineReader.eachLine(readStream, (line, last) => {
-                let fileName = JSON.parse(line)._id + '.json';
-                logger.trace(`[${txnId}] Creating JSON file :: ${fileName}`);
-                jsonFileNames.push(fileName);
-                var jsonWriteStream = fs.createWriteStream(outputDir + fileName);
-                jsonWriteStream.write(line);
-                jsonWriteStream.end();
-                if (last) {
-                    logger.debug(`[${txnId}] JSON files are ready. Creating zip...`);
-                    resolve();
-                }
+            /******** Writing documents in JSON files *******/
+            await new Promise((resolve) => {
+                documents.forEach(doc => {
+                    let fileName = doc._id + '.json';
+                    logger.trace(`[${txnId}] Creating JSON file :: ${fileName}`);
+                    jsonFileNames.push(fileName);
+                    let jsonWriteStream = fs.createWriteStream(outputDir + fileName);
+                    jsonWriteStream.write(JSON.stringify(doc));
+                    jsonWriteStream.end();
+                });
+                resolve();
             });
-        });
+        }, Promise.resolve());
 
         /******* Praparing ZIP file from JSON file ******/
         await new Promise((resolve, reject) => {
