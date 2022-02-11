@@ -3,7 +3,6 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const log4js = require('log4js');
 const uuid = require('uuid/v1');
-let lineReader = require('line-reader');
 let archiver = require('archiver');
 
 const config = require('../../config');
@@ -25,41 +24,6 @@ log4js.configure({
     categories: { default: { appenders: ['out'], level: LOG_LEVEL } }
 });
 const logger = log4js.getLogger(LOGGER_NAME);
-
-function flatten(obj, deep, parent) {
-    let temp = {};
-    if (obj) {
-        Object.keys(obj).forEach(function (key) {
-            const thisKey = parent ? parent + '.' + key : key;
-            if (typeof obj[key] === 'object' && key != '_id') {
-                if (Array.isArray(obj[key])) {
-                    if (deep) {
-                        obj[key].forEach((item, i) => {
-                            if (typeof item === 'object') {
-                                Object.assign(temp, flatten(item, deep, thisKey + '.' + i));
-                            } else {
-                                temp[thisKey + '.' + i] = item;
-                            }
-                        });
-                    } else {
-                        temp[thisKey] = obj[key];
-                    }
-                }
-                else if (obj[key] instanceof Date) {
-                    temp[thisKey] = obj[key];
-                }
-                else {
-                    temp = Object.assign(temp, flatten(obj[key], deep, thisKey));
-                }
-            }
-            else {
-                if (typeof obj[key] == 'boolean') obj[key] = obj[key].toString();
-                if (!(parent && key == '_id' && typeof (obj[key]) == 'object')) temp[thisKey] = obj[key];
-            }
-        });
-        return temp;
-    }
-}
 
 
 async function execute() {
@@ -90,8 +54,6 @@ async function execute() {
 
     var totalRecords;
     let outputDir = './output/';
-    var txtWriteStream = fs.createWriteStream(outputDir + fileName + '.txt');
-    let headersObj = {};
     let cursor;
     let jsonFileNames = [];
 
