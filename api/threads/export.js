@@ -286,9 +286,6 @@ function keyvalue(data, obj, keys, values, flag) {
 }
 
 async function execute() {
-	let reqData = workerData.reqData;
-	let txnId = reqData.headers.txnid;
-	logger.info(`[${txnId}] Executing export records thread`);
 
 	const commonUtils = require('../utils/common.utils');
 	const exportUtils = require('./../utils/export.utils');
@@ -300,7 +297,9 @@ async function execute() {
 	const fileTransfersModel = mongoose.model('fileTransfers');
 
 	logger.level = LOG_LEVEL;
+	let reqData = workerData.reqData;
 	let fileId = workerData.fileId;
+	let txnId = reqData.headers.txnid;
 	const BATCH = 500;
 	let select = reqData.query.select || '';
 	let d = new Date();
@@ -314,77 +313,70 @@ async function execute() {
 	let downloadFile = config.serviceName + '-' + formats + '.zip';
 	downloadFile = downloadFile.replace(/\//g, '_');
 	select = select ? select.split(',') : [];
-
 	let selectionObject = null;
+	// let intFilter = null;
 	let definitionArr;
 	let obj = {};
 	let obj2 = {};
 	var resul = {};
 	var totalRecords;
+
 	let outputDir = './output/';
 	var txtWriteStream = fs.createWriteStream(outputDir + fileName + '.txt');
 	let headersObj = {};
 	let serviceDetailsObj = {};
 	let cursor;
-	let jsonFileNames = [];
 
 	try {
 		let serviceDetails = require('./../../service.json');
-		logger.debug(`[${txnId}] Schema Free ? :: ${serviceDetails.schemaFree}`);
+		definitionArr = _.cloneDeep(serviceDetails.definitionWithId);
+		var cbc = keyvalue(definitionArr, obj, null, null, false);
+		var mapping = keyvalue(definitionArr, obj2, null, null, true);
 
-		if (!serviceDetails.schemaFree) {
-			definitionArr = _.cloneDeep(serviceDetails.definitionWithId);
-			var cbc = keyvalue(definitionArr, obj, null, null, false);
-			var mapping = keyvalue(definitionArr, obj2, null, null, true);
-
-			if (select.length > 0 && select[0][0] !== '-') {
-				resul['_id'] = cbc['_id'];
-				for (let i = 0; i < select.length; i++) {
-					resul[select[i]] = cbc[select[i]];
-				}
-			}
-			else if (select.length > 0 && select[0][0] === '-') {
-				for (let i = 0; i < select.length; i++) {
-					var unsignedKey = select[i].slice(1);
-					delete cbc[unsignedKey];
-				}
-				resul = cbc;
-			}
-			else {
-				resul = cbc;
-			}
-			if (select && select.length === 0 && resul) {
-				select = Object.keys(resul);
-			}
-
-			selectionObject = exportUtils.getSelectionObject(serviceDetails, select);
-			if (selectionObject.querySelect.length > 0) {
-				reqData.query.select = selectionObject.querySelect.join(',');
+		if (select.length > 0 && select[0][0] !== '-') {
+			resul['_id'] = cbc['_id'];
+			for (let i = 0; i < select.length; i++) {
+				resul[select[i]] = cbc[select[i]];
 			}
 		}
+		else if (select.length > 0 && select[0][0] === '-') {
+			for (let i = 0; i < select.length; i++) {
+				var unsignedKey = select[i].slice(1);
+				delete cbc[unsignedKey];
+			}
+			resul = cbc;
+		}
+		else {
+			resul = cbc;
+		}
+		if (select && select.length === 0 && resul) {
+			select = Object.keys(resul);
+		}
 
+		selectionObject = exportUtils.getSelectionObject(serviceDetails, select);
+		if (selectionObject.querySelect.length > 0) {
+			reqData.query.select = selectionObject.querySelect.join(',');
+		}
 		const errors = {};
 		let filter = reqData.query.filter;
 		if (filter) {
 			filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
-
-			if (!serviceDetails.schemaFree) {
-				const tempFilter = await specialFields.patchRelationInFilter(
-					reqData,
-					filter,
-					errors
-				);
-				if (Array.isArray(tempFilter) && tempFilter.length > 0) {
-					filter = tempFilter[0];
-				} else if (tempFilter) {
-					filter = tempFilter;
-				}
-				filter = commonUtils.modifySecureFieldsFilter(filter, specialFields.secureFields, false);
-				filter = crudderUtils.parseFilter(filter);
+			// intFilter = JSON.parse(JSON.stringify(filter));
+			// filter = await exportUtils.createFilter(definitionArr, filter, reqData);
+			const tempFilter = await specialFields.patchRelationInFilter(
+				reqData,
+				filter,
+				errors
+			);
+			if (Array.isArray(tempFilter) && tempFilter.length > 0) {
+				filter = tempFilter[0];
+			} else if (tempFilter) {
+				filter = tempFilter;
 			}
+			filter = commonUtils.modifySecureFieldsFilter(filter, specialFields.secureFields, false);
+			filter = crudderUtils.parseFilter(filter);
 		}
 		logger.debug(`[${txnId}] Filter for export :: ${JSON.stringify(filter)}`);
-		logger.debug(`[${txnId}] Fields to select for export :: ${JSON.stringify(select)}`);
 
 		let count = await serviceModel.countDocuments(filter);
 		totalRecords = count;
@@ -412,7 +404,6 @@ async function execute() {
 		reqData.query.batchSize = reqData.query.batchSize ? reqData.query.batchSize : BATCH;
 		reqData.query.filter = filter;
 		cursor = crudderUtils.cursor(reqData, serviceModel);
-
 		/********** Fetching documents from DB *********/
 		await arr.reduce(async (_p, curr, i) => {
 			await _p;
@@ -423,133 +414,75 @@ async function execute() {
 				if (doc) documents.push(doc);
 				else break;
 			}
-			logger.debug(`[${txnId}] : Fetched documents from cursor for batch :: `, i + 1);
-			logger.trace(`[${txnId}] Fetched documents for batch ${i + 1} :: ${JSON.stringify(documents)}`);
+			logger.trace(`[${txnId}] : Fethed Documents from cursor for batch :: `, i + 1);
 
-			if (!serviceDetails.schemaFree) {
-				/******** Expanding Relation Fields *******/
-				documents = await exportUtils.expandInBatch(documents, selectionObject, i, fileName, reqData, resul, serviceDetailsObj, { forFile: true });
-				logger.trace(`[${txnId}] : Expanded Documents for batch :: `, i + 1);
+			/******** Expanding Relation Fields *******/
+			documents = await exportUtils.expandInBatch(documents, selectionObject, i, fileName, reqData, resul, serviceDetailsObj, { forFile: true });
+			logger.trace(`[${txnId}] : Expanded Documents for batch :: `, i + 1);
 
-				/******** Decrypting Secured Fields *******/
-				documents = await specialFields.secureFields.reduce((acc, curr) => acc.then(_d => commonUtils.decryptArrData(_d, curr, true)), Promise.resolve(documents));
-				logger.trace(`[${txnId}] : Decrypted Documents for batch :: `, i + 1);
+			/******** Decrypting Secured Fields *******/
+			documents = await specialFields.secureFields.reduce((acc, curr) => acc.then(_d => commonUtils.decryptArrData(_d, curr, true)), Promise.resolve(documents));
+			logger.trace(`[${txnId}] : Decrypted Documents for batch :: `, i + 1);
 
-				/*********** Formating Date Fields ************/
-				documents = documents.map(doc => convertDateToTimezone(doc, 0));
+			/*********** Formating Date Fields ************/
+			documents = documents.map(doc => convertDateToTimezone(doc, 0));
 
-				/***** Converting Date Fields To Given Timezone *****/
-				// documents = documents.map(doc => convertDateToTimezone(doc, timezone));
-			} else {
-				documents = documents.map(doc => {
-					delete doc._metadata;
-					delete doc._workflow;
-					delete doc.__v;
-					return doc;
-				});
-			}
+			/***** Converting Date Fields To Given Timezone *****/
+			// documents = documents.map(doc => convertDateToTimezone(doc, timezone));
 
 			/******** Flatenning documents to write in TXT file *******/
 			documents = documents.map(doc => flatten(doc, true));
-			logger.debug(`[${txnId}] : Flattened Documents for batch :: `, i + 1);
-			logger.trace(`[${txnId}] Flattened documents for batch :: ${i + 1} :: ${JSON.stringify(documents)}`);
+			logger.trace(`[${txnId}] : Flattened Documents for batch :: `, i + 1);
 
 			/******** Writing documents in TXT file *******/
 			await documents.reduce((acc, curr) => {
 				Object.assign(headersObj, curr);
 				return acc.then(() => txtWriteStream.write(JSON.stringify(curr) + '\n', () => Promise.resolve()));
 			}, Promise.resolve());
+
+
 		}, Promise.resolve());
 
-
 		/********** Preparing file headers  *********/
-		let headers;
-		let fileHeaders;
-		if (!serviceDetails.schemaFree) {
-			logger.debug(`[${txnId}] : Txt file is ready. Creating CSV...`);
-			headers = getHeadersAsPerSelectParam(headersObj, select);
-			fileHeaders = replaceHeaders(headerMapper(mapping, headers), headers.join());
-			logger.debug(`[${txnId}] : headers::: `, headers);
-			logger.debug(`[${txnId}] :fileHeaders::: `, fileHeaders);
-		} else {
-			logger.debug(`[${txnId}] : Txt file is ready. Creating JSONs...`);
-		}
-		
+		logger.debug(`[${txnId}] : Txt file is ready. Creating CSV...`);
+		let headers = getHeadersAsPerSelectParam(headersObj, select);
+		let fileHeaders = replaceHeaders(headerMapper(mapping, headers), headers.join());
+		logger.debug(`[${txnId}] : headers::: `, headers);
+		logger.debug(`[${txnId}] :fileHeaders::: `, fileHeaders);
 		var readStream = fs.createReadStream(outputDir + fileName + '.txt');
+		var csvWriteStream = fs.createWriteStream(outputDir + fileName + '.csv');
+		csvWriteStream.write(fileHeaders + '\n');
 
-		if (!serviceDetails.schemaFree) {
-			var csvWriteStream = fs.createWriteStream(outputDir + fileName + '.csv');
-			csvWriteStream.write(fileHeaders + '\n');
-	
-			/******** Praparing CSV file from TXT file *******/
-			await new Promise((resolve) => {
-				lineReader.eachLine(readStream, (line, last) => {
-					csvWriteStream.write(getCSVRow(headers, line) + '\n');
-					if (last) {
-						csvWriteStream.end();
-						logger.debug(`[${txnId}] : CSV file is ready. Creating zip...`);
-						resolve();
-					}
-				});
-			});
-	
-			/******* Praparing ZIP file from CSV file ******/
-			await new Promise((resolve, reject) => {
-				let archive = archiver('zip', {
-					zlib: { level: 9 } // Sets the compression level.
-				});
-				let zipWriteStream = fs.createWriteStream(outputDir + downloadFile);
-				zipWriteStream.on('close', function () {
-					logger.debug(`[${txnId}] : Zip file has been created. Uploading to mongo...`);
+		/******** Praparing CSV file from TXT file *******/
+		await new Promise((resolve) => {
+			lineReader.eachLine(readStream, (line, last) => {
+				csvWriteStream.write(getCSVRow(headers, line) + '\n');
+				if (last) {
+					csvWriteStream.end();
+					logger.debug(`[${txnId}] : CSV file is ready. Creating zip...`);
 					resolve();
-				});
-				archive.pipe(zipWriteStream);
-				archive.file(outputDir + fileName + '.csv', { name: fileName + '.csv' });
-				archive.finalize();
-				archive.on('error', (err) => {
-					logger.error(`[${txnId}] : Error in creating zip file: `, err);
-					reject(err);
-				});
+				}
 			});
-		} else {
-			/******** Praparing JSON files from TXT file *******/
-			await new Promise((resolve) => {
-				lineReader.eachLine(readStream, (line, last) => {
-					jsonFileNames.push(JSON.parse(line)._id + '.json');
-					var jsonWriteStream = fs.createWriteStream(outputDir + JSON.parse(line)._id + '.json');
-					jsonWriteStream.write(line);
-					jsonWriteStream.end();
-					if (last) {
-						logger.debug(`[${txnId}] : JSON files are ready. Creating zip...`);
-						resolve();
-					}
-				});
-			});
+		});
 
-			/******* Praparing ZIP file from JSON file ******/
-			await new Promise((resolve, reject) => {
-				let archive = archiver('zip', {
-					zlib: { level: 9 } // Sets the compression level.
-				});
-				let zipWriteStream = fs.createWriteStream(outputDir + downloadFile);
-				zipWriteStream.on('close', function () {
-					logger.debug(`[${txnId}] : Zip file has been created. Uploading to mongo...`);
-					resolve();
-				});
-				archive.pipe(zipWriteStream);
-
-				jsonFileNames.forEach(f => {
-					archive.file(outputDir + f, { name: f });
-				});
-				
-				archive.finalize();
-				archive.on('error', (err) => {
-					logger.error(`[${txnId}] : Error in creating zip file: `, err);
-					reject(err);
-				});
+		/******* Praparing ZIP file from CSV file ******/
+		await new Promise((resolve, reject) => {
+			let archive = archiver('zip', {
+				zlib: { level: 9 } // Sets the compression level.
 			});
-		}
-		
+			let zipWriteStream = fs.createWriteStream(outputDir + downloadFile);
+			zipWriteStream.on('close', function () {
+				logger.debug(`[${txnId}] : Zip file has been created. Uploading to mongo...`);
+				resolve();
+			});
+			archive.pipe(zipWriteStream);
+			archive.file(outputDir + fileName + '.csv', { name: fileName + '.csv' });
+			archive.finalize();
+			archive.on('error', (err) => {
+				logger.error(`[${txnId}] : Error in creating zip file: `, err);
+				reject(err);
+			});
+		});
 
 		/******** Uploading ZIP file to DB *******/
 		let result = await new Promise((resolve, reject) => {
@@ -591,8 +524,6 @@ async function execute() {
 
 		/****** Removing txt, csv and zip files if exist ******/
 		let filesToRemove = [outputDir + fileName + '.txt', outputDir + fileName + '.csv', outputDir + downloadFile];
-		jsonFileNames.map(file => filesToRemove.push(outputDir+file));
-		logger.info(`[${txnId}] Deleting files :: ${filesToRemove}`);
 		filesToRemove.forEach(file => {
 			if (fs.existsSync(file)) {
 				fs.unlink(file, (err) => {
