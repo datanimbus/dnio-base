@@ -160,28 +160,6 @@ if (serviceData.schemaFree) {
 			next(e);
 		}
 	});
-
-	schema.post('save', function (error, doc, next) {
-		if (!error) return next();
-		if (error.code == 11000) {
-			if (error.errmsg) {
-				if (!error.errmsg.match(/(.*)index:(.*)_1 collation(.*)/g)) {
-					next(new Error(`ID ${doc._id} already exists.`));
-				} else {
-					var uniqueAttributeFailed = error.errmsg.replace(/(.*)index: (.*)_1 collation(.*)/, '$2').split('\n')[0];
-					if (uniqueAttributeFailed.endsWith('._id'))
-						uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -4);
-					if (uniqueAttributeFailed.endsWith('.checksum') && specialFields.secureFields.includes(uniqueAttributeFailed.slice(0, -9)))
-						uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -9);
-					next(new Error('Unique check validation failed for ' + uniqueAttributeFailed));
-				}
-			} else {
-				next(new Error('Unique check validation failed'));
-			}
-		} else {
-			next();
-		}
-	});
 }
 
 schema.plugin(mongooseUtils.metadataPlugin());
@@ -255,6 +233,28 @@ schema.pre('save', function (next) {
 	let doc = this.toObject();
 	Object.keys(doc).forEach(el => this.markModified(el));
 	next();
+});
+
+schema.post('save', function (error, doc, next) {
+	if (!error) return next();
+	if (error.code == 11000) {
+		if (error.errmsg) {
+			if (!error.errmsg.match(/(.*)index:(.*)_1 collation(.*)/g)) {
+				next(new Error(`ID ${doc._id} already exists.`));
+			} else {
+				var uniqueAttributeFailed = error.errmsg.replace(/(.*)index: (.*)_1 collation(.*)/, '$2').split('\n')[0];
+				if (uniqueAttributeFailed.endsWith('._id'))
+					uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -4);
+				if (uniqueAttributeFailed.endsWith('.checksum') && specialFields.secureFields.includes(uniqueAttributeFailed.slice(0, -9)))
+					uniqueAttributeFailed = uniqueAttributeFailed.slice(0, -9);
+				next(new Error('Unique check validation failed for ' + uniqueAttributeFailed));
+			}
+		} else {
+			next(new Error('Unique check validation failed'));
+		}
+	} else {
+		next();
+	}
 });
 
 schema.post('save', function (doc, next) {
