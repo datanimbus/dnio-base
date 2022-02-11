@@ -606,10 +606,6 @@ router.post('/', (req, res) => {
 			} else {
 				if (Array.isArray(payload)) {
 					promises = payload.map(async (data) => {
-						// if (!data._id && serviceData.schemaFree) {
-						// 	data._id = new mongoose.Types.ObjectId().toString();
-						// }
-
 						if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
 							if (!_.get(data, serviceData.stateModel.attribute)) {
 								_.set(data, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
@@ -631,10 +627,6 @@ router.post('/', (req, res) => {
 					});
 					promises = await Promise.all(promises);
 				} else {
-					// if (!payload._id && serviceData.schemaFree) {
-					// 	payload._id = new mongoose.Types.ObjectId().toString();
-					// }
-
 					if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
 						if (!_.get(payload, serviceData.stateModel.attribute)) {
 							_.set(payload, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
