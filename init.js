@@ -9,8 +9,9 @@ const storageEngine = require('@appveen/data.stack-utils').storageEngine;
 const config = require('./config');
 const httpClient = require('./http-client');
 const controller = require('./api/utils/common.utils');
+const serviceDetails = require('./service.json');
 
-const fileFields = ''.split(',');
+const fileFields = serviceDetails.fileFields;
 const logger = log4js.getLogger(global.loggerName);
 
 function init() {
@@ -93,48 +94,62 @@ async function clearUnusedFiles() {
 		arr.push(i);
 	}
 	async function reduceHandler(acc, curr, i) {
-		await acc;
-		let docs = await mongoose.connection.db.collection(`${config.serviceCollection}.files`).find({ 'uploadDate': { '$lte': datefilter } }, { filename: 1 }).limit(batch).skip(i * batch).toArray();
-		let allFilename = docs.map(_d => _d.filename);
-		let fileInUse = [];
-		docs = await mongoose.model(`${config.serviceCollection}`).find({}, fileFields.join(' '));
-		docs.forEach(_d => {
-			fileFields.forEach(_k => {
-				fileInUse = fileInUse.concat(getFileNames(_d, _k));
-			});
-		});
-		docs = await global.mongoDBLogs.collection(`${config.serviceCollection}.audit`).find({ 'data.old': { $exists: true } }, 'data').toArray();
-		docs.forEach(_d => {
-			if (_d.data && _d.data.old) {
+		try {
+			await acc;
+			let docs = await mongoose.connection.db.collection(`${config.serviceCollection}.files`).find({ 'uploadDate': { '$lte': datefilter } }, { filename: 1 }).limit(batch).skip(i * batch).toArray();
+			let allFilename = docs.map(_d => _d.filename);
+			let fileInUse = [];
+			docs = await mongoose.model(`${config.serviceId}`).find({}, fileFields.join(' '));
+			docs.forEach(_d => {
 				fileFields.forEach(_k => {
-					fileInUse = fileInUse.concat(getFileNames(_d.data.old, _k));
+					fileInUse = fileInUse.concat(getFileNames(_d, _k));
 				});
-			}
-		});
-		fileInUse = fileInUse.filter(_f => _f);
-		logger.info({ fileInUse });
-		let filesToBeDeleted = _.difference(allFilename, fileInUse);
-		logger.info({ filesToBeDeleted });
-		
-		let promise;
-		if (storage === 'GRIDFS') {
-			promise = filesToBeDeleted.map(_f => deleteFileFromDB(_f));
-		} else if (storage === 'AZURE') {
-			promise = filesToBeDeleted.map(_f => {
-				logger.info(`Deleting file - ${_f}`);
-				let data = {};
-				data.filename = _f;
-				data.connectionString = config.fileStorage[storage].connectionString;
-				data.containerName = config.fileStorage[storage].container;
-
-				await storageEngine.azureBlob.deleteFile(data);
 			});
-		} else {
-			logger.error(`External Storage type is not allowed`);
-			throw new Error(`External Storage ${storage} not allowed`);
-		}
+			docs = await global.logsDB.collection(`${config.app}.${config.serviceCollection}.audit`).find({ 'data.old': { $exists: true } }, 'data').toArray();
+			docs.forEach(_d => {
+				if (_d.data && _d.data.old) {
+					fileFields.forEach(_k => {
+						fileInUse = fileInUse.concat(getFileNames(_d.data.old, _k));
+					});
+				}
+			});
+			fileInUse = fileInUse.filter(_f => _f);
+			logger.info({ fileInUse });
+			let filesToBeDeleted = _.difference(allFilename, fileInUse);
+			logger.info({ filesToBeDeleted });
 
-		return Promise.all(promise);
+			let promise;
+			if (storage === 'GRIDFS') {
+				promise = filesToBeDeleted.map(_f => deleteFileFromDB(_f));
+			} else if (storage === 'AZURE') {
+				promise = filesToBeDeleted.map(_f => {
+					logger.info(`Deleting file - ${_f}`);
+					let data = {};
+					data.filename = _f;
+					data.connectionString = config.fileStorage[storage].connectionString;
+					data.containerName = config.fileStorage[storage].container;
+
+					return new Promise((resolve, reject) => {
+						try {
+							resolve(storageEngine.azureBlob.deleteFile(data));
+						} catch (err) {
+							reject(err);
+						}
+					})
+					.then(() => {
+						mongoose.connection.db.collection(`${config.serviceCollection}.files`).deleteOne({ filename: _f });
+					})
+					.catch(err => logger.error(`Error deleting file ${_f} from Azure Blob ${err}`));
+				});
+			} else {
+				logger.error(`External Storage type is not allowed`);
+				throw new Error(`External Storage ${storage} not allowed`);
+			}
+			
+			return Promise.all(promise);
+		} catch (err) {
+			logger.error(`Error deleting unused files from DB`);
+		}
 	}
 	return arr.reduce(reduceHandler, Promise.resolve());
 }
