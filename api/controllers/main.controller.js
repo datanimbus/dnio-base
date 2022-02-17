@@ -360,6 +360,8 @@ router.get('/', (req, res) => {
 			try {
 				logger.info(`[${txnId}] Schema free ? ${serviceData.schemaFree}`);
 				logger.debug(`[${txnId}] Filter ${req.query.filter}`);
+				logger.debug(`[${txnId}] Sort ${req.query.sort}`);
+				logger.debug(`[${txnId}] Select ${req.query.select}`);
 
 				if (req.query.filter) {
 					filter = JSON.parse(req.query.filter);
@@ -395,7 +397,6 @@ router.get('/', (req, res) => {
 			if (filter) {
 				filter = crudderUtils.parseFilter(filter);
 			}
-			logger.trace(`[${txnId}] Final filter ${JSON.stringify(filter)}`);
 
 			if (errors && Object.keys(errors).length > 0) {
 				logger.warn('Error while fetching relation: ', JSON.stringify(errors));
@@ -415,13 +416,34 @@ router.get('/', (req, res) => {
 				skip = count * (+req.query.page - 1);
 			}
 			if (req.query.select && req.query.select.trim()) {
-				select = req.query.select.split(',').join(' ');
+				try {
+					querySelect = JSON.parse(req.query.select);
+					Object.keys(querySelect).forEach(key => {
+						select += parseInt(querySelect[key]) > 0 ? `${key} ` : `-${key} `
+					});
+					select = select.trim();
+				} catch (err) {
+					select = req.query.select.split(',').join(' ');
+				}
 			}
 			if (req.query.sort && req.query.sort.trim()) {
-				sort = req.query.sort.split(',').join(' ') + ' -_metadata.lastUpdated';
+				try {
+					let querySort = JSON.parse(req.query.sort);
+					Object.keys(querySort).forEach(key => {
+						sort += `${(parseInt(querySort[key])>0) ? '' : '-'}${key}`;
+					});
+					sort += ' -_metadata.lastUpdated';
+				} catch(err) {
+					sort = req.query.sort.split(',').join(' ') + ' -_metadata.lastUpdated';
+				}
 			} else {
 				sort = '-_metadata.lastUpdated';
 			}
+
+			logger.trace(`[${txnId}] Final filter ${JSON.stringify(filter)}`);
+			logger.trace(`[${txnId}] Final Sorter ${JSON.stringify(sort)}`);
+			logger.trace(`[${txnId}] Final Select ${JSON.stringify(select)}`);
+
 			let docs = await model
 				.find(filter)
 				.select(select)
