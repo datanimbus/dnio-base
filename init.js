@@ -4,6 +4,7 @@ const log4js = require('log4js');
 const mongoose = require('mongoose');
 const _ = require('lodash');
 const cron = require('node-cron');
+const storageEngine = require('@appveen/data.stack-utils').storageEngine;
 
 const config = require('./config');
 const httpClient = require('./http-client');
@@ -81,7 +82,9 @@ startCronJob();
 
 async function clearUnusedFiles() {
 	const batch = 1000;
+	const storage = config.fileStorage.storage;
 	logger.info('Cron triggered to clear unused file attachment');
+	logger.info(`Storage Enigne - ${config.fileStorage.storage}`);
 	const datefilter = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
 	const count = await mongoose.connection.db.collection(`${config.serviceCollection}.files`).count({ 'uploadDate': { '$lte': datefilter } }, { filename: 1 });
 	let arr = [];
@@ -112,7 +115,25 @@ async function clearUnusedFiles() {
 		logger.info({ fileInUse });
 		let filesToBeDeleted = _.difference(allFilename, fileInUse);
 		logger.info({ filesToBeDeleted });
-		let promise = filesToBeDeleted.map(_f => deleteFileFromDB(_f));
+		
+		let promise;
+		if (storage === 'GRIDFS') {
+			promise = filesToBeDeleted.map(_f => deleteFileFromDB(_f));
+		} else if (storage === 'AZURE') {
+			promise = filesToBeDeleted.map(_f => {
+				logger.info(`Deleting file - ${_f}`);
+				let data = {};
+				data.filename = _f;
+				data.connectionString = config.fileStorage[storage].connectionString;
+				data.containerName = config.fileStorage[storage].container;
+
+				await storageEngine.azureBlob.deleteFile(data);
+			});
+		} else {
+			logger.error(`External Storage type is not allowed`);
+			throw new Error(`External Storage ${storage} not allowed`);
+		}
+
 		return Promise.all(promise);
 	}
 	return arr.reduce(reduceHandler, Promise.resolve());
