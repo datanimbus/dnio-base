@@ -130,7 +130,8 @@ async function execute() {
         /******** Praparing JSON file from TXT file *******/
         await new Promise((resolve) => {
             lineReader.eachLine(readStream, (line, last) => {
-                jsonWriteStream.write(line + ',\n');
+                jsonWriteStream.write(line);
+                if (!last) jsonWriteStream.write(',\n');
                 if (last) {
                     jsonWriteStream.write(']');
                     jsonWriteStream.end();
