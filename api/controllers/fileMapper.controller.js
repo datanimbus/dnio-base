@@ -6,6 +6,7 @@ const commonUtils = require('../utils/common.utils');
 const threadUtils = require('../utils/thread.utils');
 const crudderUtils = require('../utils/crudder.utils');
 const specialFields = require('../utils/special-fields.utils');
+const serviceDetails = require('../../service.json');
 
 const logger = log4js.getLogger(global.loggerName);
 const model = mongoose.model('fileMapper');
@@ -140,8 +141,8 @@ router.put('/:fileId/mapping', (req, res) => {
 
 			/**---------- After Response Process ------------*/
 			let result;
-			if (fileName.split('.').pop() === 'json') {
-				result = await threadUtils.executeThread(txnId, 'json-file-mapper-validation', {
+			if (serviceDetails.schemaFree) {
+				result = await threadUtils.executeThread(txnId, 'schemafree-file-mapper-validation', {
 					req: {
 						headers: req.headers,
 						user: req.user,

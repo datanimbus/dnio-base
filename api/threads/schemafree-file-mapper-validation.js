@@ -26,7 +26,7 @@ async function execute() {
     const fileId = data.fileId;
     const fileName = data.fileName;
     let txnId = req.headers[global.txnIdHeader];
-    logger.info(`[${txnId}] JSON File Mapper Validation process started :: ${fileId}`);
+    logger.info(`[${txnId}] Schema Free File Mapper Validation process started :: ${fileId}`);
 
     const fileMapperUtils = require('../utils/fileMapper.utils');
     const commonUtils = require('../utils/common.utils');
@@ -40,7 +40,17 @@ async function execute() {
     // Reading File data from GRIDFS
     let bufferData = await fileMapperUtils.readDataFromGridFS(fileId);
     logger.trace(`[${txnId}] Buffer data read from file :: ${bufferData}`);
-    bufferData = JSON.parse(bufferData);
+    
+    if (fileName.split('.').pop() === 'json') {
+        bufferData = JSON.parse(bufferData);
+        if (!Array.isArray(bufferData)) {
+            logger.debug(`[${txnId}] Buffer data is not array`);
+            bufferData = [bufferData];
+        }
+    } else {
+        bufferData = await fileMapperUtils.getSheetData(bufferData, false);
+    }
+    logger.info(`[${txnId}] Parsed buffer data :: ${JSON.stringify(bufferData)}`);
 
     // Updating transfer model to reflect validating status
     await fileTransfersModel.findOneAndUpdate({ fileId: fileId }, { $set: { isHeaderProvided: false, headerMapping: null, status: 'Validating' } });
@@ -160,9 +170,6 @@ async function execute() {
                     await doc.save();
                 }
             });
-            // logger.debug('=======================================');
-            // logger.debug('MEMORY USAGE :: ', process.memoryUsage());
-            // logger.debug('=======================================');
             return Promise.all(tempPromises);
         });
     }, Promise.resolve());
@@ -210,7 +217,6 @@ async function execute() {
     if (errorCount > 100 || conflictCount > 100) {
         result.status = 'Error';
     }
-    // mongoose.disconnect();
     return result;
 }
 
