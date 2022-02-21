@@ -43,6 +43,10 @@ async function execute() {
     
     if (fileName.split('.').pop() === 'json') {
         bufferData = JSON.parse(bufferData);
+        if (!Array.isArray(bufferData)) {
+            logger.debug(`[${txnId}] Buffer data is not array`);
+            bufferData = [bufferData];
+        }
     } else {
         bufferData = await fileMapperUtils.getSheetData(bufferData, false);
     }

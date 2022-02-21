@@ -419,22 +419,44 @@ router.get('/', (req, res) => {
 				try {
 					querySelect = JSON.parse(req.query.select);
 					Object.keys(querySelect).forEach(key => {
-						select += parseInt(querySelect[key]) > 0 ? `${key} ` : `-${key} `
+						if (parseInt(querySelect[key]) == 1) {
+							select += `${key} `;
+						} else if (parseInt(querySelect[key]) == -1) {
+							select += `-${key} `;
+						} else {
+							logger.error(`Invalid value for key - ${key} - ${querySelect[key]}`);
+							throw new Error(`Invalid value for key - ${key} - ${querySelect[key]}`);
+						}
 					});
 					select = select.trim();
 				} catch (err) {
-					select = req.query.select.split(',').join(' ');
+					if (err.message.indexOf('Invalid value for key') > -1) {
+						throw err;
+					} else {
+						select = req.query.select.split(',').join(' ');
+					}
 				}
 			}
 			if (req.query.sort && req.query.sort.trim()) {
 				try {
 					let querySort = JSON.parse(req.query.sort);
 					Object.keys(querySort).forEach(key => {
-						sort += `${(parseInt(querySort[key]) > 0) ? '' : '-'}${key}`;
+						if (parseInt(querySort[key]) == 1) {
+							sort += `${key} `;
+						} else if (parseInt(querySort[key]) == -1) {
+							sort += `-${key} `;
+						} else {
+							logger.error(`Invalid value for key - ${key} - ${querySort[key]}`)
+							throw new Error(`Invalid value for key - ${key} - ${querySort[key]}`);
+						}
 					});
 					sort += ' -_metadata.lastUpdated';
 				} catch (err) {
-					sort = req.query.sort.split(',').join(' ') + ' -_metadata.lastUpdated';
+					if (err.message.indexOf('Invalid value for key') > -1) {
+						throw err;
+					} else {
+						sort = req.query.sort.split(',').join(' ') + ' -_metadata.lastUpdated';
+					}
 				}
 			} else {
 				sort = '-_metadata.lastUpdated';
