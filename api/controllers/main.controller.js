@@ -430,10 +430,10 @@ router.get('/', (req, res) => {
 				try {
 					let querySort = JSON.parse(req.query.sort);
 					Object.keys(querySort).forEach(key => {
-						sort += `${(parseInt(querySort[key])>0) ? '' : '-'}${key}`;
+						sort += `${(parseInt(querySort[key]) > 0) ? '' : '-'}${key}`;
 					});
 					sort += ' -_metadata.lastUpdated';
-				} catch(err) {
+				} catch (err) {
 					sort = req.query.sort.split(',').join(' ') + ' -_metadata.lastUpdated';
 				}
 			} else {
@@ -507,7 +507,7 @@ router.get('/:id', (req, res) => {
 			logger.trace(`[${txnId}] Document from DB ${JSON.stringify(doc)}`);
 			if (!doc) {
 				return res.status(404).json({
-					message: `Record With ID  ${id} Not Found.`,
+					message: `Record With ID ${id} Not Found.`,
 				});
 			}
 
