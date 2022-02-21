@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const log4js = require('log4js');
 const uuid = require('uuid/v1');
 let archiver = require('archiver');
+let lineReader = require('line-reader');
 
 const config = require('../../config');
 const crudderUtils = require('./../utils/crudder.utils');
@@ -30,7 +31,7 @@ async function execute() {
     let reqData = workerData.reqData;
     let txnId = reqData.headers.txnid;
     logger.info(`[${txnId}] Executing export schema free records thread for service ${config.serviceId}`);
-    
+
     const serviceModel = mongoose.model(config.serviceId);
     const fileTransfersModel = mongoose.model('fileTransfers');
 
@@ -54,8 +55,8 @@ async function execute() {
 
     var totalRecords;
     let outputDir = './output/';
+    var txtWriteStream = fs.createWriteStream(outputDir + fileName + '.txt');
     let cursor;
-    let jsonFileNames = [];
 
     try {
         let filter = reqData.query.filter;
@@ -116,19 +117,29 @@ async function execute() {
                 return doc;
             });
 
-            /******** Writing documents in JSON files *******/
-            await new Promise((resolve) => {
-                documents.forEach(doc => {
-                    let fileName = doc._id + '.json';
-                    logger.trace(`[${txnId}] Creating JSON file :: ${fileName}`);
-                    jsonFileNames.push(fileName);
-                    let jsonWriteStream = fs.createWriteStream(outputDir + fileName);
-                    jsonWriteStream.write(JSON.stringify(doc));
-                    jsonWriteStream.end();
-                });
-                resolve();
-            });
+            /******** Writing documents in TXT file *******/
+            await documents.reduce((acc, curr) => {
+                return acc.then(() => txtWriteStream.write(JSON.stringify(curr) + '\n', () => Promise.resolve()));
+            }, Promise.resolve());
         }, Promise.resolve());
+
+        let readStream = fs.createReadStream(outputDir + fileName + '.txt');
+        let jsonWriteStream = fs.createWriteStream(outputDir + fileName + '.json');
+        jsonWriteStream.write('[\n');
+
+        /******** Praparing JSON file from TXT file *******/
+        await new Promise((resolve) => {
+            lineReader.eachLine(readStream, (line, last) => {
+                jsonWriteStream.write(line);
+                if (!last) jsonWriteStream.write(',\n');
+                if (last) {
+                    jsonWriteStream.write(']');
+                    jsonWriteStream.end();
+                    logger.debug(`[${txnId}] : JSON file is ready. Creating zip...`);
+                    resolve();
+                }
+            });
+        });
 
         /******* Praparing ZIP file from JSON file ******/
         await new Promise((resolve, reject) => {
@@ -141,11 +152,7 @@ async function execute() {
                 resolve();
             });
             archive.pipe(zipWriteStream);
-
-            jsonFileNames.forEach(f => {
-                archive.file(outputDir + f, { name: f });
-            });
-
+            archive.file(outputDir + fileName + '.json', { name: fileName + '.json' });
             archive.finalize();
             archive.on('error', (err) => {
                 logger.error(`[${txnId}] Error in creating zip file :: ${err}`);
@@ -192,8 +199,7 @@ async function execute() {
         mongoose.disconnect();
 
         /****** Removing txt, csv and zip files if exist ******/
-        let filesToRemove = [outputDir + fileName + '.txt', outputDir + downloadFile];
-        jsonFileNames.map(file => filesToRemove.push(outputDir + file));
+        let filesToRemove = [outputDir + fileName + '.txt', outputDir + fileName + '.json', outputDir + downloadFile];
         logger.info(`[${txnId}] Deleting files :: ${filesToRemove}`);
         filesToRemove.forEach(file => {
             if (fs.existsSync(file)) {
