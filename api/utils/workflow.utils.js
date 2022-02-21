@@ -264,6 +264,48 @@ function simulate(req, data, options) {
 }
 
 /**
+ * @param {*} req The Incomming Request Object
+ * @param {*} data The Data to simulate
+ * @param {Object} [options] Other Options for simulation
+ * @param {boolean} [options.generateId] Should generate new _id only for POST
+ * @param {boolean} [options.simulate] Simulation Flag
+ * @param {string} [options.operation] Operation for which simulate is called : POST/PUT/GET
+ * @param {string} [options.trigger] Trigger for this simulate presave/submit/approve
+ * @param {string} [options.docId] Document ID
+ * @param {string} [options.source] Alias of trigger
+ */
+ function simulateJSON(req, data, options) {
+	const model = mongoose.model(config.serviceId);
+	if (!options) {
+		options = {};
+	}
+	options.simulate = true;
+	
+	let promise = Promise.resolve(data);
+	let oldData;
+	if (!data._id && options.generateId) {
+		promise = utils.counter.generateId(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER).then(id => {
+			data._id = id;
+			return data;
+		});
+	} else if (data._id && options.operation == 'PUT') {
+		promise = model.findOne({ _id: data._id }).lean(true).then(_d => {
+			oldData = _d;
+			return _.mergeWith(JSON.parse(JSON.stringify(_d)), data, commonUtils.mergeCustomizer);
+		});
+	}
+	return promise.then((newData) => {
+		data = newData;
+		return hooksUtils.callAllPreHooks(req, data, options).catch(err => modifyError(err, 'preHook'));
+	}).then(newData => {
+		return newData;
+	}).catch(err => {
+		logger.error(err);
+		throw err;
+	});
+}
+
+/**
  * 
  * @param {*} err The Error Object of catch
  * @param {string} source Source of Error
@@ -440,4 +482,5 @@ module.exports.hasAdminAccess = hasAdminAccess;
 module.exports.getWorkflowItem = getWorkflowItem;
 module.exports.getNoOfApprovals = getNoOfApprovals;
 module.exports.simulate = simulate;
+module.exports.simulateJSON = simulateJSON;
 module.exports.getFirstCheckerStep = getFirstCheckerStep;

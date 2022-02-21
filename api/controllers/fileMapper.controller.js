@@ -139,15 +139,29 @@ router.put('/:fileId/mapping', (req, res) => {
 			res.status(202).json({ message: 'Validation Process Started...' });
 
 			/**---------- After Response Process ------------*/
-			const result = await threadUtils.executeThread(txnId, 'file-mapper-validation', {
-				req: {
-					headers: req.headers,
-					user: req.user,
-					rawHeaders: req.rawHeaders
-				},
-				fileId,
-				data
-			});
+			let result;
+			if (fileName.split('.').pop() === 'json') {
+				result = await threadUtils.executeThread(txnId, 'json-file-mapper-validation', {
+					req: {
+						headers: req.headers,
+						user: req.user,
+						rawHeaders: req.rawHeaders
+					},
+					fileId,
+					data
+				});
+			} else {
+				result = await threadUtils.executeThread(txnId, 'file-mapper-validation', {
+					req: {
+						headers: req.headers,
+						user: req.user,
+						rawHeaders: req.rawHeaders
+					},
+					fileId,
+					data
+				});
+			}
+
 			await fileTransfersModel.findOneAndUpdate({ fileId }, { $set: result });
 			endTime = Date.now();
 			let socketData = JSON.parse(JSON.stringify(result));
