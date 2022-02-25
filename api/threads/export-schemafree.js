@@ -50,22 +50,78 @@ async function execute() {
     let downloadFile = config.serviceName + '-' + formats + '.zip';
     downloadFile = downloadFile.replace(/\//g, '_');
 
-    let select = reqData.query.select || '';
-    select = select ? select.split(',') : [];
+    let filter = reqData.query.filter;
+    let select = '';
+    let sort = ''
+
+    logger.debug(`[${txnId}] Filter :: ${JSON.stringify(filter)}`);
+    logger.debug(`[${txnId}] Select :: ${JSON.stringify(reqData.query.select)}`);
+    logger.debug(`[${txnId}] Sort :: ${JSON.stringify(reqData.query.sort)}`);
 
     var totalRecords;
     let outputDir = './output/';
     var txtWriteStream = fs.createWriteStream(outputDir + fileName + '.txt');
     let cursor;
 
+    
     try {
-        let filter = reqData.query.filter;
         if (filter) {
             filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
+            filter = crudderUtils.parseFilter(filter);
+        } else {
+            filter = {};
         }
 
-        logger.debug(`[${txnId}] Filter for export :: ${JSON.stringify(filter)}`);
-        logger.debug(`[${txnId}] Fields to select :: ${JSON.stringify(select)}`);
+        if (reqData.query.select) {
+            try {
+                let querySelect = JSON.parse(reqData.query.select);
+                Object.keys(querySelect).forEach(key => {
+                    if (parseInt(querySelect[key]) == 1) {
+                        select += `${key} `;
+                    } else if (parseInt(querySelect[key]) == 0) {
+                        select += `-${key} `;
+                    } else {
+                        logger.error(`Invalid value for key - ${key} - ${querySelect[key]}`);
+                        throw new Error(`Invalid value for key - ${key} - ${querySelect[key]}`);
+                    }
+                });
+                select = select.trim();
+            } catch (err) {
+                if (err.message.indexOf('Invalid value for key') > -1) {
+                    throw err;
+                } else {
+                    select = select.split(',').join(' ');
+                }
+            }
+        }
+
+        if (reqData.query.sort) {
+            logger.info('Sort exists')
+            try {
+                let querySort = JSON.parse(JSON.stringify(reqData.query.sort));
+                logger.info('query sort - ', querySort);
+                Object.keys(querySort).forEach(key => {
+                    logger.info('key - ', key, querySort[key]);
+                    if (parseInt(querySort[key]) == 1) {
+                        sort += `${key} `;
+                    } else if (parseInt(querySort[key]) == -1) {
+                        sort += `-${key} `;
+                    } else {
+                        logger.error(`Invalid value for key - ${key} - ${querySort[key]}`)
+                        throw new Error(`Invalid value for key - ${key} - ${querySort[key]}`);
+                    }
+                });
+                sort += ' -_metadata.lastUpdated';
+            } catch (err) {
+                throw err
+            }
+        } else {
+            sort = '-_metadata.lastUpdated';
+        }
+
+        logger.trace(`[${txnId}] Final filter ${JSON.stringify(filter)}`);
+        logger.trace(`[${txnId}] Final Sorter ${JSON.stringify(sort)}`);
+        logger.trace(`[${txnId}] Final Select ${JSON.stringify(select)}`);
 
         let count = await serviceModel.countDocuments(filter);
         totalRecords = count;
@@ -94,6 +150,8 @@ async function execute() {
         }
         reqData.query.batchSize = reqData.query.batchSize ? reqData.query.batchSize : BATCH;
         reqData.query.filter = filter;
+        reqData.query.select = select;
+        reqData.query.sort = sort;
         cursor = crudderUtils.cursor(reqData, serviceModel);
 
         /********** Fetching documents from DB *********/

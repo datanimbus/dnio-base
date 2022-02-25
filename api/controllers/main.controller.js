@@ -421,7 +421,7 @@ router.get('/', (req, res) => {
 					Object.keys(querySelect).forEach(key => {
 						if (parseInt(querySelect[key]) == 1) {
 							select += `${key} `;
-						} else if (parseInt(querySelect[key]) == -1) {
+						} else if (parseInt(querySelect[key]) == 0) {
 							select += `-${key} `;
 						} else {
 							logger.error(`Invalid value for key - ${key} - ${querySelect[key]}`);
