@@ -733,6 +733,7 @@ router.put('/:id', (req, res) => {
 			let doc = await model.findById(id);
 
 			logger.trace(`[${txnId}] Document from DB - ${JSON.stringify(doc)}`);
+			logger.trace(`[${txnId}] Payload from request - ${JSON.stringify(payload)}`);
 			logger.info(`[${txnId}] Upsert allowed ? ${upsert}`);
 
 			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
@@ -816,10 +817,18 @@ router.put('/:id', (req, res) => {
 				if (!serviceData.schemaFree) {
 					_.mergeWith(doc, payload, mergeCustomizer);
 				} else {
+					Object.keys(doc.toObject()).forEach(key => {
+						if (key !== '__v' && key !== '_id' && key !== '_metadata' && key !== '_workflow') {
+							if (payload[key] == undefined) {
+								doc.set(key, undefined);
+							}
+						}	
+					})
 					Object.keys(payload).forEach(key => {
 						if (doc.get(key) != payload[key])
 							doc.set(key, payload[key]);
 					});
+					
 				}
 				status = await doc.save();
 				logger.debug(`[${txnId}] Update status - ${status}`);
