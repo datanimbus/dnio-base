@@ -52,11 +52,15 @@ async function execute() {
 
     let filter = reqData.query.filter;
     let select = '';
-    let sort = ''
+    let sort = '';
+    let skip;
+	let limit;
 
     logger.debug(`[${txnId}] Filter :: ${JSON.stringify(filter)}`);
     logger.debug(`[${txnId}] Select :: ${JSON.stringify(reqData.query.select)}`);
     logger.debug(`[${txnId}] Sort :: ${JSON.stringify(reqData.query.sort)}`);
+    logger.debug(`[${txnId}] Skip ${reqData.query.skip}`);
+	logger.debug(`[${txnId}] Limit ${reqData.query.limit}`);
 
     var totalRecords;
     let outputDir = './output/';
@@ -119,9 +123,19 @@ async function execute() {
             sort = '-_metadata.lastUpdated';
         }
 
+        if (reqData.query.limit) {
+            limit = +reqData.query.limit;
+        }
+
+        if (reqData.query.skip) {
+            skip = +reqData.query.skip - 1;
+        }
+
         logger.trace(`[${txnId}] Final filter ${JSON.stringify(filter)}`);
         logger.trace(`[${txnId}] Final Sorter ${JSON.stringify(sort)}`);
         logger.trace(`[${txnId}] Final Select ${JSON.stringify(select)}`);
+        logger.trace(`[${txnId}] Final Skip ${JSON.stringify(skip)}`);
+		logger.trace(`[${txnId}] Final Limit ${JSON.stringify(limit)}`);
 
         let count = await serviceModel.countDocuments(filter);
         totalRecords = count;
@@ -148,10 +162,11 @@ async function execute() {
         for (let i = 0; i < totalBatches; i++) {
             arr.push(i);
         }
-        reqData.query.batchSize = reqData.query.batchSize ? reqData.query.batchSize : BATCH;
+        reqData.query.batchSize = reqData.query.batchSize ? reqData.query.batchSize || limit : BATCH;
         reqData.query.filter = filter;
         reqData.query.select = select;
         reqData.query.sort = sort;
+        reqData.query.skip = skip;
         cursor = crudderUtils.cursor(reqData, serviceModel);
 
         /********** Fetching documents from DB *********/
