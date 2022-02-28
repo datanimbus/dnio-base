@@ -362,6 +362,8 @@ router.get('/', (req, res) => {
 				logger.debug(`[${txnId}] Filter ${req.query.filter}`);
 				logger.debug(`[${txnId}] Sort ${req.query.sort}`);
 				logger.debug(`[${txnId}] Select ${req.query.select}`);
+				logger.debug(`[${txnId}] Skip ${req.query.skip}`);
+				logger.debug(`[${txnId}] Limit ${req.query.limit}`);
 
 				if (req.query.filter) {
 					filter = JSON.parse(req.query.filter);
@@ -411,10 +413,16 @@ router.get('/', (req, res) => {
 			let sort = '';
 			if (req.query.count && +req.query.count > 0) {
 				count = +req.query.count;
+			} else if (req.query.limit && +req.query.limit > 0) {
+				count = +req.query.limit;
 			}
+
 			if (req.query.page && +req.query.page > 0) {
 				skip = count * (+req.query.page - 1);
+			} else if (req.query.skip && +req.query.skip > 0) {
+				skip = +req.query.skip - 1;
 			}
+
 			if (req.query.select && req.query.select.trim()) {
 				try {
 					querySelect = JSON.parse(req.query.select);
@@ -424,8 +432,8 @@ router.get('/', (req, res) => {
 						} else if (parseInt(querySelect[key]) == 0) {
 							select += `-${key} `;
 						} else {
-							logger.error(`Invalid value for key - ${key} - ${querySelect[key]}`);
-							throw new Error(`Invalid value for key - ${key} - ${querySelect[key]}`);
+							logger.error(`Invalid value for key :: ${key} :: ${querySelect[key]}`);
+							throw new Error(`Invalid value for key :: ${key} :: ${querySelect[key]}`);
 						}
 					});
 					select = select.trim();
@@ -446,8 +454,8 @@ router.get('/', (req, res) => {
 						} else if (parseInt(querySort[key]) == -1) {
 							sort += `-${key} `;
 						} else {
-							logger.error(`Invalid value for key - ${key} - ${querySort[key]}`)
-							throw new Error(`Invalid value for key - ${key} - ${querySort[key]}`);
+							logger.error(`Invalid value for key :: ${key} :: ${querySort[key]}`)
+							throw new Error(`Invalid value for key :: ${key} :: ${querySort[key]}`);
 						}
 					});
 					sort += ' -_metadata.lastUpdated';
@@ -465,6 +473,8 @@ router.get('/', (req, res) => {
 			logger.trace(`[${txnId}] Final filter ${JSON.stringify(filter)}`);
 			logger.trace(`[${txnId}] Final Sorter ${JSON.stringify(sort)}`);
 			logger.trace(`[${txnId}] Final Select ${JSON.stringify(select)}`);
+			logger.trace(`[${txnId}] Final Skip ${JSON.stringify(skip)}`);
+			logger.trace(`[${txnId}] Final Limit ${JSON.stringify(limit)}`);
 
 			let docs = await model
 				.find(filter)
