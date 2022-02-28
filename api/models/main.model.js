@@ -285,7 +285,12 @@ schema.post('save', function (doc, next) {
 		auditData._metadata.deleted = false;
 		auditData.data._id = webHookData.new._id;
 		auditData.data._version = webHookData.new._metadata.version.document;
-		getDiff(webHookData.old, webHookData.new, auditData.data.old, auditData.data.new);
+		if (!serviceData.schemaFree) {
+			getDiff(webHookData.old, webHookData.new, auditData.data.old, auditData.data.new);
+		} else {
+			auditData.data.old = webHookData.old;
+			auditData.data.new = webHookData.new;
+		}
 		let oldLastUpdated = auditData.data.old && auditData.data.old._metadata ? auditData.data.old._metadata.lastUpdated : null;
 		let newLastUpdated = auditData.data.new && auditData.data.new._metadata ? auditData.data.new._metadata.lastUpdated : null;
 		if (oldLastUpdated) delete auditData.data.old._metadata.lastUpdated;

@@ -49,73 +49,84 @@ async function execute() {
 
         let serializedData;
         if (fileName.split('.').pop() === 'json') {
-            try {
-                bufferData = JSON.parse(bufferData);
-                if (!Array.isArray(bufferData)) {
-                    logger.debug(`[${txnId}] Buffer data is not array`);
-                    bufferData = [bufferData];
-                }
 
-                logger.trace(`[${txnId}] Parsed buffer data :: ${JSON.stringify(bufferData)}`);
-
-                // creating serialized data for storing to bulkCreate collection
-                serializedData = bufferData.map((e, i) => {
-                    const temp = {};
-                    temp.fileId = fileId;
-                    temp.fileName = fileName;
-                    temp.data = JSON.parse(JSON.stringify(e));
-                    return temp;
-                });
-            } catch (err) {
-                bufferData = [];
-                let readStream = await fileMapperUtils.readStreamFromGridFS(fileId);
-                await new Promise((resolve) => {
-                    lineReader.eachLine(readStream, (line, last) => {
-                        line = line.trim();
-                        line = line.startsWith('[') ? line.substring(1,) : line;
-                        line = line.endsWith(']') ? line.substring(0, (line.length - 1)) : line;
-                        line = line.startsWith(',') ? line.substring(1,) : line;
-                        line = line.endsWith(',') ? line.substring(0, (line.length - 1)) : line;
-                        if (line.length > 0) {
-                            bufferData.push(line);
-                        }
-                        if (last) {
-                            resolve();
-                        }
-                    });
-                });
-
-                // creating serialized data for storing to bulkCreate collection
-                serializedData = bufferData.map((e, i) => {
-                    const temp = {};
-                    temp.fileId = fileId;
-                    temp.fileName = fileName;
-                    try {
-                        temp.data = JSON.parse(e);
-                    } catch (err) {
-                        temp.data = e;
-                        temp.status = 'Error';
-                        temp.message = err.message;
-                    }
-                    return temp;
-                });
+            bufferData = JSON.parse(bufferData);
+            if (!Array.isArray(bufferData)) {
+                logger.debug(`[${txnId}] Buffer data is not array`);
+                bufferData = [bufferData];
             }
-        } else {
-            bufferData = await fileMapperUtils.getSheetData(bufferData, false);
+
             logger.trace(`[${txnId}] Parsed buffer data :: ${JSON.stringify(bufferData)}`);
 
-            // creating serialized data for storing to bulkCreate collection
-            serializedData = bufferData.map((e, i) => {
-                const temp = {};
-                temp.fileId = fileId;
-                temp.fileName = fileName;
-                temp.data = JSON.parse(JSON.stringify(e));
-                return temp;
-            });
+            // try {
+            //     bufferData = JSON.parse(bufferData);
+            //     if (!Array.isArray(bufferData)) {
+            //         logger.debug(`[${txnId}] Buffer data is not array`);
+            //         bufferData = [bufferData];
+            //     }
+
+            //     logger.trace(`[${txnId}] Parsed buffer data :: ${JSON.stringify(bufferData)}`);
+
+            //     // creating serialized data for storing to bulkCreate collection
+            //     serializedData = bufferData.map((e, i) => {
+            //         const temp = {};
+            //         temp.fileId = fileId;
+            //         temp.fileName = fileName;
+            //         temp.data = JSON.parse(JSON.stringify(e));
+            //         return temp;
+            //     });
+            // } catch (err) {
+            //     logger.info('Buffer array', bufferData.split('\n'));
+            //     bufferData = [];
+            //     let readStream = await fileMapperUtils.readStreamFromGridFS(fileId);
+            //     await new Promise((resolve) => {
+            //         lineReader.eachLine(readStream, (line, last) => {
+            //             line = line.trim();
+            //             line = line.startsWith('[') ? line.substring(1,) : line;
+            //             line = line.endsWith(']') ? line.substring(0, (line.length - 1)) : line;
+            //             line = line.startsWith(',') ? line.substring(1,) : line;
+            //             line = line.endsWith(',') ? line.substring(0, (line.length - 1)) : line;
+            //             if (line.length > 0) {
+            //                 bufferData.push(line);
+            //             }
+            //             if (last) {
+            //                 resolve();
+            //             }
+            //         });
+            //     });
+
+            //     // creating serialized data for storing to bulkCreate collection
+            //     serializedData = bufferData.map((e, i) => {
+            //         const temp = {};
+            //         temp.fileId = fileId;
+            //         temp.fileName = fileName;
+            //         try {
+            //             temp.data = JSON.parse(e);
+            //         } catch (err) {
+            //             temp.data = e;
+            //             temp.status = 'Error';
+            //             temp.message = err.message;
+            //         }
+            //         return temp;
+            //     });
+            // }
+        } else {
+            bufferData = await fileMapperUtils.getSheetData(bufferData, false);
         }
+
+        logger.trace(`[${txnId}] Parsed buffer data :: ${JSON.stringify(bufferData)}`);
 
         // Updating transfer model to reflect validating status
         await fileTransfersModel.findOneAndUpdate({ fileId: fileId }, { $set: { isHeaderProvided: false, headerMapping: null, status: 'Validating' } });
+
+        // creating serialized data for storing to bulkCreate collection
+        serializedData = bufferData.map((e, i) => {
+            const temp = {};
+            temp.fileId = fileId;
+            temp.fileName = fileName;
+            temp.data = JSON.parse(JSON.stringify(e));
+            return temp;
+        });
 
         logger.trace(`[${txnId}] Serialized Data :: ${JSON.stringify(serializedData)}`);
 
