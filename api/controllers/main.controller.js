@@ -474,7 +474,7 @@ router.get('/', (req, res) => {
 			logger.trace(`[${txnId}] Final Sorter ${JSON.stringify(sort)}`);
 			logger.trace(`[${txnId}] Final Select ${JSON.stringify(select)}`);
 			logger.trace(`[${txnId}] Final Skip ${JSON.stringify(skip)}`);
-			logger.trace(`[${txnId}] Final Limit ${JSON.stringify(limit)}`);
+			logger.trace(`[${txnId}] Final Limit ${JSON.stringify(count)}`);
 
 			let docs = await model
 				.find(filter)
