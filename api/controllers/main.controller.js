@@ -408,19 +408,19 @@ router.get('/', (req, res) => {
 				return res.status(200).json(count);
 			}
 			let skip = 0;
-			let count = 30;
+			let count = serviceData.schemaFree ? 0 : 30;
 			let select = '';
 			let sort = '';
-			if (req.query.count && +req.query.count > 0) {
-				count = +req.query.count;
-			} else if (req.query.limit && +req.query.limit > 0) {
+			if (req.query.limit && +req.query.limit > 0) {
 				count = +req.query.limit;
+			} else if (req.query.count && +req.query.count > 0) {
+				count = +req.query.count;
 			}
 
-			if (req.query.page && +req.query.page > 0) {
+			if (req.query.skip && +req.query.skip > 0) {
+				skip = +req.query.skip;
+			} else if (req.query.page && +req.query.page > 0) {
 				skip = count * (+req.query.page - 1);
-			} else if (req.query.skip && +req.query.skip > 0) {
-				skip = +req.query.skip - 1;
 			}
 
 			if (req.query.select && req.query.select.trim()) {
