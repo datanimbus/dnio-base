@@ -153,8 +153,14 @@ router.post('/upload', (req, res) => {
 					let pathFile = JSON.parse(JSON.stringify(file));
 					pathFile.path = req.file.path;
 
-					await storageEngine.azureBlob.uploadFile(pathFile,
-						config.fileStorage[storage].connectionString, config.fileStorage[storage].container);
+					let data = {};
+					data.file = pathFile;
+					data.connectionString = config.fileStorage[storage].connectionString;
+					data.containerName = config.fileStorage[storage].container;
+					data.appName = config.app;
+					data.serviceName = config.serviceName;
+
+					await storageEngine.azureBlob.uploadFile(data);
 
 					let resp = await mongoose.model('files').create(file);
 
@@ -202,10 +208,14 @@ async function downloadFileFromAzure(id, storage, txnId, res) {
 		logger.debug(`[${txnId}] File Found, generating download link.`);
 		logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
 
-		let downloadUrl = await storageEngine.azureBlob.downloadFileLink(file, config.fileStorage[storage].connectionString,
-			config.fileStorage[storage].container,
-			config.fileStorage[storage].sharedKey,
-			config.fileStorage[storage].timeout);
+		let data = {};
+		data.file = file;
+		data.connectionString = config.fileStorage[storage].connectionString;
+		data.containerName = config.fileStorage[storage].container;
+		data.sharedKey = config.fileStorage[storage].sharedKey;
+		data.timeout = config.fileStorage[storage].timeout;
+
+		let downloadUrl = await storageEngine.azureBlob.downloadFileLink(data);
 
 		logger.debug(`[${txnId}] Redirecting response to Azure download link`);
 
