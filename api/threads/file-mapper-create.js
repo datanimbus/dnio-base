@@ -1,12 +1,12 @@
 const { parentPort, workerData } = require('worker_threads');
 const _ = require('lodash');
+const log4js = require('log4js');
 const mongoose = require('mongoose');
 mongoose.set('useFindAndModify', false);
 
 const config = require('../../config');
 require('../../queue');
 
-const log4js = require('log4js');
 const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} v.${config.serviceVersion}] [Worker]` : `[${config.serviceName} v.${config.serviceVersion}] [Worker]`;
 const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
 log4js.configure({
@@ -15,9 +15,11 @@ log4js.configure({
 });
 const logger = log4js.getLogger(LOGGER_NAME);
 
-global.logger = logger;
 global.userHeader = 'user';
 global.txnIdHeader = 'txnId';
+global.baseKey = workerData.baseKey;
+global.baseCert = workerData.baseCert;
+global.encryptionKey = workerData.encryptionKey;
 
 require('../../db-factory');
 

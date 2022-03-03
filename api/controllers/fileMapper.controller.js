@@ -1,12 +1,14 @@
 const router = require('express').Router();
 const mongoose = require('mongoose');
+const log4js = require('log4js');
 
 const commonUtils = require('../utils/common.utils');
 const threadUtils = require('../utils/thread.utils');
 const crudderUtils = require('../utils/crudder.utils');
 const specialFields = require('../utils/special-fields.utils');
+const serviceDetails = require('../../service.json');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 const model = mongoose.model('fileMapper');
 const fileTransfersModel = mongoose.model('fileTransfers');
 
@@ -138,15 +140,29 @@ router.put('/:fileId/mapping', (req, res) => {
 			res.status(202).json({ message: 'Validation Process Started...' });
 
 			/**---------- After Response Process ------------*/
-			const result = await threadUtils.executeThread(txnId, 'file-mapper-validation', {
-				req: {
-					headers: req.headers,
-					user: req.user,
-					rawHeaders: req.rawHeaders
-				},
-				fileId,
-				data
-			});
+			let result;
+			if (serviceDetails.schemaFree) {
+				result = await threadUtils.executeThread(txnId, 'schemafree-file-mapper-validation', {
+					req: {
+						headers: req.headers,
+						user: req.user,
+						rawHeaders: req.rawHeaders
+					},
+					fileId,
+					data
+				});
+			} else {
+				result = await threadUtils.executeThread(txnId, 'file-mapper-validation', {
+					req: {
+						headers: req.headers,
+						user: req.user,
+						rawHeaders: req.rawHeaders
+					},
+					fileId,
+					data
+				});
+			}
+
 			await fileTransfersModel.findOneAndUpdate({ fileId }, { $set: result });
 			endTime = Date.now();
 			let socketData = JSON.parse(JSON.stringify(result));

@@ -2,15 +2,16 @@ const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
 const uuid = require('uuid/v1');
+const log4js = require('log4js');
+const mongoose = require('mongoose');
 
 const config = require('../../config');
 const queueMgmt = require('../../queue');
 const httpClient = require('../../http-client');
 const commonUtils = require('./common.utils');
 
-const mongoose = require('mongoose');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 const client = queueMgmt.client;
 
 client.on('connect', () => {

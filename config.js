@@ -124,4 +124,15 @@ function get(_service) {
 	}
 }
 
+
+e.fileStorage = {
+	storage: process.env.STORAGE_ENGINE || 'GRIDFS',	//GRIDFS/AZURE/GCS/S3
+	'AZURE' : {
+		'connectionString': process.env.STORAGE_AZURE_CONNECTION_STRING,
+		'container': process.env.STORAGE_AZURE_CONTAINER,
+		'sharedKey': process.env.STORAGE_AZURE_SHARED_KEY,
+		'timeout': process.env.STORAGE_AZURE_TIMEOUT
+	}
+};
+
 module.exports = e;

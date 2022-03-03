@@ -1,12 +1,13 @@
 const _ = require('lodash');
 const request = require('request');
+const log4js = require('log4js');
 
 let commonUtils = require('./common.utils');
 let config = require('./../../config');
 
 var e = {};
 
-var logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 
 function getSelect(obj, key) {
 	if (typeof obj == 'object') {

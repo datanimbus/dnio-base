@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-// const log4js = require('log4js');
+const log4js = require('log4js');
 const NodeCache = require('node-cache');
 
 const config = require('./config');
@@ -7,8 +7,8 @@ const models = require('./api/models');
 
 // let baseImageVersion = require('./package.json').version;
 // const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} v${config.serviceVersion}]` : `[${config.serviceName} v${config.serviceVersion}]`
-// const logger = log4js.getLogger(LOGGER_NAME);
-let logger = global.logger;
+
+const logger = log4js.getLogger(global.loggerName);
 const dbName = config.serviceDB;
 
 // For threads to pick txnId and user headers

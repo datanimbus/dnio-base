@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const utils = require('@appveen/utils');
+const log4js = require('log4js');
 const _ = require('lodash');
 // const dataStackUtils = require('@appveen/data.stack-utils');
 
@@ -12,7 +13,7 @@ const serviceData = require('../../service.json');
 const workflowUtils = require('../utils/workflow.utils');
 
 // const client = queue.client;
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 // const authorDB = global.authorDB;
 let model;
 // let hookModel;

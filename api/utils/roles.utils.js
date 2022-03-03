@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
+const log4js = require('log4js');
 // const JWT = require('jsonwebtoken');
 // const { AuthCache } = require('@appveen/ds-auth-cache');
 
@@ -8,7 +9,7 @@ const config = require('../../config');
 const queueMgmt = require('../../queue');
 // const securityUtils = require('../utils/security.utils');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 const client = queueMgmt.client;
 // const cache = new AuthCache();
 

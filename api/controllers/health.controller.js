@@ -1,17 +1,18 @@
 const router = require('express').Router();
 const mongoose = require('mongoose');
-const client = require('../../queue').client;
+const log4js = require('log4js');
 
+const client = require('../../queue').client;
 const init = require('../../init');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 let runInit = true;
 
 router.get('/live', (req, res) => {
 	async function execute() {
 		try {
-			logger.info('Mongo DB State:', mongoose.connection.readyState);
-			logger.info('NATS State:', client && client.nc ? client.nc.connected : null);
+			logger.debug('Mongo DB State:', mongoose.connection.readyState);
+			logger.debug('NATS State:', client && client.nc ? client.nc.connected : null);
 			if (mongoose.connection.readyState === 1 && client && client.nc && client.nc.connected) {
 				return res.status(200).json();
 			} else {
@@ -38,7 +39,7 @@ router.get('/ready', (req, res) => {
 			if (mongoose.connection.readyState != 1) {
 				return res.status(400).end();
 			}
-			logger.info('Init State:', runInit);
+			logger.debug('Init State:', runInit);
 			if (!runInit) {
 				return res.status(200).json();
 			}

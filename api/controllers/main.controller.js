@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const mongoose = require('mongoose');
+const log4js = require('log4js');
 const swaggerParser = require('swagger-parser');
 const async = require('async');
 const _ = require('lodash');
@@ -11,7 +12,6 @@ const hooksUtils = require('../utils/hooks.utils');
 const crudderUtils = require('../utils/crudder.utils');
 const workflowUtils = require('../utils/workflow.utils');
 const transactionUtils = require('../utils/transaction.utils');
-
 const {
 	mergeCustomizer,
 	getDiff,
@@ -19,7 +19,8 @@ const {
 } = require('./../utils/common.utils');
 const serviceData = require('../../service.json');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
+
 const model = mongoose.model(config.serviceId);
 let softDeletedModel;
 if (!config.permanentDelete)
@@ -345,31 +346,49 @@ router.get('/utils/count', (req, res) => {
 router.get('/', (req, res) => {
 	async function execute() {
 		try {
+			let txnId = req.get('txnId');
+			logger.info(`[${txnId}] Get request received.`);
+
 			let filter = {};
 			let errors = {};
 			if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
+				logger.error(`[${txnId}] User does not have permission to fetch records ${req.user.appPermissions}`);
 				return res.status(403).json({
 					message: 'You don\'t have permission to fetch records',
 				});
 			}
 			try {
+				logger.info(`[${txnId}] Schema free ? ${serviceData.schemaFree}`);
+				logger.debug(`[${txnId}] Filter ${req.query.filter}`);
+				logger.debug(`[${txnId}] Sort ${req.query.sort}`);
+				logger.debug(`[${txnId}] Select ${req.query.select}`);
+				logger.debug(`[${txnId}] Skip ${req.query.skip}`);
+				logger.debug(`[${txnId}] Limit ${req.query.limit}`);
+
 				if (req.query.filter) {
 					filter = JSON.parse(req.query.filter);
-					const tempFilter = await specialFields.patchRelationInFilter(
-						req,
-						filter,
-						errors
-					);
+					let tempFilter;
+					if (!serviceData.schemaFree) {
+						tempFilter = await specialFields.patchRelationInFilter(
+							req,
+							filter,
+							errors
+						);
+					}
+
 					if (Array.isArray(tempFilter) && tempFilter.length > 0) {
 						filter = tempFilter[0];
 					} else if (tempFilter) {
 						filter = tempFilter;
 					}
-					filter = modifySecureFieldsFilter(
-						filter,
-						specialFields.secureFields,
-						false
-					);
+
+					if (!serviceData.schemaFree) {
+						filter = modifySecureFieldsFilter(
+							filter,
+							specialFields.secureFields,
+							false
+						);
+					}
 				}
 			} catch (e) {
 				logger.error(e);
@@ -380,6 +399,7 @@ router.get('/', (req, res) => {
 			if (filter) {
 				filter = crudderUtils.parseFilter(filter);
 			}
+
 			if (errors && Object.keys(errors).length > 0) {
 				logger.warn('Error while fetching relation: ', JSON.stringify(errors));
 			}
@@ -388,23 +408,74 @@ router.get('/', (req, res) => {
 				return res.status(200).json(count);
 			}
 			let skip = 0;
-			let count = 30;
+			let count = serviceData.schemaFree ? 0 : 30;
 			let select = '';
 			let sort = '';
-			if (req.query.count && +req.query.count > 0) {
+			if (req.query.limit && +req.query.limit > 0) {
+				count = +req.query.limit;
+			} else if (req.query.count && +req.query.count > 0) {
 				count = +req.query.count;
 			}
-			if (req.query.page && +req.query.page > 0) {
+
+			if (req.query.skip && +req.query.skip > 0) {
+				skip = +req.query.skip;
+			} else if (req.query.page && +req.query.page > 0) {
 				skip = count * (+req.query.page - 1);
 			}
+
 			if (req.query.select && req.query.select.trim()) {
-				select = req.query.select.split(',').join(' ');
+				try {
+					querySelect = JSON.parse(req.query.select);
+					Object.keys(querySelect).forEach(key => {
+						if (parseInt(querySelect[key]) == 1) {
+							select += `${key} `;
+						} else if (parseInt(querySelect[key]) == 0) {
+							select += `-${key} `;
+						} else {
+							logger.error(`Invalid value for key :: ${key} :: ${querySelect[key]}`);
+							throw new Error(`Invalid value for key :: ${key} :: ${querySelect[key]}`);
+						}
+					});
+					select = select.trim();
+				} catch (err) {
+					if (err.message.indexOf('Invalid value for key') > -1) {
+						throw err;
+					} else {
+						select = req.query.select.split(',').join(' ');
+					}
+				}
 			}
 			if (req.query.sort && req.query.sort.trim()) {
-				sort = req.query.sort.split(',').join(' ') + ' -_metadata.lastUpdated';
+				try {
+					let querySort = JSON.parse(req.query.sort);
+					Object.keys(querySort).forEach(key => {
+						if (parseInt(querySort[key]) == 1) {
+							sort += `${key} `;
+						} else if (parseInt(querySort[key]) == -1) {
+							sort += `-${key} `;
+						} else {
+							logger.error(`Invalid value for key :: ${key} :: ${querySort[key]}`)
+							throw new Error(`Invalid value for key :: ${key} :: ${querySort[key]}`);
+						}
+					});
+					sort += ' -_metadata.lastUpdated';
+				} catch (err) {
+					if (err.message.indexOf('Invalid value for key') > -1) {
+						throw err;
+					} else {
+						sort = req.query.sort.split(',').join(' ') + ' -_metadata.lastUpdated';
+					}
+				}
 			} else {
 				sort = '-_metadata.lastUpdated';
 			}
+
+			logger.trace(`[${txnId}] Final filter ${JSON.stringify(filter)}`);
+			logger.trace(`[${txnId}] Final Sorter ${JSON.stringify(sort)}`);
+			logger.trace(`[${txnId}] Final Select ${JSON.stringify(select)}`);
+			logger.trace(`[${txnId}] Final Skip ${JSON.stringify(skip)}`);
+			logger.trace(`[${txnId}] Final Limit ${JSON.stringify(count)}`);
+
 			let docs = await model
 				.find(filter)
 				.select(select)
@@ -412,24 +483,27 @@ router.get('/', (req, res) => {
 				.skip(skip)
 				.limit(count)
 				.lean();
-			docs.forEach(doc => specialFields.filterByPermission(req, req.user.appPermissions, doc));
-			if (req.query.expand == true || req.query.expand == 'true') {
-				let promises = docs.map((e) =>
-					specialFields.expandDocument(req, e, null, true)
-				);
-				docs = await Promise.all(promises);
-				promises = null;
-			}
-			if (
-				specialFields.secureFields &&
-				specialFields.secureFields.length &&
-				specialFields.secureFields[0]
-			) {
-				let promises = docs.map((e) =>
-					specialFields.decryptSecureFields(req, e, null)
-				);
-				await Promise.all(promises);
-				promises = null;
+
+			if (!serviceData.schemaFree) {
+				docs.forEach(doc => specialFields.filterByPermission(req, req.user.appPermissions, doc));
+				if (req.query.expand == true || req.query.expand == 'true') {
+					let promises = docs.map((e) =>
+						specialFields.expandDocument(req, e, null, true)
+					);
+					docs = await Promise.all(promises);
+					promises = null;
+				}
+				if (
+					specialFields.secureFields &&
+					specialFields.secureFields.length &&
+					specialFields.secureFields[0]
+				) {
+					let promises = docs.map((e) =>
+						specialFields.decryptSecureFields(req, e, null)
+					);
+					await Promise.all(promises);
+					promises = null;
+				}
 			}
 			res.status(200).json(docs);
 		} catch (e) {
@@ -450,28 +524,38 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
 	async function execute() {
 		try {
+			let txnId = req.get('txnId');
+			let id = req.params.id;
+			logger.info(`[${txnId}] Get request received for ${id}`);
+
 			if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
+				logger.error(`[${txnId}] User does not have permission to fetch records ${req.user.appPermissions}`);
 				return res.status(403).json({
 					message: 'You don\'t have permission to fetch a record',
 				});
 			}
-			let doc = await model.findById(req.params.id).lean();
+
+			let doc = await model.findById(id).lean();
+			logger.trace(`[${txnId}] Document from DB ${JSON.stringify(doc)}`);
 			if (!doc) {
 				return res.status(404).json({
-					message: `Record With ID  ${req.params.id} Not Found.`,
+					message: `Record With ID ${id} Not Found.`,
 				});
 			}
-			specialFields.filterByPermission(req, req.user.appPermissions, doc);
-			const expandLevel = (req.header('expand-level') || 0) + 1;
-			if ((req.query.expand == true || req.query.expand == 'true') && expandLevel < 3) {
-				doc = await specialFields.expandDocument(req, doc);
-			}
-			if (
-				specialFields.secureFields &&
-				specialFields.secureFields.length &&
-				specialFields.secureFields[0]
-			) {
-				await specialFields.decryptSecureFields(req, doc, null);
+
+			if (!serviceData.schemaFree) {
+				specialFields.filterByPermission(req, req.user.appPermissions, doc);
+				const expandLevel = (req.header('expand-level') || 0) + 1;
+				if ((req.query.expand == true || req.query.expand == 'true') && expandLevel < 3) {
+					doc = await specialFields.expandDocument(req, doc);
+				}
+				if (
+					specialFields.secureFields &&
+					specialFields.secureFields.length &&
+					specialFields.secureFields[0]
+				) {
+					await specialFields.decryptSecureFields(req, doc, null);
+				}
 			}
 			res.status(200).json(doc);
 		} catch (e) {
@@ -491,7 +575,12 @@ router.get('/:id', (req, res) => {
 
 router.post('/', (req, res) => {
 	async function execute() {
+		let txnId = req.get(global.txnIdHeader);
+		let id = req.params.id;
+		logger.info(`[${txnId}] Create request received.`);
+
 		if (req.query.txn == true) {
+			logger.info(`[${txnId}] Create request is a part of a transaction ${id}`)
 			return transactionUtils.transferToTransaction(req, res);
 		}
 		try {
@@ -499,20 +588,25 @@ router.post('/', (req, res) => {
 		} catch (err) {
 			return res.status(400).json({ message: err.message });
 		}
+
 		if (!specialFields.hasPermissionForPOST(req, req.user.appPermissions)) {
+			logger.error(`[${txnId}] User does not have permission to create records ${req.user.appPermissions}`);
 			return res.status(403).json({
 				message: 'You don\'t have permission to create records',
 			});
 		}
-		// const workflowModel = global.authorDB.model('workflow');
-		const workflowModel = mongoose.model('workflow');
-		let txnId = req.get(global.txnIdHeader);
 
+		const workflowModel = mongoose.model('workflow');
 		let payload = req.body;
 
 		try {
 			let promises;
 			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
+
+			logger.info(`[${txnId}] Is workflow enabled? ${workflowUtils.isWorkflowEnabled()}`);
+			logger.info(`[${txnId}] has Skip Review permission? ${hasSkipReview}`);
+			logger.trace(`[${txnId}] Payload ${JSON.stringify(payload)}`);
+
 
 			if (
 				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
@@ -566,12 +660,11 @@ router.post('/', (req, res) => {
 			} else {
 				if (Array.isArray(payload)) {
 					promises = payload.map(async (data) => {
-
-						if (serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
+						if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
 							if (!_.get(data, serviceData.stateModel.attribute)) {
 								_.set(data, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
 							}
-			
+
 							if (!serviceData.stateModel.initialStates.includes(_.get(data, serviceData.stateModel.attribute))) {
 								return { message: 'Record is not in initial state.' };
 							}
@@ -588,12 +681,11 @@ router.post('/', (req, res) => {
 					});
 					promises = await Promise.all(promises);
 				} else {
-
-					if (serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
+					if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
 						if (!_.get(payload, serviceData.stateModel.attribute)) {
 							_.set(payload, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
 						}
-		
+
 						if (!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
 							throw new Error('Record is not in initial state.');
 						}
@@ -619,21 +711,28 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
 	async function execute() {
+		let txnId = req.get(global.txnIdHeader);
+		let id = req.params.id;
+		logger.info(`[${txnId}] Update request received for record ${id}`);
+		logger.info(`[${txnId}] Schema Free ? ${serviceData.schemaFree}`);
+
 		if (req.query.txn == true) {
+			logger.info(`[${txnId}] Update request is a part of a transaction ${id}`)
 			return transactionUtils.transferToTransaction(req, res);
 		}
+
 		try {
 			addExpireAt(req);
 		} catch (err) {
 			return res.status(400).json({ message: err.message });
 		}
 		if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
+			logger.error(`[${txnId}] User does not have permission to update records ${req.user.appPermissions}`);
 			return res.status(403).json({
 				message: 'You don\'t have permission to update records',
 			});
 		}
-		// const workflowModel = global.authorDB.model('workflow');
-		let txnId = req.get(global.txnIdHeader);
+
 		const workflowModel = mongoose.model('workflow');
 		try {
 			const upsert = req.query.upsert == 'true';
@@ -641,8 +740,15 @@ router.put('/:id', (req, res) => {
 			let status;
 			let wfId;
 			let isNewDoc = false;
-			let doc = await model.findById(req.params.id);
+			let doc = await model.findById(id);
+
+			logger.trace(`[${txnId}] Document from DB - ${JSON.stringify(doc)}`);
+			logger.trace(`[${txnId}] Payload from request - ${JSON.stringify(payload)}`);
+			logger.info(`[${txnId}] Upsert allowed ? ${upsert}`);
+
 			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
+			logger.info(`[${txnId}] has Skip Review permissions? ${hasSkipReview}`);
+			logger.info(`[${txnId}] Is workflow enabled ? ${workflowUtils.isWorkflowEnabled()}`);
 
 			if (!doc && !upsert) {
 				return res.status(404).json({
@@ -651,13 +757,14 @@ router.put('/:id', (req, res) => {
 			}
 
 			if (!doc && upsert) {
+				logger.info(`[${txnId}] Document not found, creating a new doc`);
 				isNewDoc = true;
 				payload._id = req.params.id;
 				delete payload._metadata;
 				delete payload.__v;
 				doc = new model(payload);
 
-				if (serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
+				if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
 					if (!_.get(payload, serviceData.stateModel.attribute)) {
 						_.set(payload, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
 					}
@@ -667,7 +774,7 @@ router.put('/:id', (req, res) => {
 				}
 			}
 
-			if (serviceData.stateModel && serviceData.stateModel.enabled && !isNewDoc && !hasSkipReview
+			if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !isNewDoc && !hasSkipReview
 				&& _.get(payload, serviceData.stateModel.attribute)
 				&& !serviceData.stateModel.states[_.get(doc, serviceData.stateModel.attribute)].includes(_.get(payload, serviceData.stateModel.attribute))
 				&& _.get(doc, serviceData.stateModel.attribute) !== _.get(payload, serviceData.stateModel.attribute)) {
@@ -679,12 +786,13 @@ router.put('/:id', (req, res) => {
 					message: 'This Document is Locked because of a pending Workflow',
 				});
 			}
+
 			if (!isNewDoc) {
 				delete payload._id;
 				doc._oldDoc = doc.toObject();
 			}
 			doc._req = req;
-			
+
 			if (
 				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
 				req.query.draft
@@ -715,8 +823,25 @@ router.put('/:id', (req, res) => {
 					message: 'Workflow has been created',
 				});
 			} else {
-				_.mergeWith(doc, payload, mergeCustomizer);
+				logger.debug(`[${txnId}] Merging and saving doc`);
+				if (!serviceData.schemaFree) {
+					_.mergeWith(doc, payload, mergeCustomizer);
+				} else {
+					Object.keys(doc.toObject()).forEach(key => {
+						if (key !== '__v' && key !== '_id' && key !== '_metadata' && key !== '_workflow') {
+							if (payload[key] == undefined) {
+								doc.set(key, undefined);
+							}
+						}	
+					})
+					Object.keys(payload).forEach(key => {
+						if (doc.get(key) != payload[key])
+							doc.set(key, payload[key]);
+					});
+					
+				}
 				status = await doc.save();
+				logger.debug(`[${txnId}] Update status - ${status}`);
 				return res.status(200).json(status);
 			}
 		} catch (e) {
@@ -733,23 +858,30 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
 	async function execute() {
+		let txnId = req.get(global.txnIdHeader);
+		let id = req.params.id;
+		logger.info(`[${txnId}] Delete request received for record ${id}`);
+
 		if (req.query.txn == true) {
+			logger.info(`[${txnId}] Delete request is a part of a transaction ${id}`)
 			return transactionUtils.transferToTransaction(req, res);
 		}
 		if (!specialFields.hasPermissionForDELETE(req, req.user.appPermissions)) {
+			logger.error(`[${txnId}] User does not have permission to update/delete records ${req.user.appPermissions}`);
 			return res.status(403).json({
 				message: 'You don\'t have permission to update records',
 			});
 		}
-		// const workflowModel = global.authorDB.model('workflow');
-		let txnId = req.get(global.txnIdHeader);
+
 		const workflowModel = mongoose.model('workflow');
 		try {
-			let doc = await model.findById(req.params.id);
+			let doc = await model.findById(id);
+			logger.trace(`[${txnId}] Document from DB - ${JSON.stringify(doc)}`);
+
 			let status;
 			if (!doc) {
 				return res.status(404).json({
-					message: `Record With ID  ${req.params.id} Not Found`,
+					message: `Record With ID ${id} Not Found`,
 				});
 			}
 			if (doc._metadata.workflow) {
@@ -757,11 +889,18 @@ router.delete('/:id', (req, res) => {
 					message: 'This Document is Locked because of a pending Workflow',
 				});
 			}
+
 			doc._req = req;
 			doc._oldDoc = doc.toObject();
 			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
+
+			logger.debug(`[${txnId}] has Skip Review? ${hasSkipReview}`);
+			logger.debug(`[${txnId}] Workflow Enabled? ${workflowUtils.isWorkflowEnabled()}`);
+
 			let wfId;
 			if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
+				logger.debug(`[${txnId}] Creating workflow.`);
+
 				const wfItem = workflowUtils.getWorkflowItem(
 					req,
 					'DELETE',
@@ -770,6 +909,9 @@ router.delete('/:id', (req, res) => {
 					null,
 					doc.toObject()
 				);
+
+				logger.trace(`[${txnId}] Workflow Item for record ${id} :: ${JSON.stringify(wfItem)}`);
+
 				const wfDoc = new workflowModel(wfItem);
 				wfDoc._req = req;
 				status = await wfDoc.save();
@@ -778,7 +920,10 @@ router.delete('/:id', (req, res) => {
 				status = await model.findByIdAndUpdate(doc._id, {
 					'_metadata.workflow': status._id,
 				});
+				logger.trace(`[${txnId}] Update status ${status}`);
 			} else {
+				logger.debug(`[${txnId}] Is permanent delete enabled? ${config.permanentDelete}`);
+
 				if (!config.permanentDelete) {
 					let softDeletedDoc = new softDeletedModel(doc);
 					softDeletedDoc.isNew = true;
@@ -786,7 +931,7 @@ router.delete('/:id', (req, res) => {
 				}
 				status = await doc.remove();
 			}
-			logger.trace(`[${txnId}] Delete doc :: ${req.params.id} :: ${status}`);
+			logger.trace(`[${txnId}] Deleted documnet ${id} :: ${status}`);
 			res.status(200).json({
 				_workflow: wfId,
 				message: 'Document Deleted',

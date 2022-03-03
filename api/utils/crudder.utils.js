@@ -1,3 +1,5 @@
+const log4js = require('log4js');
+
 let invalidAggregationKeys = [
 	'$graphLookup',
 	'$lookup',
@@ -11,7 +13,7 @@ let invalidAggregationKeys = [
 	'$listSessions'
 ];
 
-let logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 
 function IsString(val) {
 	return val && val.constructor.name === 'String';
