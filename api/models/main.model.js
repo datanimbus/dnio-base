@@ -195,8 +195,15 @@ schema.pre('save', async function (next) {
 		logger.trace(`[${req.headers[global.txnIdHeader]}] Prehook data :: ${JSON.stringify(data)}`);
 		delete data._metadata;
 		if (serviceData.schemaFree) {
+			Object.keys(this.toObject()).forEach(key => {
+				if (key !== '__v' && key !== '_id' && key !== '_metadata' && key !== '_workflow') {
+					if (data[key] === undefined) {
+						this.set(key, undefined);
+					}
+				}
+			});
 			Object.keys(data).forEach(key => {
-				if(this.get(key) != data[key])
+				if(this.get(key) !== data[key])
 					this.set(key, data[key]);
 			});
 		} else {

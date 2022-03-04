@@ -826,13 +826,13 @@ router.put('/:id', (req, res) => {
 				} else {
 					Object.keys(doc.toObject()).forEach(key => {
 						if (key !== '__v' && key !== '_id' && key !== '_metadata' && key !== '_workflow') {
-							if (payload[key] == undefined) {
+							if (payload[key] === undefined) {
 								doc.set(key, undefined);
 							}
 						}	
 					})
 					Object.keys(payload).forEach(key => {
-						if (doc.get(key) != payload[key])
+						if (doc.get(key) !== payload[key])
 							doc.set(key, payload[key]);
 					});
 					
