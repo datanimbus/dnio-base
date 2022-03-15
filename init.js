@@ -136,16 +136,16 @@ async function clearUnusedFiles() {
 							reject(err);
 						}
 					})
-					.then(() => {
-						mongoose.connection.db.collection(`${config.serviceCollection}.files`).deleteOne({ filename: _f });
-					})
-					.catch(err => logger.error(`Error deleting file ${_f} from Azure Blob ${err}`));
+						.then(() => {
+							mongoose.connection.db.collection(`${config.serviceCollection}.files`).deleteOne({ filename: _f });
+						})
+						.catch(err => logger.error(`Error deleting file ${_f} from Azure Blob ${err}`));
 				});
 			} else {
 				logger.error(`External Storage type is not allowed`);
 				throw new Error(`External Storage ${storage} not allowed`);
 			}
-			
+
 			return Promise.all(promise);
 		} catch (err) {
 			logger.error(`Error deleting unused files from DB`);
@@ -181,7 +181,7 @@ function deleteFileFromDB(filename) {
 async function informSM() {
 	logger.trace('Ping SM service');
 	const options = {
-		url: config.baseUrlSM + '/service/' + config.serviceId + '/statusChange',
+		url: `${config.baseUrlSM}/${config.app}/service/utils/${config.serviceId}/statusChange`,
 		method: 'PUT',
 		headers: {
 			'Content-Type': 'application/json',
