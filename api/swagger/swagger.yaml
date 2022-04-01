@@ -1,9 +1,9 @@
-swagger: "2.0"
+swagger: '2.0'
 info:
-  version: 0.0.1
-  title: complex API
-host: "localhost:20016"
-basePath: /Adam/complex
+  version: '1'
+  title: NoSchema API
+host: 'localhost:20077'
+basePath: /Adam/noSchema
 schemes:
   - http
 consumes:
@@ -16,8 +16,8 @@ paths:
   /:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of 'complex'
-      operationId: v1_srvc2006List
+      description: Retrieve a list of 'NoSchema'
+      operationId: v1_srvc5443List
       parameters:
         - name: page
           in: query
@@ -50,21 +50,19 @@ paths:
           description: expand document based on relations
           default: false
       responses:
-        "200":
+        '200':
           description: List of the entites
-        "400":
+        '400':
           description: Bad parameters
-        "500":
+        '500':
           description: Internal server error
     post:
-      description: Create a new 'complex'
-      operationId: v1_srvc2006Create
+      description: Create a new 'NoSchema'
+      operationId: v1_srvc5443Create
       parameters:
         - name: data
           in: body
-          description: Payload to create a 'complex'
-          schema:
-            $ref: "#/definitions/complex_create"
+          description: Payload to create a 'NoSchema'
         - name: authorization
           in: header
           type: string
@@ -82,23 +80,21 @@ paths:
           type: boolean
           description: upsert parameter
       responses:
-        "200":
+        '200':
           description: List of the entites created
-        "400":
+        '400':
           description: Bad parameters
-        "500":
+        '500':
           description: Internal server error
   /utils/simulate:
     x-swagger-router-controller: controller
     post:
-      description: validate 'complex'
-      operationId: v1_srvc2006Simulate
+      description: validate 'NoSchema'
+      operationId: v1_srvc5443Simulate
       parameters:
         - name: data
           in: body
-          description: Payload to validate 'complex'
-          schema:
-            $ref: "#/definitions/complex_update"
+          description: Payload to validate 'NoSchema'
         - name: authorization
           in: header
           type: string
@@ -124,45 +120,17 @@ paths:
           description: select in case of get
           default: false
       responses:
-        "200":
+        '200':
           description: List of the entites
-        "400":
+        '400':
           description: Bad parameters
-        "500":
-          description: Internal server error
-  /lock:
-    x-swagger-router-controller: controller
-    put:
-      description: lock 'complex'
-      operationId: v1_srvc2006LockDocument
-      parameters:
-        - name: data
-          in: body
-          description: Payload to validate 'complex'
-          schema:
-            properties:
-              id:
-                type: string
-              wfId:
-                type:
-                  - string
-                  - "null"
-        - name: authorization
-          in: header
-          type: string
-          description: The JWT token for req.validation
-      responses:
-        "200":
-          description: List of the entites
-        "400":
-          description: Bad parameters
-        "500":
+        '500':
           description: Internal server error
   /utils/bulkShow:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of 'complex'
-      operationId: v1_srvc2006BulkShow
+      description: Retrieve a list of 'NoSchema'
+      operationId: v1_srvc5443BulkShow
       parameters:
         - name: id
           in: query
@@ -181,52 +149,29 @@ paths:
           type: string
           description: The JWT token for req.validation
       responses:
-        "200":
+        '200':
           description: List of the entites
-        "400":
+        '400':
           description: Bad parameters
-        "500":
+        '500':
           description: Internal server error
   /utils/securedFields:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of secured fields in 'complex'
-      operationId: v1_srvc2006SecuredFields
+      description: Retrieve a list of secured fields in 'NoSchema'
+      operationId: undefined
       responses:
-        "200":
+        '200':
           description: List of the entites
-        "400":
+        '400':
           description: Bad parameters
-        "500":
+        '500':
           description: Internal server error
-  /utils/callback/{id}:
-    x-swagger-router-controller: controller
-    post:
-      description: Callback for the posthook
-      operationId: v1_srvc2006CallBack
-      parameters:
-        - name: id
-          in: path
-          type: string
-          description: ID of the posthook
-          required: true
-        - name: data
-          in: body
-          schema:
-            $ref: '#/definitions/callbackData'
-          description: data
-      responses:
-        "200":
-          description: List of the entites
-        "400":
-          description: Bad parameters
-        "500":
-          description: Internal server error
-  /hook:
+  /utils/hook:
     x-swagger-router-controller: controller
     post:
       description: triggers the hook with data
-      operationId: v1_srvc2006Hook
+      operationId: v1_srvc5443Hook
       parameters:
         - name: url
           in: query
@@ -238,17 +183,17 @@ paths:
             type: object
           description: data
       responses:
-        "200":
+        '200':
           description: List of the entites
-        "400":
+        '400':
           description: Bad parameters
-        "500":
+        '500':
           description: Internal server error
   /utils/experienceHook:
     x-swagger-router-controller: controller
     post:
       description: triggers the hook with data
-      operationId: v1_srvc2006ExperienceHook
+      operationId: v1_srvc5443ExperienceHook
       parameters:
         - name: name
           in: query
@@ -260,17 +205,17 @@ paths:
             type: object
           description: data
       responses:
-        "200":
+        '200':
           description: List of the entites
-        "400":
+        '400':
           description: Bad parameters
-        "500":
+        '500':
           description: Internal server error
   /utils/bulkDelete:
     x-swagger-router-controller: controller
     delete:
-      description: Deletes a list of 'complex'
-      operationId: v1_srvc2006BulkDelete
+      description: Deletes a list of 'noSchema'
+      operationId: v1_srvc5443BulkDelete
       parameters:
         - name: authorization
           in: header
@@ -287,17 +232,17 @@ paths:
                 items:
                   type: string
       responses:
-        "200":
+        '200':
           description: Empty Object
-        "400":
+        '400':
           description: List document ids not deleted
-        "500":
+        '500':
           description: Internal server error
   /utils/count:
     x-swagger-router-controller: controller
     get:
-      description: returns count of 'complex'
-      operationId: v1_srvc2006Count
+      description: returns count of 'NoSchema'
+      operationId: v1_srvc5443Count
       parameters:
         - &ref_0
           name: filter
@@ -316,17 +261,17 @@ paths:
           description: expand document based on relations
           default: false
       responses:
-        "200":
+        '200':
           description: Count of the entites
-        "400":
+        '400':
           description: Bad parameters
-        "500":
+        '500':
           description: Internal server error
-  "/{id}":
+  '/{id}':
     x-swagger-router-controller: controller
     get:
-      description: Retrieve an existing 'complex'
-      operationId: v1_srvc2006Show
+      description: Retrieve an existing 'NoSchema'
+      operationId: v1_srvc5443Show
       parameters:
         - name: select
           in: query
@@ -347,28 +292,26 @@ paths:
           description: expand document based on relations
           default: false
       responses:
-        "200":
-          description: complex document
-        "400":
+        '200':
+          description: NoSchema document
+        '400':
           description: Bad parameters
-        "404":
+        '404':
           description: No records to list with the given parameter set.
-        "500":
+        '500':
           description: Internal server error
     put:
-      description: Update an existing 'complex'
-      operationId: v1_srvc2006Update
+      description: Update an existing 'NoSchema'
+      operationId: v1_srvc5443Update
       parameters:
         - name: data
           in: body
-          description: Payload to update a 'complex'
-          schema:
-            $ref: "#/definitions/complex_update"
+          description: Payload to update a 'NoSchema'
         - name: id
           in: path
           type: string
           required: true
-          description: Id of the 'complex' to be updated
+          description: Id of the 'NoSchema' to be updated
         - name: authorization
           in: header
           type: string
@@ -381,124 +324,42 @@ paths:
           in: query
           type: string
           description: Time after which the document will get deleted.
+        - name: upsert
+          in: query
+          type: boolean
+          description: upsert parameter
       responses:
-        "200":
+        '200':
           description: Update entry
-        "400":
+        '400':
           description: Bad parameters
-        "404":
+        '404':
           description: No records to list with the given parameter set.
-        "500":
+        '500':
           description: Internal server error
     delete:
-      description: Delete an existing 'complex'
-      operationId: v1_srvc2006Destroy
+      description: Delete an existing 'NoSchema'
+      operationId: v1_srvc5443Destroy
       parameters:
         - name: id
           in: path
           type: string
           required: true
-          description: Id of the 'complex' to be deleted
+          description: Id of the 'NoSchema' to be deleted
         - name: authorization
           in: header
           type: string
           description: The JWT token for req.validation
       responses:
-        "200":
+        '200':
           description: Empty object
-        "400":
+        '400':
           description: Bad parameters
-        "404":
+        '404':
           description: No records to list with the given parameter set.
-        "500":
+        '500':
           description: Internal server error
-  "/{id}/math":
-    x-swagger-router-controller: controller
-    put:
-      description: Does math operation on a 'complex'
-      operationId: v1_srvc2006Math
-      parameters:
-        - name: data
-          in: body
-          description: Payload to update a 'complex'
-          schema:
-            $ref: "#/definitions/complex_math"
-        - name: id
-          in: path
-          type: string
-          required: true
-          description: Id of the 'complex' to be updated
-        - name: authorization
-          in: header
-          type: string
-          description: The JWT token for req.validation
-      responses:
-        "200":
-          description: Update entry
-        "400":
-          description: Bad parameters
-        "404":
-          description: No records to list with the given parameter set.
-        "500":
-          description: Internal server error
-  /file/upload:
-    x-swagger-router-controller: controller
-    post:
-      description: Uploads the file
-      operationId: v1_srvc2006FileUpload
-      parameters:
-        - name: authorization
-          in: header
-          type: string
-          description: The JWT token for req.validation
-      responses:
-        "200":
-          description: meta data of file
-        "400":
-          description: Bad parameters
-        "500":
-          description: Internal server error
-  "/file/{id}/view":
-    x-swagger-router-controller: controller
-    get:
-      description: View the file
-      parameters:
-        - name: id
-          in: path
-          type: string
-          required: true
-          description: Id of file
-        - name: authorization
-          in: header
-          type: string
-          description: The JWT token for req.validation
-      operationId: v1_srvc2006FileView
-      responses:
-        "200":
-          description: file data
-        "400":
-          description: Bad parameters
-        "500":
-          description: Internal server error
-  "/file/download/{id}":
-    x-swagger-router-controller: controller
-    get:
-      description: Download the file
-      parameters:
-        - name: id
-          in: path
-          type: string
-          required: true
-          description: Id of file
-      operationId: v1_srvc2006FileDownload
-      responses:
-        "200":
-          description: file download
-        "400":
-          description: Bad parameters
-        "500":
-          description: Internal server error
-  "/export/download/{id}":
+  '/utils/export/download/{id}':
     x-swagger-router-controller: controller
     get:
       description: Download the file
@@ -512,175 +373,18 @@ paths:
           in: query
           type: string
           description: filename of file
-      operationId: v1_srvc2006ExportedFileDownload
+      operationId: v1_srvc5443ExportedFileDownload
       responses:
-        "200":
+        '200':
           description: file download
-        "400":
+        '400':
           description: Bad parameters
-        "500":
+        '500':
           description: Internal server error
-  "/fileMapper/{fileId}":
+  '/utils/fileMapper/{fileId}/count':
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of 'complex'
-      operationId: fileMapperList
-      parameters:
-        - name: page
-          in: query
-          type: integer
-          description: Page number of the request
-        - name: count
-          in: query
-          type: integer
-          description: Number of records per page
-        - name: authorization
-          in: header
-          type: string
-          description: The JWT token for req.validation
-        - name: filter
-          in: query
-          type: string
-          description: Filter records based on certain fields
-        - name: select
-          in: query
-          type: string
-          description: Comma seperated fields to be displayed
-        - name: sort
-          in: query
-          type: string
-          description: sort parameter
-        - name: fileId
-          in: path
-          required: true
-          type: string
-          description: fileId against which we db will be querried
-      responses:
-        "200":
-          description: List of the entites
-        "400":
-          description: Bad parameters
-        "500":
-          description: Internal server error
-  "/fileMapper/{fileId}/create":
-    x-swagger-router-controller: controller
-    post:
-      description: Create the data in the file
-      operationId: v1_bulkCreate
-      parameters:
-        - name: data
-          in: body
-          description: Payload to bulkCreate
-          schema:
-            $ref: "#/definitions/bulkCreateData"
-        - name: authorization
-          in: header
-          type: string
-          description: The JWT token for req.validation
-        - name: fileId
-          in: path
-          required: true
-          type: string
-          description: fileId against which we db will be querried
-      responses:
-        "200":
-          description: Stats of bulkCreate
-        "400":
-          description: Bad parameters
-        "500":
-          description: Internal server error
-  "/fileMapper/{fileId}/mapping":
-    x-swagger-router-controller: controller
-    put:
-      description: Uploads the file containing data
-      operationId: v1_mapping
-      parameters:
-        - name: data
-          in: body
-          description: Payload to validate data
-          schema:
-            type: object
-        - name: authorization
-          in: header
-          type: string
-          description: The JWT token for req.validation
-        - name: fileId
-          in: path
-          required: true
-          type: string
-          description: fileId against which we db will be querried
-      responses:
-        "200":
-          description: Data validated against mapping
-        "400":
-          description: Bad parameters
-        "500":
-          description: Internal server error
-  /fileMapper/enrich:
-    x-swagger-router-controller: controller
-    put:
-      description: Enrich the sheet data
-      operationId: v1_enrichData
-      parameters:
-        - name: data
-          in: body
-          description: Payload to validate data
-          schema:
-            $ref: "#/definitions/enrichData"
-        - name: authorization
-          in: header
-          type: string
-          description: The JWT token for req.validation
-      responses:
-        "200":
-          description: Data enriched against mapping
-        "400":
-          description: Bad parameters
-        "500":
-          description: Internal server error
-  "/fileMapper/{fileId}/enrichDataForWF":
-    x-swagger-router-controller: controller
-    get:
-      description: Enrich the sheet data for Record ID
-      operationId: v1_enrichDataForWF
-      parameters:
-        - name: page
-          in: query
-          type: integer
-          description: Page number of the request
-        - name: authorization
-          in: header
-          type: string
-          description: The JWT token for req.validation
-        - name: count
-          in: query
-          type: integer
-          description: Number of records per page
-        - name: fileId
-          in: path
-          required: true
-          type: string
-          description: fileId against which we db will be querried
-        - name: operation
-          in: query
-          type: string
-          description: request method
-          default: "false"
-        - name: filter
-          in: query
-          type: string
-          description: filter
-      responses:
-        "200":
-          description: Data enriched against mapping
-        "400":
-          description: Bad parameters
-        "500":
-          description: Internal server error
-  "/fileMapper/{fileId}/count":
-    x-swagger-router-controller: controller
-    get:
-      description: returns count of 'complex'
+      description: returns count of 'NoSchema'
       operationId: fileMapperCount
       parameters:
         - *ref_0
@@ -692,30 +396,18 @@ paths:
           type: string
           description: fileId against which we db will be querried
       responses:
-        "200":
+        '200':
           description: Count of the entites
-        "400":
+        '400':
           description: Bad parameters
-        "500":
+        '500':
           description: Internal server error
   /utils/export:
     x-swagger-router-controller: controller
     post:
-      description: Retrieve a list of 'complex'
-      operationId: v1_srvc2006Export
+      description: Retrieve a list of 'NoSchema'
+      operationId: v1_srvc5443Export
       parameters:
-        - name: page
-          in: body
-          type: integer
-          description: Page number of the request
-        - name: count
-          in: body
-          type: integer
-          description: Number of records per page
-        - name: authorization
-          in: header
-          type: string
-          description: The JWT token for req.validation
         - name: filter
           in: body
           type: string
@@ -728,23 +420,35 @@ paths:
           in: body
           type: string
           description: sort parameter
+        - name: skip
+          in: body
+          type: integer
+          description: Number of records to skip
+        - name: batchSize
+          in: body
+          type: integer
+          description: Batch size for cursor
+        - name: authorization
+          in: header
+          type: string
+          description: The JWT token for req.validation
         - *ref_3
         - name: totalRecords
-          in: body
+          in: query
           type: integer
           description: total records
       responses:
-        "200":
+        '200':
           description: List of the entites
-        "400":
+        '400':
           description: Bad parameters
-        "500":
+        '500':
           description: Internal server error
   /utils/fileTransfers:
     x-swagger-router-controller: controller
     get:
       description: Retrieve list of bulk actions'
-      operationId: v1_srvc2006ExportDetails
+      operationId: v1_srvc5443ExportDetails
       parameters:
         - name: page
           in: query
@@ -771,17 +475,17 @@ paths:
           type: string
           description: sort parameter
       responses:
-        "200":
+        '200':
           description: List of the entites
-        "400":
+        '400':
           description: Bad parameters
-        "500":
+        '500':
           description: Internal server error
   /utils/fileTransfers/count:
     x-swagger-router-controller: controller
     get:
       description: count of bulk actions'
-      operationId: v1_srvc2006ExportDetailsCount
+      operationId: v1_srvc5443ExportDetailsCount
       parameters:
         - name: page
           in: query
@@ -808,17 +512,17 @@ paths:
           type: string
           description: sort parameter
       responses:
-        "200":
+        '200':
           description: List of the entites
-        "400":
+        '400':
           description: Bad parameters
-        "500":
+        '500':
           description: Internal server error
-  "/utils/fileTransfers/{id}":
+  '/utils/fileTransfers/{id}':
     x-swagger-router-controller: controller
     delete:
-      description: delete file'
-      operationId: v1_srvc2006ExportDetailsDelete
+      description: Deletes a file with file id
+      operationId: v1_srvc5443ExportDetailsDelete
       parameters:
         - name: id
           in: path
@@ -830,11 +534,40 @@ paths:
           type: string
           description: The JWT token for req.validation
       responses:
-        "200":
+        '200':
           description: List of the entites
-        "400":
+        '400':
           description: Bad parameters
-        "500":
+        '500':
+          description: Internal server error
+  '/utils/fileTransfers/{fileId}/readStatus':
+    x-swagger-router-controller: controller
+    put:
+      description: Updates File Read Status
+      operationId: exportUpdateReadStatus
+      parameters:
+        - name: fileId
+          in: path
+          type: string
+          required: true
+          description: Id of file
+        - name: authorization
+          in: header
+          type: string
+          description: The JWT token for req.validation
+        - name: data
+          in: body
+          description: Payload with read status
+          schema:
+            properties:
+              isRead:
+                type: boolean
+      responses:
+        '200':
+          description: File read status updated
+        '400':
+          description: Bad parameters
+        '500':
           description: Internal server error
   /utils/aggregate:
     x-swagger-router-controller: controller
@@ -854,456 +587,10 @@ paths:
             items:
               type: object
       responses:
-        "200":
+        '200':
           description: List of the entites
-        "400":
+        '400':
           description: Bad parameters
-        "500":
+        '500':
           description: Internal server error
-  /utils/hrefUpdate:
-    x-swagger-router-controller: controller
-    put:
-      description: Update url of outgoing relations
-      operationId: v1_updateHref
-      parameters:
-        - name: data
-          in: body
-          description: Payload to update href
-          schema:
-            type: object
-      responses:
-        "200":
-          description: List of the entites
-        "400":
-          description: Bad parameters
-        "500":
-          description: Internal server error
-  /health/live:
-    x-swagger-router-controller: controller
-    get:
-      description: Healthcheck API for service
-      operationId: v1_srvc2006HealthCheck
-      responses:
-        "200":
-          description: Success
-        "400":
-          description: Error
-  /health/ready:
-    x-swagger-router-controller: controller
-    get:
-      description: Healthcheck API for service
-      operationId: v1_srvc2006ReadinessCheck
-      responses:
-        "200":
-          description: Success
-        "400":
-          description: Error
-definitions:
-  complex_create:
-    properties:
-      name:
-        type:
-          - string
-          - "null"
-      email:
-        type:
-          - string
-          - "null"
-      password:
-        properties:
-          value:
-            type:
-              - string
-              - "null"
-          checksum:
-            type:
-              - string
-              - "null"
-      contactNo:
-        type:
-          - number
-          - "null"
-      alternateNos:
-        type:
-          - array
-          - "null"
-        items:
-          type: number
-      location:
-        properties:
-          geometry:
-            properties:
-              type:
-                type:
-                  - string
-                  - "null"
-              coordinates:
-                type:
-                  - array
-                  - "null"
-                items:
-                  type: number
-          formattedAddress:
-            type:
-              - string
-              - "null"
-          town:
-            type:
-              - string
-              - "null"
-          district:
-            type:
-              - string
-              - "null"
-          state:
-            type:
-              - string
-              - "null"
-          country:
-            type:
-              - string
-              - "null"
-          pincode:
-            type:
-              - string
-              - "null"
-          userInput:
-            type:
-              - string
-              - "null"
-      address:
-        properties:
-          _id:
-            type:
-              - string
-              - "null"
-          _href:
-            type:
-              - string
-              - "null"
-      tempAddress:
-        properties:
-          street:
-            type:
-              - string
-              - "null"
-          city:
-            type:
-              - string
-              - "null"
-          state:
-            type:
-              - string
-              - "null"
-          pincode:
-            type:
-              - number
-              - "null"
-      prevAddress:
-        type:
-          - array
-          - "null"
-        items:
-          properties:
-            street:
-              type:
-                - string
-                - "null"
-            city:
-              type:
-                - string
-                - "null"
-            state:
-              type:
-                - string
-                - "null"
-            pincode:
-              type:
-                - number
-                - "null"
-      resume:
-        properties:
-          _id:
-            type:
-              - string
-              - "null"
-          filename:
-            type:
-              - string
-              - "null"
-          contentType:
-            type:
-              - string
-              - "null"
-          length:
-            type:
-              - number
-              - "null"
-          chunkSize:
-            type:
-              - number
-              - "null"
-          uploadDate:
-            type:
-              - string
-              - "null"
-          md5:
-            type:
-              - string
-              - "null"
-          metadata:
-            properties:
-              filename:
-                type:
-                  - string
-                  - "null"
-      active:
-        type:
-          - boolean
-          - "null"
-      dateOfBirth:
-        type:
-          - string
-          - "null"
-      userId:
-        type:
-          - string
-          - "null"
-      appUser:
-        properties:
-          _id:
-            type:
-              - string
-              - "null"
-  complex_update:
-    properties:
-      name:
-        type:
-          - string
-          - "null"
-      email:
-        type:
-          - string
-          - "null"
-      password:
-        properties:
-          value:
-            type:
-              - string
-              - "null"
-          checksum:
-            type:
-              - string
-              - "null"
-      contactNo:
-        type:
-          - number
-          - "null"
-      alternateNos:
-        type:
-          - array
-          - "null"
-        items:
-          type: number
-      location:
-        properties:
-          geometry:
-            properties:
-              type:
-                type:
-                  - string
-                  - "null"
-              coordinates:
-                type:
-                  - array
-                  - "null"
-                items:
-                  type: number
-          formattedAddress:
-            type:
-              - string
-              - "null"
-          town:
-            type:
-              - string
-              - "null"
-          district:
-            type:
-              - string
-              - "null"
-          state:
-            type:
-              - string
-              - "null"
-          country:
-            type:
-              - string
-              - "null"
-          pincode:
-            type:
-              - string
-              - "null"
-          userInput:
-            type:
-              - string
-              - "null"
-      address:
-        properties:
-          _id:
-            type:
-              - string
-              - "null"
-          _href:
-            type:
-              - string
-              - "null"
-      tempAddress:
-        properties:
-          street:
-            type:
-              - string
-              - "null"
-          city:
-            type:
-              - string
-              - "null"
-          state:
-            type:
-              - string
-              - "null"
-          pincode:
-            type:
-              - number
-              - "null"
-      prevAddress:
-        type:
-          - array
-          - "null"
-        items:
-          properties:
-            street:
-              type:
-                - string
-                - "null"
-            city:
-              type:
-                - string
-                - "null"
-            state:
-              type:
-                - string
-                - "null"
-            pincode:
-              type:
-                - number
-                - "null"
-      resume:
-        properties:
-          _id:
-            type:
-              - string
-              - "null"
-          filename:
-            type:
-              - string
-              - "null"
-          contentType:
-            type:
-              - string
-              - "null"
-          length:
-            type:
-              - number
-              - "null"
-          chunkSize:
-            type:
-              - number
-              - "null"
-          uploadDate:
-            type:
-              - string
-              - "null"
-          md5:
-            type:
-              - string
-              - "null"
-          metadata:
-            properties:
-              filename:
-                type:
-                  - string
-                  - "null"
-      active:
-        type:
-          - boolean
-          - "null"
-      dateOfBirth:
-        type:
-          - string
-          - "null"
-      userId:
-        type:
-          - string
-          - "null"
-      appUser:
-        properties:
-          _id:
-            type:
-              - string
-              - "null"
-  complex_math:
-    properties:
-      $inc:
-        type: object
-        properties:
-          contactNo:
-            type: number
-          tempAddress.pincode:
-            type: number
-          resume.length:
-            type: number
-          resume.chunkSize:
-            type: number
-      $mul:
-        type: object
-        properties:
-          contactNo:
-            type: number
-          tempAddress.pincode:
-            type: number
-          resume.length:
-            type: number
-          resume.chunkSize:
-            type: number
-  mapping:
-    properties:
-      headers:
-        type:
-          - string
-      headerMapping:
-        type:
-          - string
-  callbackData:
-    properties:
-      status:
-        type: string
-        enum: 
-          - Success
-          - Fail
-      message:
-        type:
-          - string
-  enrichData:
-    properties:
-      sheetData:
-        type:
-          - array
-        items:
-          type: object
-      headerMapping:
-        type:
-          - object
-  bulkCreateData:
-    properties:
-      fileId:
-        type: string
+definitions: {}

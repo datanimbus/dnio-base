@@ -18,10 +18,18 @@ COPY http-client.js /app
 
 COPY init.js /app
 
+COPY initializeRuntime.js /app
+
 COPY queue.js /app
 
 COPY service.json /app
 
 COPY api /app/api
 
+COPY codeGen /app/codeGen
+
 ENV IMAGE_TAG=__image_tag__
+
+ENV NODE_ENV=production
+
+CMD node app.js

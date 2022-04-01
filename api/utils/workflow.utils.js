@@ -274,7 +274,7 @@ function simulate(req, data, options) {
  * @param {string} [options.docId] Document ID
  * @param {string} [options.source] Alias of trigger
  */
- function simulateJSON(req, data, options) {
+function simulateJSON(req, data, options) {
 	const model = mongoose.model(config.serviceId);
 	if (!options) {
 		options = {};

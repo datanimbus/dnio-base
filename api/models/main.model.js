@@ -23,7 +23,7 @@ let serviceId = process.env.SERVICE_ID || 'SRVC2006';
 let schema;
 
 if (serviceData.schemaFree) {
-	schema = new mongoose.Schema({ _id: "String" }, {
+	schema = new mongoose.Schema({ _id: 'String' }, {
 		strict: false,
 		usePushEach: true
 	});
@@ -39,13 +39,13 @@ if (serviceData.schemaFree) {
 		specialFields.uniqueFields.forEach(_k => removeNullForUniqueAttribute(self, _k.key));
 		next();
 	});
-	
+
 	schema.pre('save', function (next) {
 		let self = this;
 		specialFields.uniqueFields.forEach(_k => removeNullForUniqueAttribute(self, _k.key));
 		next();
 	});
-	
+
 	schema.pre('save', function (next, req) {
 		let self = this;
 		if (self._metadata && self._metadata.version) {
@@ -72,7 +72,7 @@ if (serviceData.schemaFree) {
 			next();
 		}
 	});
-	
+
 	schema.pre('save', async function (next) {
 		const newDoc = this;
 		const oldDoc = this._oldDoc;
@@ -88,7 +88,7 @@ if (serviceData.schemaFree) {
 			next(e);
 		}
 	});
-	
+
 	schema.pre('save', async function (next) {
 		const newDoc = this;
 		const oldDoc = this._oldDoc;
@@ -104,7 +104,7 @@ if (serviceData.schemaFree) {
 			next(e);
 		}
 	});
-	
+
 	schema.pre('save', async function (next) {
 		const newDoc = this;
 		const oldDoc = this._oldDoc;
@@ -120,7 +120,7 @@ if (serviceData.schemaFree) {
 			next(e);
 		}
 	});
-	
+
 	schema.pre('save', async function (next) {
 		const newDoc = this;
 		const oldDoc = this._oldDoc;
@@ -138,7 +138,7 @@ if (serviceData.schemaFree) {
 			next(e);
 		}
 	});
-	
+
 	schema.pre('save', async function (next) {
 		const newDoc = this;
 		const oldDoc = this._oldDoc;
@@ -203,7 +203,7 @@ schema.pre('save', async function (next) {
 				}
 			});
 			Object.keys(data).forEach(key => {
-				if(this.get(key) !== data[key])
+				if (this.get(key) !== data[key])
 					this.set(key, data[key]);
 			});
 		} else {
@@ -312,7 +312,7 @@ schema.post('save', function (doc, next) {
 
 schema.pre('remove', function (next) {
 	let txnId = this._req.get('txnId');
- 	logger.info(`[${txnId}] Pre remove hook - checking relations ${this._id}`);
+	logger.info(`[${txnId}] Pre remove hook - checking relations ${this._id}`);
 	let promiseArr = [];
 	let self = this;
 	let inService = [];
@@ -322,7 +322,7 @@ schema.pre('remove', function (next) {
 
 			let incoming = serviceDetail.relatedSchemas.incoming;
 			logger.trace(`[${txnId}] Incoming relations ${JSON.stringify(incoming)}`);
-			
+
 			if (incoming && incoming.length !== 0) {
 				inService = incoming.map(obj => {
 					obj.uri = obj.uri.replace('{{id}}', self._id);
@@ -365,7 +365,7 @@ schema.pre('remove', function (next) {
 
 schema.post('remove', function (doc) {
 	let txnId = this._req.get('txnId');
- 	logger.info(`[${txnId}] Post remove hook - updating relations ${this._id}`);
+	logger.info(`[${txnId}] Post remove hook - updating relations ${this._id}`);
 
 	let updateList = [];
 	doc._relObj.forEach(_o => {
