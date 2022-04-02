@@ -7,11 +7,11 @@ const commonUtils = require('./common.utils');
 
 const logger = global.logger;
 const createOnlyFields = ''.split(',');
-const precisionFields = [];
-const secureFields = ''.split(',');
+const precisionFields = [{"field":"age","precision":2}];
+const secureFields = 'password'.split(',');
 const uniqueFields = [];
 const relationUniqueFields = ''.split(',');
-const dateFields = []
+const dateFields = [{"field":"date","dateType":"date","defaultTimezone":"Zulu"}]
 /**
  * @param {*} req The Incomming Request Object
  * @param {*} newData The New Document Object
@@ -28,6 +28,7 @@ function validateCreateOnly(req, newData, oldData, forceRemove) {
 
 function mongooseUniquePlugin() {
 	return function (schema) {
+		schema.index({ 'location.geometry': '2dsphere' }, { name: 'location_geoJson' });
 	}
 }
 
@@ -52,17 +53,17 @@ async function validateUnique(req, newData, oldData) {
  */
 async function validateRelation(req, newData, oldData) {
 	const errors = {};
-	let testDsId = _.get(newData, 'testDs._id')
-	if (testDsId) {
+	let userId = _.get(newData, 'user._id')
+	if (userId) {
 		try {
-			const doc = await commonUtils.getServiceDoc(req, 'SRVC5442', testDsId, true);
+			const doc = await commonUtils.getUserDoc(req, userId);
 				if (!doc) {
-					errors['testDs'] = testDsId + ' not found';
+					errors['user'] = userId + ' not found';
 				} else {
-					_.set(newData, 'testDs._href', doc._href);
+					_.set(newData, 'user._href', doc._href);
 				}
 		} catch (e) {
-			errors['testDs'] = e.message ? e.message : e;
+			errors['user'] = e.message ? e.message : e;
 		}
 	}
 	return Object.keys(errors).length > 0 ? errors : null;
@@ -77,19 +78,23 @@ async function validateRelation(req, newData, oldData) {
  */
 async function expandDocument(req, newData, oldData, expandForSelect) {
 	const errors = {};
-	let testDsId = _.get(newData, 'testDs._id');
-	if (testDsId) {
+	let userId = _.get(newData, 'user._id');
+	if (userId) {
 		try {
-			if (!expandForSelect || (expandForSelect && commonUtils.isExpandAllowed(req, 'testDs'))) {
-				const doc = await commonUtils.getServiceDoc(req, 'SRVC5442', testDsId);
-				if (doc) {
-					doc._id = testDsId;
-					_.set(newData, 'testDs', doc);
+			if (!expandForSelect || (expandForSelect && commonUtils.isExpandAllowed(req, 'user'))) {
+			const doc = await commonUtils.getUserDoc(req, userId);
+				if (!doc) {
+					errors['user'] = userId + ' not found';
+				} else {
+					_.set(newData, 'user.basicDetails', doc.basicDetails);
+					_.set(newData, 'user.attributes', doc.attributes);
+					_.set(newData, 'user.username', doc.username);
+					_.set(newData, 'user._id', doc._id);
 				}
 			}
 		} catch (e) {
-					_.set(newData, 'testDs', null);
-			errors['testDs'] = e.message ? e.message : e;
+					_.set(newData, 'user', null);
+			errors['user'] = e.message ? e.message : e;
 		}
 	}
 	return newData;
@@ -106,17 +111,6 @@ async function cascadeRelation(req, newData, oldData) {
 	const errors = {};
 	if (!req.query.cascade || req.query.cascade != 'true') {
 		return null;
-	}
-	let testDs = _.get(newData, 'testDs');
-	if (!_.isEmpty(testDs)) {
-		try {
-			const doc = await commonUtils.upsertDocument(req, 'SRVC5442', testDs);
-			if (doc) {
-				_.set(newData, 'testDs', doc);
-			}
-		} catch (e) {
-			errors['testDs'] = e.message ? e.message : e;
-		}
 	}
 	return null;
 }
@@ -138,24 +132,6 @@ async function patchRelationInFilter(req, filter, errors) {
 		let flag = 0;
 		const tempFilter = {};
 		let promises = Object.keys(filter).map(async (key) => {
-			if (key.startsWith('testDs')) {
-				try {
-					const tempKey = key.split('testDs.')[1];
-					const ids = await commonUtils.getDocumentIds(req, 'SRVC5442', { [tempKey]: filter[key] })
-					if (ids && ids.length > 0) {
-						if (!tempFilter['testDs._id'] || !tempFilter['testDs._id']['$in']) {
-							tempFilter['testDs._id'] = { $in: ids };
-						} else {
-							tempFilter['testDs._id']['$in'] = tempFilter['testDs._id']['$in'].concat(ids);
-						}
-					} else {
-						tempFilter[key] = filter[key]
-					}
-					flag = true;
-				} catch (e) {
-					errors['testDs'] = e.message ? e.message : e;
-				}
-			}
 			if (!flag) {
 				if (typeof filter[key] == 'object' && filter[key]) {
 					if (Array.isArray(filter[key])) {
@@ -187,6 +163,18 @@ async function patchRelationInFilter(req, filter, errors) {
  */
 async function encryptSecureFields(req, newData, oldData) {
 	const errors = {};
+	let passwordValueNew = _.get(newData, 'password.value')
+	let passwordValueOld = _.get(oldData, 'password.value')
+	if (passwordValueNew && passwordValueNew != passwordValueOld) {
+		try {
+			const doc = await commonUtils.encryptText(req, passwordValueNew);
+			if (doc) {
+				_.set(newData, 'password', doc);
+			}
+		} catch (e) {
+			errors['password'] = e.message ? e.message : e;
+		}
+	}
 	return Object.keys(errors).length > 0 ? errors : null;
 }
 
@@ -198,6 +186,21 @@ async function encryptSecureFields(req, newData, oldData) {
  */
 async function decryptSecureFields(req, newData, oldData) {
 	const errors = {};
+	let passwordValue = _.get(newData, 'password.value')
+	if (passwordValue) {
+		try {
+			const doc = await commonUtils.decryptText(req, passwordValue);
+			if (doc) {
+				if(req.query && req.query.forFile) {
+					_.set(newData, 'password', doc);
+				} else {
+					_.set(newData, 'password.value', doc);
+				}
+			}
+		} catch (e) {
+			errors['password'] = e.message ? e.message : e;
+		}
+	}
 	return Object.keys(errors).length > 0 ? errors : null;
 }
 
@@ -222,6 +225,18 @@ function fixBoolean(req, newData, oldData) {
  */
 async function enrichGeojson(req, newData, oldData) {
 	const errors = {};
+	let locationNew = _.get(newData, 'location')
+	let locationOld = _.get(oldData, 'location')
+	if (locationNew && !_.isEqual(locationNew,locationOld)) {
+		try {
+			const doc = await commonUtils.getGeoDetails(req, 'location', locationNew);
+			if (doc) {
+				_.set(newData, 'location', doc.geoObj);
+			}
+		} catch (e) {
+			// errors['location'] = e.message ? e.message : e;
+		}
+	}
 	return Object.keys(errors).length > 0 ? errors : null;
 }
 
@@ -234,6 +249,28 @@ async function enrichGeojson(req, newData, oldData) {
 async function validateDateFields(req, newData, oldData) {
 	let txnId = req.headers['txnid'];
 	const errors = {};
+	let dateDefaultTimezone = 'Zulu';
+	let dateSupportedTimezones = [];
+	let dateNew = _.get(newData, 'date')
+	let dateOld = _.get(oldData, 'date')
+	if (typeof dateNew === 'string') {
+		dateNew = {
+			rawData: dateNew
+		};
+	}
+	if (typeof dateOld === 'string') {
+		dateOld = {
+			rawData: dateOld
+		};
+	}
+	if (!_.isEqual(dateNew, dateOld)) {
+		try {
+			dateNew = commonUtils.getFormattedDate(txnId, dateNew, dateDefaultTimezone, dateSupportedTimezones);
+			_.set(newData, 'date', dateNew);
+		} catch (e) {
+			errors['date'] = e.message ? e.message : e;
+		}
+	}
 	return Object.keys(errors).length > 0 ? errors : null;
 }
 
@@ -241,10 +278,10 @@ function hasPermissionForPOST(req, permissions) {
 	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
 		return true;
 	}
-	if (_.intersection(['ADMIN_SRVC5444'], permissions).length > 0) {
+	if (_.intersection(['ADMIN_SRVC5442'], permissions).length > 0) {
 		return true;
 	}
-	if (_.intersection(["P1034840569"], permissions).length > 0) {
+	if (_.intersection(["P6523530854"], permissions).length > 0) {
 		return true;
 	}
 	return false;
@@ -254,10 +291,10 @@ function hasPermissionForPUT(req, permissions) {
 	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
 		return true;
 	}
-	if (_.intersection(['ADMIN_SRVC5444'], permissions).length > 0) {
+	if (_.intersection(['ADMIN_SRVC5442'], permissions).length > 0) {
 		return true;
 	}
-	if (_.intersection(["P1034840569"], permissions).length > 0) {
+	if (_.intersection(["P6523530854"], permissions).length > 0) {
 		return true;
 	}
 	return false;
@@ -267,10 +304,10 @@ function hasPermissionForDELETE(req, permissions) {
 	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
 		return true;
 	}
-	if (_.intersection(['ADMIN_SRVC5444'], permissions).length > 0) {
+	if (_.intersection(['ADMIN_SRVC5442'], permissions).length > 0) {
 		return true;
 	}
-	if (_.intersection(["P1034840569"], permissions).length > 0) {
+	if (_.intersection(["P6523530854"], permissions).length > 0) {
 		return true;
 	}
 	return false;
@@ -280,10 +317,10 @@ function hasPermissionForGET(req, permissions) {
 	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
 		return true;
 	}
-	if (_.intersection(['ADMIN_SRVC5444'], permissions).length > 0) {
+	if (_.intersection(['ADMIN_SRVC5442'], permissions).length > 0) {
 		return true;
 	}
-	if (_.intersection(["P1034840569","P4834457907"], permissions).length > 0) {
+	if (_.intersection(["P6523530854","P2191523098"], permissions).length > 0) {
 		return true;
 	}
 	return false;
@@ -294,20 +331,38 @@ function filterByPermission(req, permissions, data) {
 	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
 		return data;
 	}
-	if (_.intersection(['ADMIN_SRVC5444'], permissions).length > 0) {
+	if (_.intersection(['ADMIN_SRVC5442'], permissions).length > 0) {
 		return data;
 	}
 	if (_.intersection([], permissions).length > 0) {
 		return data;
 	}
-	if (_.intersection(["P1034840569","P4834457907"], permissions).length == 0) {
+	if (_.intersection(["P6523530854","P2191523098"], permissions).length == 0) {
 		_.unset(data, '_id');
 	}
-	if (_.intersection(["P1034840569","P4834457907"], permissions).length == 0) {
+	if (_.intersection(["P6523530854","P2191523098"], permissions).length == 0) {
 		_.unset(data, 'name');
 	}
-	if (_.intersection(["P1034840569","P4834457907"], permissions).length == 0) {
-		_.unset(data, 'testDs._id');
+	if (_.intersection(["P6523530854","P2191523098"], permissions).length == 0) {
+		_.unset(data, 'age');
+	}
+	if (_.intersection(["P6523530854","P2191523098"], permissions).length == 0) {
+		_.unset(data, 'date');
+	}
+	if (_.intersection(["P6523530854","P2191523098"], permissions).length == 0) {
+		_.unset(data, 'boolean');
+	}
+	if (_.intersection(["P6523530854","P2191523098"], permissions).length == 0) {
+		_.unset(data, 'location');
+	}
+	if (_.intersection(["P6523530854","P2191523098"], permissions).length == 0) {
+		_.unset(data, 'file');
+	}
+	if (_.intersection(["P6523530854","P2191523098"], permissions).length == 0) {
+		_.unset(data, 'user');
+	}
+	if (_.intersection(["P6523530854","P2191523098"], permissions).length == 0) {
+		_.unset(data, 'password');
 	}
 		return data;
 }

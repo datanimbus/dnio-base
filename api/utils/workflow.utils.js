@@ -280,9 +280,8 @@ function simulateJSON(req, data, options) {
 		options = {};
 	}
 	options.simulate = true;
-	
+
 	let promise = Promise.resolve(data);
-	let oldData;
 	if (!data._id && options.generateId) {
 		promise = utils.counter.generateId(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER).then(id => {
 			data._id = id;
@@ -290,7 +289,6 @@ function simulateJSON(req, data, options) {
 		});
 	} else if (data._id && options.operation == 'PUT') {
 		promise = model.findOne({ _id: data._id }).lean(true).then(_d => {
-			oldData = _d;
 			return _.mergeWith(JSON.parse(JSON.stringify(_d)), data, commonUtils.mergeCustomizer);
 		});
 	}

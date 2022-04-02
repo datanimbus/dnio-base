@@ -411,7 +411,7 @@ router.get('/', (req, res) => {
 			let count = 30;
 			let select = '';
 			let sort = '';
-			
+
 			if (req.query.count && +req.query.count > 0) {
 				count = +req.query.count;
 			}
@@ -422,7 +422,7 @@ router.get('/', (req, res) => {
 
 			if (req.query.select && req.query.select.trim()) {
 				try {
-					querySelect = JSON.parse(req.query.select);
+					let querySelect = JSON.parse(req.query.select);
 					Object.keys(querySelect).forEach(key => {
 						if (parseInt(querySelect[key]) == 1) {
 							select += `${key} `;
@@ -831,13 +831,13 @@ router.put('/:id', (req, res) => {
 							if (payload[key] === undefined) {
 								doc.set(key, undefined);
 							}
-						}	
+						}
 					});
 					Object.keys(payload).forEach(key => {
 						if (doc.get(key) !== payload[key])
 							doc.set(key, payload[key]);
 					});
-					
+
 				}
 				status = await doc.save();
 				logger.debug(`[${txnId}] Update status - ${status}`);
@@ -1422,8 +1422,6 @@ async function doRoundMathAPI(req, res, oldNewData) {
 		throw err;
 	}
 }
-
-
 
 function handleError(err, txnId) {
 	let message;

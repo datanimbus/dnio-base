@@ -71,7 +71,7 @@ e.mongoAppCenterOptions = {
 	useUnifiedTopology: true,
 	useNewUrlParser: true,
 	minSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
-	dbName: process.env.DATA_STACK_NAMESPACE + '-' + process.env.DATA_STACK_APP
+	dbName: null
 };
 e.mongoLogsOptions = {
 	useUnifiedTopology: true,

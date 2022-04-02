@@ -14,8 +14,6 @@ mongoose.set('useFindAndModify', false);
 
 const config = require('./config');
 
-let timeOut = process.env.API_REQUEST_TIMEOUT || 120;
-
 let LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceId}]` : `[${config.serviceId}]`;
 global.loggerName = LOGGER_NAME;
 const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
@@ -29,10 +27,10 @@ log4js.configure({
 const logger = log4js.getLogger(LOGGER_NAME);
 global.logger = logger;
 logger.info(`Service ID : ${config.serviceId}`);
-logger.info(`Service version : ${config.serviceVersion}`);
 logger.info(`Base image version : ${process.env.IMAGE_TAG}`);
-logger.info(`Disable data history : ${config.disableAudits} `);
-logger.info(`Disable insights : ${config.disableInsights} `);
+
+let timeOut = process.env.API_REQUEST_TIMEOUT || 120;
+logger.debug(`API_REQUEST_TIMEOUT : ${timeOut}`);
 
 const app = express();
 
@@ -47,9 +45,8 @@ const app = express();
 
 	const queueMgmt = require('./queue');
 
-	app.use('/' + config.app + config.serviceEndpoint, require('./api/controllers'));
-
-	logger.info('==========================');
+	const dataServiceEndpoint = `/${config.app}${config.serviceEndpoint}`;
+	app.use(dataServiceEndpoint, require('./api/controllers'));
 	const server = app.listen(PORT, (err) => {
 		if (!err) {
 			logger.info('Server started on port ' + PORT);

@@ -10,7 +10,6 @@ const { AuthCacheMW } = require('@appveen/ds-auth-cache');
 const utils = require('@appveen/utils');
 
 const config = require('./config');
-const specialFields = require('./api/utils/special-fields.utils');
 const queueMgmt = require('./queue');
 
 // The average number of bytes between samples.
@@ -25,14 +24,19 @@ module.exports = async (app) => {
 	const upload = multer({ dest: path.join(process.cwd(), 'uploads') });
 	const fileValidator = utils.fileValidator;
 
+	logger.debug(`MAX_JSON_SIZE : ${config.MaxJSONSize}`);
+	logger.info(`STORAGE_ENGINE : ${config.fileStorage.storage}`);
+
 	app.use(express.json({ limit: config.MaxJSONSize }));
 	app.use(express.urlencoded({ extended: true }));
 	app.use(cookieParser());
 	app.use(utils.logMiddleware.getLogMiddleware(logger));
 	app.use(upload.single('file'));
 
-	let secureFields = specialFields.secureFields;
-	let baseURL = `/${config.app}/${config.serviceEndpoint}`;
+	let baseURL = `/${config.app}${config.serviceEndpoint}`;
+	logger.info(`Base URL : ${baseURL}`);
+
+	let secureFields = require('./api/utils/special-fields.utils').secureFields;
 	let masking = [
 		{ url: `${baseURL}`, path: secureFields },
 		{ url: `${baseURL}/utils/simulate`, path: secureFields },

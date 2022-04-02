@@ -1,5 +1,5 @@
 const _ = require('lodash');
-
+const jsyaml = require('js-yaml');
 const getParameters = [
 	{
 		name: 'page',
@@ -242,7 +242,7 @@ function getMethodNames(config) {
 
 function generateYaml(config) {
 	var methodName = getMethodNames(config);
-    
+
 	var basePath = config.api.charAt(0) === '/' ? config.api : '/' + config.api;
 	var swagger = {
 		swagger: '2.0',
@@ -403,7 +403,7 @@ function generateYaml(config) {
 			}
 		}
 	};
-    
+
 	swagger.paths['/utils/bulkShow'] = {
 		'x-swagger-router-controller': `${methodName.controller}`,
 		'get': {
@@ -665,7 +665,7 @@ function generateYaml(config) {
 			}
 		}
 	};
-    
+
 	swagger.paths['/utils/fileMapper/{fileId}/count'] = {
 		'x-swagger-router-controller': `${methodName.controller}`,
 		'get': {
@@ -860,7 +860,7 @@ function generateYaml(config) {
 		}
 	};
 
-	return swagger;
+	return jsyaml.dump(swagger);
 }
 
 module.exports.generateYamlSchemaFree = generateYaml;

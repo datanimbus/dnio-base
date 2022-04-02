@@ -1,9 +1,9 @@
 swagger: '2.0'
 info:
-  version: '1'
-  title: NoSchema API
-host: 'localhost:20077'
-basePath: /Adam/noSchema
+  version: '4'
+  title: TestDS API
+host: 'localhost:20011'
+basePath: /Adam/testDs
 schemes:
   - http
 consumes:
@@ -16,8 +16,8 @@ paths:
   /:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of 'NoSchema'
-      operationId: v1_srvc5443List
+      description: Retrieve a list of 'TestDS'
+      operationId: v1_srvc5442List
       parameters:
         - name: page
           in: query
@@ -57,12 +57,14 @@ paths:
         '500':
           description: Internal server error
     post:
-      description: Create a new 'NoSchema'
-      operationId: v1_srvc5443Create
+      description: Create a new 'TestDS'
+      operationId: v1_srvc5442Create
       parameters:
         - name: data
           in: body
-          description: Payload to create a 'NoSchema'
+          description: Payload to create a 'TestDS'
+          schema:
+            $ref: '#/definitions/testDs_create'
         - name: authorization
           in: header
           type: string
@@ -89,12 +91,14 @@ paths:
   /utils/simulate:
     x-swagger-router-controller: controller
     post:
-      description: validate 'NoSchema'
-      operationId: v1_srvc5443Simulate
+      description: validate 'TestDS'
+      operationId: v1_srvc5442Simulate
       parameters:
         - name: data
           in: body
-          description: Payload to validate 'NoSchema'
+          description: Payload to validate 'TestDS'
+          schema:
+            $ref: '#/definitions/testDs_update'
         - name: authorization
           in: header
           type: string
@@ -129,8 +133,8 @@ paths:
   /utils/bulkShow:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of 'NoSchema'
-      operationId: v1_srvc5443BulkShow
+      description: Retrieve a list of 'TestDS'
+      operationId: v1_srvc5442BulkShow
       parameters:
         - name: id
           in: query
@@ -158,8 +162,8 @@ paths:
   /utils/securedFields:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of secured fields in 'NoSchema'
-      operationId: undefined
+      description: Retrieve a list of secured fields in 'TestDS'
+      operationId: v1_srvc5442SecuredFields
       responses:
         '200':
           description: List of the entites
@@ -171,7 +175,7 @@ paths:
     x-swagger-router-controller: controller
     post:
       description: triggers the hook with data
-      operationId: v1_srvc5443Hook
+      operationId: v1_srvc5442Hook
       parameters:
         - name: url
           in: query
@@ -193,7 +197,7 @@ paths:
     x-swagger-router-controller: controller
     post:
       description: triggers the hook with data
-      operationId: v1_srvc5443ExperienceHook
+      operationId: v1_srvc5442ExperienceHook
       parameters:
         - name: name
           in: query
@@ -214,8 +218,8 @@ paths:
   /utils/bulkDelete:
     x-swagger-router-controller: controller
     delete:
-      description: Deletes a list of 'noSchema'
-      operationId: v1_srvc5443BulkDelete
+      description: Deletes a list of 'testDs'
+      operationId: v1_srvc5442BulkDelete
       parameters:
         - name: authorization
           in: header
@@ -241,8 +245,8 @@ paths:
   /utils/count:
     x-swagger-router-controller: controller
     get:
-      description: returns count of 'NoSchema'
-      operationId: v1_srvc5443Count
+      description: returns count of 'TestDS'
+      operationId: v1_srvc5442Count
       parameters:
         - &ref_0
           name: filter
@@ -270,8 +274,8 @@ paths:
   '/{id}':
     x-swagger-router-controller: controller
     get:
-      description: Retrieve an existing 'NoSchema'
-      operationId: v1_srvc5443Show
+      description: Retrieve an existing 'TestDS'
+      operationId: v1_srvc5442Show
       parameters:
         - name: select
           in: query
@@ -293,7 +297,7 @@ paths:
           default: false
       responses:
         '200':
-          description: NoSchema document
+          description: TestDS document
         '400':
           description: Bad parameters
         '404':
@@ -301,17 +305,19 @@ paths:
         '500':
           description: Internal server error
     put:
-      description: Update an existing 'NoSchema'
-      operationId: v1_srvc5443Update
+      description: Update an existing 'TestDS'
+      operationId: v1_srvc5442Update
       parameters:
         - name: data
           in: body
-          description: Payload to update a 'NoSchema'
+          description: Payload to update a 'TestDS'
+          schema:
+            $ref: '#/definitions/testDs_update'
         - name: id
           in: path
           type: string
           required: true
-          description: Id of the 'NoSchema' to be updated
+          description: Id of the 'TestDS' to be updated
         - name: authorization
           in: header
           type: string
@@ -338,14 +344,14 @@ paths:
         '500':
           description: Internal server error
     delete:
-      description: Delete an existing 'NoSchema'
-      operationId: v1_srvc5443Destroy
+      description: Delete an existing 'TestDS'
+      operationId: v1_srvc5442Destroy
       parameters:
         - name: id
           in: path
           type: string
           required: true
-          description: Id of the 'NoSchema' to be deleted
+          description: Id of the 'TestDS' to be deleted
         - name: authorization
           in: header
           type: string
@@ -353,6 +359,35 @@ paths:
       responses:
         '200':
           description: Empty object
+        '400':
+          description: Bad parameters
+        '404':
+          description: No records to list with the given parameter set.
+        '500':
+          description: Internal server error
+  '/{id}/math':
+    x-swagger-router-controller: controller
+    put:
+      description: Does math operation on a 'TestDS'
+      operationId: v1_srvc5442Math
+      parameters:
+        - name: data
+          in: body
+          description: Payload to update a 'TestDS'
+          schema:
+            $ref: '#/definitions/testDs_math'
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: Id of the 'TestDS' to be updated
+        - name: authorization
+          in: header
+          type: string
+          description: The JWT token for req.validation
+      responses:
+        '200':
+          description: Update entry
         '400':
           description: Bad parameters
         '404':
@@ -373,7 +408,7 @@ paths:
           in: query
           type: string
           description: filename of file
-      operationId: v1_srvc5443ExportedFileDownload
+      operationId: v1_srvc5442ExportedFileDownload
       responses:
         '200':
           description: file download
@@ -384,7 +419,7 @@ paths:
   '/utils/fileMapper/{fileId}/count':
     x-swagger-router-controller: controller
     get:
-      description: returns count of 'NoSchema'
+      description: returns count of 'TestDS'
       operationId: fileMapperCount
       parameters:
         - *ref_0
@@ -405,8 +440,8 @@ paths:
   /utils/export:
     x-swagger-router-controller: controller
     post:
-      description: Retrieve a list of 'NoSchema'
-      operationId: v1_srvc5443Export
+      description: Retrieve a list of 'TestDS'
+      operationId: v1_srvc5442Export
       parameters:
         - name: filter
           in: body
@@ -448,7 +483,7 @@ paths:
     x-swagger-router-controller: controller
     get:
       description: Retrieve list of bulk actions'
-      operationId: v1_srvc5443ExportDetails
+      operationId: v1_srvc5442ExportDetails
       parameters:
         - name: page
           in: query
@@ -485,7 +520,7 @@ paths:
     x-swagger-router-controller: controller
     get:
       description: count of bulk actions'
-      operationId: v1_srvc5443ExportDetailsCount
+      operationId: v1_srvc5442ExportDetailsCount
       parameters:
         - name: page
           in: query
@@ -522,7 +557,7 @@ paths:
     x-swagger-router-controller: controller
     delete:
       description: Deletes a file with file id
-      operationId: v1_srvc5443ExportDetailsDelete
+      operationId: v1_srvc5442ExportDetailsDelete
       parameters:
         - name: id
           in: path
@@ -593,4 +628,300 @@ paths:
           description: Bad parameters
         '500':
           description: Internal server error
-definitions: {}
+definitions:
+  testDs_create:
+    properties:
+      name:
+        type:
+          - string
+          - 'null'
+      age:
+        type:
+          - number
+          - 'null'
+      date:
+        properties:
+          rawData:
+            type:
+              - string
+              - 'null'
+          tzData:
+            type:
+              - string
+              - 'null'
+          tzInfo:
+            type:
+              - string
+              - 'null'
+          utc:
+            type:
+              - string
+              - 'null'
+          unix:
+            type:
+              - number
+              - 'null'
+      boolean:
+        type:
+          - string
+          - 'null'
+      location:
+        properties:
+          geometry:
+            properties:
+              type:
+                type:
+                  - string
+                  - 'null'
+              coordinates:
+                type:
+                  - array
+                  - 'null'
+                items:
+                  type: number
+          formattedAddress:
+            type:
+              - string
+              - 'null'
+          town:
+            type:
+              - string
+              - 'null'
+          district:
+            type:
+              - string
+              - 'null'
+          state:
+            type:
+              - string
+              - 'null'
+          country:
+            type:
+              - string
+              - 'null'
+          pincode:
+            type:
+              - string
+              - 'null'
+          userInput:
+            type:
+              - string
+              - 'null'
+      file:
+        properties:
+          _id:
+            type:
+              - string
+              - 'null'
+          filename:
+            type:
+              - string
+              - 'null'
+          contentType:
+            type:
+              - string
+              - 'null'
+          length:
+            type:
+              - number
+              - 'null'
+          chunkSize:
+            type:
+              - number
+              - 'null'
+          uploadDate:
+            type:
+              - string
+              - 'null'
+          md5:
+            type:
+              - string
+              - 'null'
+          metadata:
+            properties:
+              filename:
+                type:
+                  - string
+                  - 'null'
+      user:
+        properties:
+          _id:
+            type:
+              - string
+              - 'null'
+      password:
+        properties:
+          value:
+            type:
+              - string
+              - 'null'
+          checksum:
+            type:
+              - string
+              - 'null'
+  testDs_update:
+    properties:
+      name:
+        type:
+          - string
+          - 'null'
+      age:
+        type:
+          - number
+          - 'null'
+      date:
+        properties:
+          rawData:
+            type:
+              - string
+              - 'null'
+          tzData:
+            type:
+              - string
+              - 'null'
+          tzInfo:
+            type:
+              - string
+              - 'null'
+          utc:
+            type:
+              - string
+              - 'null'
+          unix:
+            type:
+              - number
+              - 'null'
+      boolean:
+        type:
+          - string
+          - 'null'
+      location:
+        properties:
+          geometry:
+            properties:
+              type:
+                type:
+                  - string
+                  - 'null'
+              coordinates:
+                type:
+                  - array
+                  - 'null'
+                items:
+                  type: number
+          formattedAddress:
+            type:
+              - string
+              - 'null'
+          town:
+            type:
+              - string
+              - 'null'
+          district:
+            type:
+              - string
+              - 'null'
+          state:
+            type:
+              - string
+              - 'null'
+          country:
+            type:
+              - string
+              - 'null'
+          pincode:
+            type:
+              - string
+              - 'null'
+          userInput:
+            type:
+              - string
+              - 'null'
+      file:
+        properties:
+          _id:
+            type:
+              - string
+              - 'null'
+          filename:
+            type:
+              - string
+              - 'null'
+          contentType:
+            type:
+              - string
+              - 'null'
+          length:
+            type:
+              - number
+              - 'null'
+          chunkSize:
+            type:
+              - number
+              - 'null'
+          uploadDate:
+            type:
+              - string
+              - 'null'
+          md5:
+            type:
+              - string
+              - 'null'
+          metadata:
+            properties:
+              filename:
+                type:
+                  - string
+                  - 'null'
+      user:
+        properties:
+          _id:
+            type:
+              - string
+              - 'null'
+      password:
+        properties:
+          value:
+            type:
+              - string
+              - 'null'
+          checksum:
+            type:
+              - string
+              - 'null'
+  testDs_math:
+    properties:
+      $inc:
+        type: object
+        properties:
+          age:
+            type: number
+          date.unix:
+            type: number
+          file.length:
+            type: number
+          file.chunkSize:
+            type: number
+      $mul:
+        type: object
+        properties:
+          age:
+            type: number
+          date.unix:
+            type: number
+          file.length:
+            type: number
+          file.chunkSize:
+            type: number
+  mapping:
+    properties:
+      headers:
+        type:
+          - string
+      headerMapping:
+        type:
+          - string
+  bulkCreateData:
+    properties:
+      fileId:
+        type: string

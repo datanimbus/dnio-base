@@ -1,5 +1,4 @@
 const fs = require('fs');
-const jsyaml = require('js-yaml');
 
 const { generateDefinition } = require('./createDefinition');
 const { generateYaml } = require('./generateYaml');
@@ -12,45 +11,49 @@ const logger = global.logger;
 
 function generateServiceDefinition(serviceDocument) {
 	if (serviceDocument.schemaFree) {
-		logger.info(`Service ${serviceDocument._id}/${serviceDocument.name} is schema free.`);
+		logger.info(`Service ${serviceDocument._id}/${serviceDocument.name} has no schema.`);
 		serviceDocument['definitionWithId'] = JSON.parse(JSON.stringify(serviceDocument['definition']));
 		serviceDocument['definition'] = serviceDocument['definition'].filter(attr => attr.key != '_id');
 	} else {
-		logger.info(`Service ${serviceDocument._id}/${serviceDocument.name} is schema enforced.`);
+		logger.info(`Service ${serviceDocument._id}/${serviceDocument.name} is schema validated.`);
 		serviceDocument['definition'] = globalDefHelper(serviceDocument['definition']);
 		serviceDocument['definitionWithId'] = JSON.parse(JSON.stringify(serviceDocument['definition']));
 		serviceDocument['definition'] = serviceDocument['definition'].filter(attr => attr.key != '_id');
 		let definition = generateDefinition(serviceDocument);
 		fs.writeFileSync('./api/helpers/service.definition.js', definition, 'utf-8');
+		logger.debug('Generated service.definition.js');
 	}
 	logger.trace(`Service document after mods :: ${JSON.stringify(serviceDocument)}`);
 	fs.writeFileSync('./service.json', JSON.stringify(serviceDocument), 'utf-8');
+	logger.debug('Generated service.json');
 }
 
 function generateSwaggerYAML(serviceDocument) {
-	let yamlJSON = {};
-	if (serviceDocument.schemaFree) yamlJSON = generateYamlSchemaFree(serviceDocument);
-	else yamlJSON = generateYaml(serviceDocument);
+	let yaml = {};
+	if (serviceDocument.schemaFree) yaml = generateYamlSchemaFree(serviceDocument);
+	else yaml = generateYaml(serviceDocument);
 
-	let yamlDump = jsyaml.dump(yamlJSON);
-	fs.writeFileSync('./api/swagger/swagger.yaml', yamlDump, 'utf-8');
+	fs.writeFileSync('./api/swagger/swagger.yaml', yaml, 'utf-8');
+	logger.debug('Generated swagger.yaml');
 }
 
-module.exports.init = (serviceDocument, globalDef) => {
+module.exports.init = (serviceDocument) => {
 	try {
-		logger.info(`Generating files :: ${serviceDocument._id}/${serviceDocument.name}`);
-
-		fs.writeFileSync('./globalDef.json', JSON.stringify(globalDef), 'utf-8');
+		serviceDocument.idDetails = serviceDocument['definition'].find(attr => attr.key == '_id');
 
 		generateServiceDefinition(serviceDocument);
 
 		generateSwaggerYAML(serviceDocument);
 
-		if (!serviceDocument.schemaFree) fs.writeFileSync('./api/utils/special-fields.utils.js', specialFieldsGenrator.genrateCode(serviceDocument), 'utf-8');
+		if (!serviceDocument.schemaFree) {
+			fs.writeFileSync('./api/utils/special-fields.utils.js', specialFieldsGenrator.genrateCode(serviceDocument), 'utf-8');
+			logger.debug('Generated special-fields.utils.js');
+		}
 
 		fs.writeFileSync('./.env', dotEnvFile(serviceDocument), 'utf-8');
+		logger.debug('Generated .env');
 
-		logger.info(`Generated files :: ${serviceDocument._id}/${serviceDocument.name}`);
+		logger.info(`All files generated for ${serviceDocument._id}/${serviceDocument.name}`);
 	} catch (err) {
 		logger.error(`ERROR generating files :: ${serviceDocument._id}/${serviceDocument.name} :: `, err);
 		throw err;

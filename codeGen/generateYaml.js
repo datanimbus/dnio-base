@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const jsyaml = require('js-yaml');
 const getParameters = [
 	{
 		name: 'page',
@@ -309,12 +310,12 @@ function getUpdateDefinition(def) {
 	if (def.constructor == {}.constructor && def['required']) {
 		delete def.required;
 	}
-	if(Array.isArray(def)) {
+	if (Array.isArray(def)) {
 		def.forEach(attr => {
 			if (attr != null && typeof attr === 'object')
 				getUpdateDefinition(attr);
 		});
-	} else if(def.constructor == {}.constructor) {
+	} else if (def.constructor == {}.constructor) {
 		Object.keys(def).forEach(key => {
 			if (def[key] != null && typeof def[key] === 'object')
 				getUpdateDefinition(def[key]);
@@ -778,7 +779,7 @@ function generateYaml(config) {
 				in: 'query',
 				type: 'string',
 				description: 'Time after which the document will get deleted.'
-			},{
+			}, {
 				name: 'upsert',
 				in: 'query',
 				type: 'boolean',
@@ -1421,7 +1422,7 @@ function generateYaml(config) {
 	// 		}
 	// 	}
 	// };
-	return swagger;
+	return jsyaml.dump(swagger);
 }
 
 module.exports.generateYaml = generateYaml;

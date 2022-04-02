@@ -67,7 +67,7 @@ async function execute() {
 	var txtWriteStream = fs.createWriteStream(outputDir + fileName + '.txt');
 	let cursor;
 
-    
+
 	try {
 		if (filter) {
 			filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
@@ -101,24 +101,20 @@ async function execute() {
 
 		if (reqData.query.sort) {
 			logger.info('Sort exists');
-			try {
-				let querySort = JSON.parse(JSON.stringify(reqData.query.sort));
-				logger.info('query sort - ', querySort);
-				Object.keys(querySort).forEach(key => {
-					logger.info('key - ', key, querySort[key]);
-					if (parseInt(querySort[key]) == 1) {
-						sort += `${key} `;
-					} else if (parseInt(querySort[key]) == -1) {
-						sort += `-${key} `;
-					} else {
-						logger.error(`Invalid value for key - ${key} - ${querySort[key]}`);
-						throw new Error(`Invalid value for key - ${key} - ${querySort[key]}`);
-					}
-				});
-				sort += ' -_metadata.lastUpdated';
-			} catch (err) {
-				throw err;
-			}
+			let querySort = JSON.parse(JSON.stringify(reqData.query.sort));
+			logger.info('query sort - ', querySort);
+			Object.keys(querySort).forEach(key => {
+				logger.info('key - ', key, querySort[key]);
+				if (parseInt(querySort[key]) == 1) {
+					sort += `${key} `;
+				} else if (parseInt(querySort[key]) == -1) {
+					sort += `-${key} `;
+				} else {
+					logger.error(`Invalid value for key - ${key} - ${querySort[key]}`);
+					throw new Error(`Invalid value for key - ${key} - ${querySort[key]}`);
+				}
+			});
+			sort += ' -_metadata.lastUpdated';
 		} else {
 			sort = '-_metadata.lastUpdated';
 		}
