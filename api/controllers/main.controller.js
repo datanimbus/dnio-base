@@ -411,7 +411,7 @@ router.get('/', (req, res) => {
 			let count = 30;
 			let select = '';
 			let sort = '';
-			
+
 			if (req.query.count && +req.query.count > 0) {
 				count = +req.query.count;
 			}
@@ -422,7 +422,7 @@ router.get('/', (req, res) => {
 
 			if (req.query.select && req.query.select.trim()) {
 				try {
-					querySelect = JSON.parse(req.query.select);
+					let querySelect = JSON.parse(req.query.select);
 					Object.keys(querySelect).forEach(key => {
 						if (parseInt(querySelect[key]) == 1) {
 							select += `${key} `;
@@ -451,7 +451,7 @@ router.get('/', (req, res) => {
 						} else if (parseInt(querySort[key]) == -1) {
 							sort += `-${key} `;
 						} else {
-							logger.error(`Invalid value for key :: ${key} :: ${querySort[key]}`)
+							logger.error(`Invalid value for key :: ${key} :: ${querySort[key]}`);
 							throw new Error(`Invalid value for key :: ${key} :: ${querySort[key]}`);
 						}
 					});
@@ -577,7 +577,7 @@ router.post('/', (req, res) => {
 		logger.info(`[${txnId}] Create request received.`);
 
 		if (req.query.txn == true) {
-			logger.info(`[${txnId}] Create request is a part of a transaction ${id}`)
+			logger.info(`[${txnId}] Create request is a part of a transaction ${id}`);
 			return transactionUtils.transferToTransaction(req, res);
 		}
 		try {
@@ -600,8 +600,8 @@ router.post('/', (req, res) => {
 			let promises;
 			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 
-			logger.info(`[${txnId}] Is workflow enabled? ${workflowUtils.isWorkflowEnabled()}`);
-			logger.info(`[${txnId}] has Skip Review permission? ${hasSkipReview}`);
+			if (workflowUtils.isWorkflowEnabled()) logger.info(`[${txnId}] Is workflow enabled? ${workflowUtils.isWorkflowEnabled()}`);
+			if (hasSkipReview) logger.info(`[${txnId}] has Skip Review permission? ${hasSkipReview}`);
 			logger.trace(`[${txnId}] Payload ${JSON.stringify(payload)}`);
 
 
@@ -667,7 +667,9 @@ router.post('/', (req, res) => {
 							}
 						}
 
+						logger.info('Creating model');
 						const doc = new model(data);
+						logger.info('Creating model - DONE');
 						doc._req = req;
 						try {
 							return (await doc.save()).toObject();
@@ -714,7 +716,7 @@ router.put('/:id', (req, res) => {
 		logger.info(`[${txnId}] Schema Free ? ${serviceData.schemaFree}`);
 
 		if (req.query.txn == true) {
-			logger.info(`[${txnId}] Update request is a part of a transaction ${id}`)
+			logger.info(`[${txnId}] Update request is a part of a transaction ${id}`);
 			return transactionUtils.transferToTransaction(req, res);
 		}
 
@@ -826,16 +828,16 @@ router.put('/:id', (req, res) => {
 				} else {
 					Object.keys(doc.toObject()).forEach(key => {
 						if (key !== '__v' && key !== '_id' && key !== '_metadata' && key !== '_workflow') {
-							if (payload[key] == undefined) {
+							if (payload[key] === undefined) {
 								doc.set(key, undefined);
 							}
-						}	
-					})
+						}
+					});
 					Object.keys(payload).forEach(key => {
-						if (doc.get(key) != payload[key])
+						if (doc.get(key) !== payload[key])
 							doc.set(key, payload[key]);
 					});
-					
+
 				}
 				status = await doc.save();
 				logger.debug(`[${txnId}] Update status - ${status}`);
@@ -860,7 +862,7 @@ router.delete('/:id', (req, res) => {
 		logger.info(`[${txnId}] Delete request received for record ${id}`);
 
 		if (req.query.txn == true) {
-			logger.info(`[${txnId}] Delete request is a part of a transaction ${id}`)
+			logger.info(`[${txnId}] Delete request is a part of a transaction ${id}`);
 			return transactionUtils.transferToTransaction(req, res);
 		}
 		if (!specialFields.hasPermissionForDELETE(req, req.user.appPermissions)) {
@@ -1420,8 +1422,6 @@ async function doRoundMathAPI(req, res, oldNewData) {
 		throw err;
 	}
 }
-
-
 
 function handleError(err, txnId) {
 	let message;

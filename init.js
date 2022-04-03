@@ -40,11 +40,11 @@ function setDefaultTimezone() {
 				if (!_d.defaultTimezone) {
 					logger.info(`Timezone of ${config.app} :: Not set, switching to data.stack default config`);
 					global.defaultTimezone = config.dataStackDefaultTimezone;
-					logger.info(`Timezone of ${config.app} :: Set as ${config.dataStackDefaultTimezone}`);
+					logger.info(`Timezone of ${config.app} : ${config.dataStackDefaultTimezone}`);
 					return;
 				}
 				global.defaultTimezone = _d.defaultTimezone;
-				logger.info(`Timezone of ${config.app} :: Set as ${global.defaultTimezone}`);
+				logger.info(`Timezone of ${config.app} : ${global.defaultTimezone}`);
 			});
 	} catch (err) {
 		logger.error(`Timezone of ${config.app} :: ${err.message}`);
@@ -142,13 +142,13 @@ async function clearUnusedFiles() {
 						.catch(err => logger.error(`Error deleting file ${_f} from Azure Blob ${err}`));
 				});
 			} else {
-				logger.error(`External Storage type is not allowed`);
+				logger.error('External Storage type is not allowed');
 				throw new Error(`External Storage ${storage} not allowed`);
 			}
 
 			return Promise.all(promise);
 		} catch (err) {
-			logger.error(`Error deleting unused files from DB`);
+			logger.error('Error deleting unused files from DB');
 		}
 	}
 	return arr.reduce(reduceHandler, Promise.resolve());
@@ -218,7 +218,7 @@ async function informSM() {
 			throw new Error('Service not found');
 		}
 	}).catch(err => {
-		logger.error(`Error pinging service-manager :: ${err.message}`);
+		logger.error(`Error pinging SM :: ${err.message}`);
 	});
 }
 
@@ -245,7 +245,7 @@ async function GetKeys() {
 			throw new Error('Service not found');
 		}
 	} catch (err) {
-		logger.error(`Error pinging service-manager :: ${err.message}`);
+		logger.error(`Error pinging USER :: ${err.message}`);
 	}
 }
 module.exports = init;

@@ -11,8 +11,8 @@ let runInit = true;
 router.get('/live', (req, res) => {
 	async function execute() {
 		try {
-			logger.debug('Mongo DB State:', mongoose.connection.readyState);
-			logger.debug('NATS State:', client && client.nc ? client.nc.connected : null);
+			logger.trace('Mongo DB State:', mongoose.connection.readyState);
+			logger.trace('NATS State:', client && client.nc ? client.nc.connected : null);
 			if (mongoose.connection.readyState === 1 && client && client.nc && client.nc.connected) {
 				return res.status(200).json();
 			} else {
@@ -39,14 +39,14 @@ router.get('/ready', (req, res) => {
 			if (mongoose.connection.readyState != 1) {
 				return res.status(400).end();
 			}
-			logger.debug('Init State:', runInit);
+			logger.trace('Init State:', runInit);
 			if (!runInit) {
 				return res.status(200).json();
 			}
 			try {
 				await init();
 				runInit = false;
-				logger.debug('Setting Init State:', runInit);
+				logger.trace('Setting Init State:', runInit);
 				return res.status(200).json();
 			} catch (e) {
 				logger.error(e);

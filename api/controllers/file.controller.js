@@ -202,7 +202,7 @@ async function downloadFileFromAzure(id, storage, txnId, res) {
 
 		if (!file) {
 			logger.error(`[${txnId}] File not found`);
-			throw new Error(`File Not Found`);
+			throw new Error('File Not Found');
 		}
 
 		logger.debug(`[${txnId}] File Found, generating download link.`);
