@@ -347,7 +347,6 @@ router.get('/', (req, res) => {
 	async function execute() {
 		try {
 			let txnId = req.get('txnId');
-			logger.info(`[${txnId}] Get request received.`);
 
 			let filter = {};
 			let errors = {};
@@ -358,12 +357,12 @@ router.get('/', (req, res) => {
 				});
 			}
 			try {
-				logger.info(`[${txnId}] Schema free ? ${serviceData.schemaFree}`);
-				logger.debug(`[${txnId}] Filter ${req.query.filter}`);
-				logger.debug(`[${txnId}] Sort ${req.query.sort}`);
-				logger.debug(`[${txnId}] Select ${req.query.select}`);
-				logger.debug(`[${txnId}] Skip ${req.query.skip}`);
-				logger.debug(`[${txnId}] Limit ${req.query.limit}`);
+				logger.trace(`[${txnId}] Schema free ? ${serviceData.schemaFree}`);
+				logger.trace(`[${txnId}] Filter ${req.query.filter}`);
+				logger.trace(`[${txnId}] Sort ${req.query.sort}`);
+				logger.trace(`[${txnId}] Select ${req.query.select}`);
+				logger.trace(`[${txnId}] Skip ${req.query.skip}`);
+				logger.trace(`[${txnId}] Limit ${req.query.limit}`);
 
 				if (req.query.filter) {
 					filter = JSON.parse(req.query.filter);
@@ -523,7 +522,7 @@ router.get('/:id', (req, res) => {
 		try {
 			let txnId = req.get('txnId');
 			let id = req.params.id;
-			logger.info(`[${txnId}] Get request received for ${id}`);
+			logger.debug(`[${txnId}] Get request received for ${id}`);
 
 			if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
 				logger.error(`[${txnId}] User does not have permission to fetch records ${req.user.appPermissions}`);
@@ -574,10 +573,10 @@ router.post('/', (req, res) => {
 	async function execute() {
 		let txnId = req.get(global.txnIdHeader);
 		let id = req.params.id;
-		logger.info(`[${txnId}] Create request received.`);
+		logger.debug(`[${txnId}] Create request received.`);
 
 		if (req.query.txn == true) {
-			logger.info(`[${txnId}] Create request is a part of a transaction ${id}`);
+			logger.debug(`[${txnId}] Create request is a part of a transaction ${id}`);
 			return transactionUtils.transferToTransaction(req, res);
 		}
 		try {
@@ -600,8 +599,8 @@ router.post('/', (req, res) => {
 			let promises;
 			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 
-			if (workflowUtils.isWorkflowEnabled()) logger.info(`[${txnId}] Is workflow enabled? ${workflowUtils.isWorkflowEnabled()}`);
-			if (hasSkipReview) logger.info(`[${txnId}] has Skip Review permission? ${hasSkipReview}`);
+			if (workflowUtils.isWorkflowEnabled()) logger.debug(`[${txnId}] Is workflow enabled? ${workflowUtils.isWorkflowEnabled()}`);
+			if (hasSkipReview) logger.debug(`[${txnId}] has Skip Review permission? ${hasSkipReview}`);
 			logger.trace(`[${txnId}] Payload ${JSON.stringify(payload)}`);
 
 
@@ -667,9 +666,9 @@ router.post('/', (req, res) => {
 							}
 						}
 
-						logger.info('Creating model');
+						logger.debug('Creating model');
 						const doc = new model(data);
-						logger.info('Creating model - DONE');
+						logger.debug('Creating model - DONE');
 						doc._req = req;
 						try {
 							return (await doc.save()).toObject();
@@ -712,11 +711,11 @@ router.put('/:id', (req, res) => {
 	async function execute() {
 		let txnId = req.get(global.txnIdHeader);
 		let id = req.params.id;
-		logger.info(`[${txnId}] Update request received for record ${id}`);
-		logger.info(`[${txnId}] Schema Free ? ${serviceData.schemaFree}`);
+		logger.debug(`[${txnId}] Update request received for record ${id}`);
+		logger.debug(`[${txnId}] Schema Free ? ${serviceData.schemaFree}`);
 
 		if (req.query.txn == true) {
-			logger.info(`[${txnId}] Update request is a part of a transaction ${id}`);
+			logger.debug(`[${txnId}] Update request is a part of a transaction ${id}`);
 			return transactionUtils.transferToTransaction(req, res);
 		}
 
@@ -743,11 +742,11 @@ router.put('/:id', (req, res) => {
 
 			logger.trace(`[${txnId}] Document from DB - ${JSON.stringify(doc)}`);
 			logger.trace(`[${txnId}] Payload from request - ${JSON.stringify(payload)}`);
-			logger.info(`[${txnId}] Upsert allowed ? ${upsert}`);
+			logger.debug(`[${txnId}] Upsert allowed ? ${upsert}`);
 
 			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
-			logger.info(`[${txnId}] has Skip Review permissions? ${hasSkipReview}`);
-			logger.info(`[${txnId}] Is workflow enabled ? ${workflowUtils.isWorkflowEnabled()}`);
+			logger.debug(`[${txnId}] has Skip Review permissions? ${hasSkipReview}`);
+			logger.debug(`[${txnId}] Is workflow enabled ? ${workflowUtils.isWorkflowEnabled()}`);
 
 			if (!doc && !upsert) {
 				return res.status(404).json({
@@ -756,7 +755,7 @@ router.put('/:id', (req, res) => {
 			}
 
 			if (!doc && upsert) {
-				logger.info(`[${txnId}] Document not found, creating a new doc`);
+				logger.info(`[${txnId}] Document not found, creating a new doc : ${id}`);
 				isNewDoc = true;
 				payload._id = req.params.id;
 				delete payload._metadata;
@@ -859,10 +858,10 @@ router.delete('/:id', (req, res) => {
 	async function execute() {
 		let txnId = req.get(global.txnIdHeader);
 		let id = req.params.id;
-		logger.info(`[${txnId}] Delete request received for record ${id}`);
+		logger.debug(`[${txnId}] Delete request received for record ${id}`);
 
 		if (req.query.txn == true) {
-			logger.info(`[${txnId}] Delete request is a part of a transaction ${id}`);
+			logger.debug(`[${txnId}] Delete request is a part of a transaction ${id}`);
 			return transactionUtils.transferToTransaction(req, res);
 		}
 		if (!specialFields.hasPermissionForDELETE(req, req.user.appPermissions)) {

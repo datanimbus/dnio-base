@@ -312,7 +312,7 @@ schema.post('save', function (doc, next) {
 
 schema.pre('remove', function (next) {
 	let txnId = this._req.get('txnId');
-	logger.info(`[${txnId}] Pre remove hook - checking relations ${this._id}`);
+	logger.debug(`[${txnId}] Pre remove hook - checking relations ${this._id}`);
 	let promiseArr = [];
 	let self = this;
 	let inService = [];
@@ -365,7 +365,7 @@ schema.pre('remove', function (next) {
 
 schema.post('remove', function (doc) {
 	let txnId = this._req.get('txnId');
-	logger.info(`[${txnId}] Post remove hook - updating relations ${this._id}`);
+	logger.debug(`[${txnId}] Post remove hook - updating relations ${this._id}`);
 
 	let updateList = [];
 	doc._relObj.forEach(_o => {

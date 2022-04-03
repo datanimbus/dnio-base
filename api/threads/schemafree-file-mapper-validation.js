@@ -27,7 +27,7 @@ async function execute() {
 	const fileId = data.fileId;
 	const fileName = data.fileName;
 	let txnId = req.headers[global.txnIdHeader];
-	logger.info(`[${txnId}] Schema Free File Mapper Validation process started :: ${fileId}`);
+	logger.debug(`[${txnId}] Schema Free File Mapper Validation process started :: ${fileId}`);
 
 	const fileMapperUtils = require('../utils/fileMapper.utils');
 	const commonUtils = require('../utils/common.utils');
@@ -39,7 +39,7 @@ async function execute() {
 	const fileTransfersModel = mongoose.model('fileTransfers');
 	// Reading File data from GRIDFS
 	let bufferData = await fileMapperUtils.readDataFromGridFS(fileId);
-	logger.info(`[${txnId}] Buffer data read from file :: ${fileId}`);
+	logger.debug(`[${txnId}] Buffer data read from file :: ${fileId}`);
 	logger.trace(`[${txnId}] Buffer data read from file :: ${bufferData}`);
 
 	// Deleting any previous records for this same file id

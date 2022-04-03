@@ -68,7 +68,7 @@ module.exports = async (app) => {
 			flag = false;
 		} else {
 			flag = fileValidator({ type: 'Buffer', data: fs.readFileSync(req.file.path) }, fileExt);
-			logger.info(`[${req.get(global.txnIdHeader)}] Is file ${filename} valid? ${flag}`);
+			logger.debug(`[${req.get(global.txnIdHeader)}] Is file ${filename} valid? ${flag}`);
 		}
 		if (flag) next();
 		else next(new Error('File not supported'));

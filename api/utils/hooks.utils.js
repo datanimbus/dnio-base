@@ -51,8 +51,8 @@ function callAllPreHooks(req, data, options) {
 	} catch (e) {
 		logger.error(`[${txnId}] PreHook :: Parser error :: ${e.message}`);
 	}
-	logger.info(`[${txnId}] PreHook :: ${preHooks.length} found`);
-	preHooks.forEach(_d => logger.info(`[${txnId}] PreHook :: ${_d.name} - ${_d.url} `));
+	logger.debug(`[${txnId}] PreHook :: ${preHooks.length} found`);
+	preHooks.forEach(_d => logger.debug(`[${txnId}] PreHook :: ${_d.name} - ${_d.url} `));
 	let properties = commonUtils.generateProperties(txnId);
 	let headers = commonUtils.generateHeaders(txnId);
 	let newData = {};
@@ -124,12 +124,12 @@ function prepPostHooks(_data) {
 		operation = 'DELETE';
 		docId = _data.old._id;
 	}
-	logger.info(`[${txnId}] PostHook :: ${docId} :: ${postHooks.length} found`);
+	logger.debug(`[${txnId}] PostHook :: ${docId} :: ${postHooks.length} found`);
 	postHooks = postHooks.map(_d => {
 		// if (_d.type === 'function') {
 		// 	_d.url = config.baseUrlGW + _d.url;
 		// }
-		logger.info(`[${txnId}] PostHook :: ${docId} :: ${_d.name} - ${_d.url} `);
+		logger.debug(`[${txnId}] PostHook :: ${docId} :: ${_d.name} - ${_d.url} `);
 		return _d;
 	});
 	let postHookLog = {
@@ -194,7 +194,7 @@ function prepWorkflowHooks(_data) {
 	const workFlowId = _data._id;
 	const docId = _data.documentId;
 	const type = _data.type;
-	logger.info(`[${txnId}] WorkflowHooks :: ${workFlowId} :: Status :: ${type.toUpperCase()}`);
+	logger.debug(`[${txnId}] WorkflowHooks :: ${workFlowId} :: Status :: ${type.toUpperCase()}`);
 	let workflowHooks = [];
 	try {
 		const hooks = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'hooks.json'), 'utf-8'));
@@ -203,8 +203,8 @@ function prepWorkflowHooks(_data) {
 		logger.error(`[${txnId}] WorkflowHooks :: ${workFlowId} :: Parser error :: ${e.message}`);
 		throw e;
 	}
-	logger.info(`[${txnId}] WorkflowHooks :: ${workFlowId} :: ${workflowHooks.length} found`);
-	workflowHooks.forEach(_d => logger.info(`[${txnId}] WorkflowHooks :: ${workFlowId} :: ${_d.name} - ${_d.url} `));
+	logger.debug(`[${txnId}] WorkflowHooks :: ${workFlowId} :: ${workflowHooks.length} found`);
+	workflowHooks.forEach(_d => logger.debug(`[${txnId}] WorkflowHooks :: ${workFlowId} :: ${_d.name} - ${_d.url} `));
 	let workflowHookLog = {
 		txnId: txnId,
 		user: _data.requestedBy,

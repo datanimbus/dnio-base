@@ -30,7 +30,7 @@ const logger = log4js.getLogger(LOGGER_NAME);
 async function execute() {
 	let reqData = workerData.reqData;
 	let txnId = reqData.headers.txnid;
-	logger.info(`[${txnId}] Executing export schema free records thread for service ${config.serviceId}`);
+	logger.debug(`[${txnId}] Executing export schema free records thread for service ${config.serviceId}`);
 
 	const serviceModel = mongoose.model(config.serviceId);
 	const fileTransfersModel = mongoose.model('fileTransfers');
@@ -100,11 +100,11 @@ async function execute() {
 		}
 
 		if (reqData.query.sort) {
-			logger.info('Sort exists');
+			logger.debug('Sort exists');
 			let querySort = JSON.parse(JSON.stringify(reqData.query.sort));
-			logger.info('query sort - ', querySort);
+			logger.debug('query sort - ', querySort);
 			Object.keys(querySort).forEach(key => {
-				logger.info('key - ', key, querySort[key]);
+				logger.debug('key - ', key, querySort[key]);
 				if (parseInt(querySort[key]) == 1) {
 					sort += `${key} `;
 				} else if (parseInt(querySort[key]) == -1) {

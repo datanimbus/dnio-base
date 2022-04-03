@@ -367,7 +367,7 @@ async function stateModelValidation(req, newData, oldData) {
 			_.get(oldData, serviceData.stateModel.attribute) !== _.get(newData, serviceData.stateModel.attribute) &&
 			!serviceData.stateModel.states[_.get(oldData, serviceData.stateModel.attribute)].includes(_.get(newData, serviceData.stateModel.attribute))) {
 
-			logger.info('State transition is not allowed');
+			logger.error('State transition is not allowed');
 			throw new Error('State transition is not allowed');
 		}
 

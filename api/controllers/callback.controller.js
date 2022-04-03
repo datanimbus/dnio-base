@@ -10,7 +10,7 @@ router.post('/:id', (req, res) => {
 	async function execute(){
 		try{
 			let hookId = req.params.id;
-			logger.info(`[${txnId}] Callback :: ${hookId}`);
+			logger.debug(`[${txnId}] Callback :: ${hookId}`);
 			if(config.disableInsights) {
 				logger.error(`[${txnId}] Callback :: ${hookId} :: Data service configuration doesn't support callback URLs. Logging of hooks (insights) are disabled.`);
 				return res.status(400).json({'message': 'Data service configuration doesn\'t support callback URLs'});
@@ -37,7 +37,7 @@ router.post('/:id', (req, res) => {
 			let updateResponse = await global.logsDB.collection(`${config.app}.hook`).findOneAndUpdate({_id: hookId, status: 'Requested'}, {$set : documentToUpdate});
 			logger.trace(`[${txnId}] Callback :: ${hookId} :: Update response :: ${JSON.stringify(updateResponse)}`);
 			if(updateResponse.value) {
-				logger.info(`[${txnId}] Callback :: ${hookId} :: Updated`);
+				logger.debug(`[${txnId}] Callback :: ${hookId} :: Updated`);
 				res.end();
 			} else {
 				logger.error(`[${txnId}] Callback :: ${hookId} :: Cannot be updated`);

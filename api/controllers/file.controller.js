@@ -19,8 +19,8 @@ router.get('/:id/view', (req, res) => {
 			const storage = config.fileStorage.storage;
 			let txnId = req.get('txnid');
 
-			logger.info(`[${txnId}] File view request received for id ${id}`);
-			logger.info(`[${txnId}] Storage Enigne - ${storage}`);
+			logger.debug(`[${txnId}] File view request received for id ${id}`);
+			logger.debug(`[${txnId}] Storage Enigne - ${storage}`);
 
 			if (storage === 'GRIDFS') {
 				let file;
@@ -68,8 +68,8 @@ router.get('/download/:id', (req, res) => {
 			const storage = config.fileStorage.storage;
 			let txnId = req.get('txnid');
 
-			logger.info(`[${txnId}] File download request received for id ${id}`);
-			logger.info(`[${txnId}] Storage Enigne - ${storage}`);
+			logger.debug(`[${txnId}] File download request received for id ${id}`);
+			logger.debug(`[${txnId}] Storage Enigne - ${storage}`);
 
 			if (storage === 'GRIDFS') {
 				let file;
@@ -117,12 +117,11 @@ router.post('/upload', (req, res) => {
 		try {
 			const storage = config.fileStorage.storage;
 			let txnId = req.get('txnid');
-
-			logger.info(`[${txnId}] File upload request received`);
-			logger.info(`[${txnId}] Storage Enigne -  ${config.fileStorage.storage}`);
-
 			const sampleFile = req.file;
 			const filename = sampleFile.originalname;
+
+			logger.debug(`[${txnId}] File upload request received - ${filename}`);
+			logger.debug(`[${txnId}] Storage Enigne - ${config.fileStorage.storage}`);
 
 			if (storage === 'GRIDFS') {
 				fs.createReadStream(sampleFile.path).
@@ -138,7 +137,7 @@ router.post('/upload', (req, res) => {
 						});
 					}).
 					on('finish', function (file) {
-						logger.info(`[${txnId}] File uploaded to GridFS`);
+						logger.debug(`[${txnId}] File uploaded to GridFS`);
 						logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
 
 						return res.status(200).json(file);
@@ -166,7 +165,6 @@ router.post('/upload', (req, res) => {
 
 					file._id = resp._id;
 					
-					logger.info(`[${txnId}] File uploaded to Azure`);
 					logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
 
 					return res.status(200).json(file);
