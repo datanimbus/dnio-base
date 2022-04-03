@@ -116,7 +116,7 @@ async function clearUnusedFiles() {
 			fileInUse = fileInUse.filter(_f => _f);
 			logger.trace(JSON.stringify({ fileInUse }));
 			let filesToBeDeleted = _.difference(allFilename, fileInUse);
-			logger.info("Files to be deleted - ", JSON.stringify({ filesToBeDeleted }));
+			logger.info('Files to be deleted - ', JSON.stringify({ filesToBeDeleted }));
 
 			let promise;
 			if (storage === 'GRIDFS') {
