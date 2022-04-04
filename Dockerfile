@@ -22,8 +22,6 @@ COPY initializeRuntime.js /app
 
 COPY queue.js /app
 
-COPY service.json /app
-
 COPY api /app/api
 
 COPY codeGen /app/codeGen
