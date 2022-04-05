@@ -1,4 +1,5 @@
 const fs = require('fs');
+const log4js = require('log4js');
 const mongoose = require('mongoose');
 
 const config = require('./config');
@@ -90,7 +91,7 @@ async function fetchGlobalDefinitions() {
 	}
 }
 
-function initConfigVariables(serviceDoc) {
+function initConfigVariables(serviceDoc, reinitLogger) {
 	config.app = serviceDoc.app;
 	config.serviceName = serviceDoc.name;
 	config.servicePort = serviceDoc.port;
@@ -115,8 +116,10 @@ function initConfigVariables(serviceDoc) {
 	config.disableAudits = serviceDoc.versionValidity.validityValue == 0;
 	config.allowedExt = serviceDoc.allowedFileTypes ? serviceDoc.allowedFileTypes : config.allFileTypes;
 
-	config.updateLogger();
-	logger = global.logger;
+	if (reinitLogger) {
+		config.updateLogger(null);
+		logger = global.logger;
+	}
 
 	logger.info(`Service ID : ${config.serviceId}`);
 	logger.info(`Service version : ${config.serviceVersion}`);
@@ -131,7 +134,7 @@ async function init() {
 		let serviceDoc = await fetchServiceDetails(config.serviceId);
 		logger.trace(`Service document : ${JSON.stringify(serviceDoc)}`);
 		// INIT CONFIG based on the service doc
-		initConfigVariables(serviceDoc);
+		initConfigVariables(serviceDoc, true);
 		// FETCH GLOABL DEF
 		let globalDef = await fetchGlobalDefinitions();
 		fs.writeFileSync('./globalDef.json', JSON.stringify(globalDef), 'utf-8');
@@ -150,4 +153,27 @@ async function init() {
 	}
 }
 
+async function initForWorker(additionalLoggerIdentifier) {
+	logger = log4js.getLogger(global.loggerName);
+	global.logger = logger;
+	try {
+		await establishAuthorAndLogsDBConnections();
+		let serviceDoc = await fetchServiceDetails(config.serviceId);
+		logger.trace(`Service document : ${JSON.stringify(serviceDoc)}`);
+		// INIT CONFIG based on the service doc
+		initConfigVariables(serviceDoc, false);
+		config.updateLogger(additionalLoggerIdentifier);
+		// FETCH GLOABL DEF
+		await establishingAppCenterDBConnections();
+		// INITIALIZE MODELS
+		require('./api/models').init();
+		logger.debug('Initialised mongo models.');
+	} catch (e) {
+		logger.error('Error in DB init!');
+		logger.error(e);
+		process.exit();
+	}
+}
+
 module.exports.init = init;
+module.exports.initForWorker = initForWorker;

@@ -18,15 +18,19 @@ global.encryptionKey = workerData.encryptionKey;
 
 const config = require('../../config');
 
-const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} v.${config.serviceVersion}] [Worker]` : `[${config.serviceName} v.${config.serviceVersion}] [Worker]`;
+let additionalLoggerIdentifier = 'Worker/Export';
+
+let LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceId}] [${additionalLoggerIdentifier}]` : `[${config.serviceId}][${additionalLoggerIdentifier}]`;
+global.loggerName = LOGGER_NAME;
+
 const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
+global.LOG_LEVEL = LOG_LEVEL;
+
 log4js.configure({
 	appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
 	categories: { default: { appenders: ['out'], level: LOG_LEVEL } }
 });
-const logger = log4js.getLogger(LOGGER_NAME);
-
-require('../../db-factory');
+let logger = log4js.getLogger(LOGGER_NAME);
 
 /** 
 
@@ -35,16 +39,16 @@ This shall be used later when data.stack starts supporitng timezones for export.
 // to do moment
 function convertToTimezone(value, dateType, timezone = 0) {
 	if(value) {
-	   try {
+		 try {
 		const temp = new Date((new Date(value)).getTime() - (timezone * 60 * 1000));
 		if(dateType == 'date'){
 			return dateformat(temp, 'mmm d, yyyy');
 		} else {
 			return dateformat(temp, 'mmm d, yyyy, HH:MM:ss');
 		}
-	   } catch(e) {
+		 } catch(e) {
 			logger.error(e);
-	   }
+		 }
 	}
 }
 
@@ -286,6 +290,10 @@ function keyvalue(data, obj, keys, values, flag) {
 }
 
 async function execute() {
+
+	await require('../../db-factory').initForWorker(additionalLoggerIdentifier);
+
+	logger = global.logger;
 
 	const commonUtils = require('../utils/common.utils');
 	const exportUtils = require('./../utils/export.utils');

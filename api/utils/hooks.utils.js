@@ -43,16 +43,16 @@ client.on('reconnect', () => {
 function callAllPreHooks(req, data, options) {
 	let txnId = req.headers[global.txnIdHeader];
 	options['type'] = 'PreHook';
-	logger.debug(`[${txnId}] PreHook :: Options :: ${JSON.stringify(options)}`);
-	logger.trace(`[${txnId}] PreHook :: ${JSON.stringify(data)}`);
+	logger.debug(`[${txnId}] PreHook :: ${data._id} :: Options :: ${JSON.stringify(options)}`);
+	logger.trace(`[${txnId}] PreHook :: ${data._id} :: ${JSON.stringify(data)}`);
 	let preHooks = [];
 	try {
 		preHooks = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'hooks.json'), 'utf-8')).preHooks;
 	} catch (e) {
-		logger.error(`[${txnId}] PreHook :: Parser error :: ${e.message}`);
+		logger.error(`[${txnId}] PreHook :: ${data._id} :: Parser error :: ${e.message}`);
 	}
-	logger.debug(`[${txnId}] PreHook :: ${preHooks.length} found`);
-	preHooks.forEach(_d => logger.debug(`[${txnId}] PreHook :: ${_d.name} - ${_d.url} `));
+	logger.trace(`[${txnId}] PreHook :: ${data._id} :: ${preHooks.length} found`);
+	preHooks.forEach(_d => logger.debug(`[${txnId}] PreHook :: ${data._id} :: ${_d.name} - ${_d.url} `));
 	let properties = commonUtils.generateProperties(txnId);
 	let headers = commonUtils.generateHeaders(txnId);
 	let newData = {};

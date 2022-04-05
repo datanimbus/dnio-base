@@ -195,6 +195,7 @@ async function informSM() {
 		if (res.statusCode === 200) {
 			let maintenanceInfo = null;
 			const body = res.body;
+			logger.trace('SM status change API called successfully');
 			logger.trace('SM status change api response :: ', JSON.stringify(body));
 			if (body.status == 'Maintenance') {
 				logger.info('Service going into maintenance mode!');
@@ -240,7 +241,8 @@ async function GetKeys() {
 			global.baseKey = body.baseKey;
 			global.baseCert = body.baseCert;
 			global.encryptionKey = body.encryptionKey;
-			logger.trace('Found Keys', body);
+			logger.debug(`Keys for ${config.appNamespace} fetched`);
+			logger.trace(`Keys for ${config.appNamespace} : ${JSON.stringify(body)}`);
 		} else {
 			throw new Error('Service not found');
 		}

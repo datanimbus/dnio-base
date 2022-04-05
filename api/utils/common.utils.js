@@ -441,7 +441,7 @@ async function upsertDocument(req, serviceId, document) {
 
 e.getServiceDetail = function (serviceId, req) {
 	var options = {
-		url: config.baseUrlSM + '/service/' + serviceId + '?select=port,api,relatedSchemas,app,preHooks&app=' + config.app,
+		url: config.baseUrlSM + `/${config.appNamespace}/service/${serviceId}` + '?select=port,api,relatedSchemas,app,preHooks&app=' + config.app,
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -478,7 +478,7 @@ e.getStoredServiceDetail = function (serviceId, serviceDetailsObj, req) {
 		return Promise.resolve();
 	} else {
 		var options = {
-			url: config.baseUrlSM + '/service/' + serviceId + '?select=port,api,relatedSchemas,app,preHooks,definition' + `&app=${config.app}`,
+			url: `${config.baseUrlSM}/${config.appNamespace}/service/${serviceId}?select=port,api,relatedSchemas,app,preHooks,definition&app=${config.app}`,
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',

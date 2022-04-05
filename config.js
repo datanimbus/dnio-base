@@ -19,8 +19,9 @@ global.documentCache = new NodeCache({ stdTTL: 60, checkperiod: 120, useClones: 
 global.trueBooleanValues = ['y', 'yes', 'true', '1'];
 global.falseBooleanValues = ['n', 'no', 'false', '0'];
 
-e.updateLogger = () => {
+e.updateLogger = (additionalLoggerIdentifier) => {
 	let LOGGER_NAME = e.isK8sEnv() ? `[${e.appNamespace}] [${e.hostname}] [${e.serviceName} v.${e.serviceVersion}]` : `[${e.serviceName} v.${e.serviceVersion}]`;
+	if (additionalLoggerIdentifier) LOGGER_NAME += ` [${additionalLoggerIdentifier}]`;
 	global.loggerName = LOGGER_NAME;
 	log4js.configure({
 		appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },

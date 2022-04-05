@@ -18,16 +18,26 @@ global.baseKey = workerData.baseKey;
 global.baseCert = workerData.baseCert;
 global.encryptionKey = workerData.encryptionKey;
 
-const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} v.${config.serviceVersion}] [Worker]` : `[${config.serviceName} v.${config.serviceVersion}] [Worker]`;
+let additionalLoggerIdentifier = 'Worker/MapperValidation';
+
+let LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceId}] [${additionalLoggerIdentifier}]` : `[${config.serviceId}][${additionalLoggerIdentifier}]`;
+global.loggerName = LOGGER_NAME;
+
 const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
+global.LOG_LEVEL = LOG_LEVEL;
+
 log4js.configure({
 	appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
 	categories: { default: { appenders: ['out'], level: LOG_LEVEL } }
 });
-const logger = log4js.getLogger(LOGGER_NAME);
+let logger = log4js.getLogger(LOGGER_NAME);
 
 
 async function execute() {
+	await require('../../db-factory').initForWorker(additionalLoggerIdentifier);
+
+	logger = global.logger;
+
 	let reqData = workerData.reqData;
 	let txnId = reqData.headers.txnid;
 	logger.debug(`[${txnId}] Executing export schema free records thread for service ${config.serviceId}`);
