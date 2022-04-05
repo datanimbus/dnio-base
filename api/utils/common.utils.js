@@ -73,7 +73,7 @@ async function getUserDoc(req, userId) {
 	let key = 'USER_' + userId + '_' + req.headers[global.userHeader];
 	let user = documentCache.get(key);
 	const userUrl = `/api/a/rbac/${config.app}/user/${userId}`;
-	logger.debug(`getUserDoc :: User URL : ${userUrl}`)
+	logger.debug(`getUserDoc :: User URL : ${userUrl}`);
 	try {
 		if (!user) {
 			user = await httpClient.httpRequest({
