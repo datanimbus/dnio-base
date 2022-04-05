@@ -115,7 +115,7 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 	try {
 		if (!service) {
 			service = httpClient.httpRequest({
-				url: config.baseUrlSM + '/service/' + serviceId + `?app=${config.app}`,
+				url: `${config.baseUrlSM}/${config.appNamespace}/service/${serviceId}/?app=${config.app}`,
 				method: 'GET',
 				headers: {
 					'TxnId': req ? req.headers[global.txnIdHeader] : '',
@@ -164,7 +164,7 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 		}
 		return document;
 	} catch (e) {
-		logger.error('Error in getServiceDoc :: ', e);
+		logger.error('Error in getServiceDoc :: ', e.message);
 		if (throwError) {
 			throw e;
 		} else {
