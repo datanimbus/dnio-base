@@ -1,11 +1,13 @@
 const router = require('express').Router();
+const log4js = require('log4js');
+const uuid = require('uuid/v1');
 
 const config = require('../../config');
 const threadUtils = require('../utils/thread.utils');
-const uuid = require('uuid/v1');
 const httpClient = require('./../../http-client');
+let serviceDetails = require('./../../service.json');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 
 router.get('/download/:id', (req, res) => {
 	async function execute() {
@@ -50,16 +52,29 @@ router.post('/', (req, res) => {
 		try {
 			let txnId = req.get(global.txnIdHeader);
 			const fileId = uuid();
+			let result;
 			res.status(200).json({ _id: fileId, message: 'Process queued' });
-			const result = await threadUtils.executeThread(txnId, 'export', {
-				fileId,
-				reqData: {
-					headers: req.headers,
-					query: req.body,
-					rawHeaders: req.rawHeaders,
-					user: req.user
-				}
-			});
+			if (serviceDetails.schemaFree) {
+				result = await threadUtils.executeThread(txnId, 'export-schemafree', {
+					fileId,
+					reqData: {
+						headers: req.headers,
+						query: req.body,
+						rawHeaders: req.rawHeaders,
+						user: req.user
+					}
+				});
+			} else {
+				result = await threadUtils.executeThread(txnId, 'export', {
+					fileId,
+					reqData: {
+						headers: req.headers,
+						query: req.body,
+						rawHeaders: req.rawHeaders,
+						user: req.user
+					}
+				});
+			}
 			logger.info(`[${txnId}] : File export result :: `, result);
 			informGW(result, req.get('Authorization'));
 		} catch (e) {

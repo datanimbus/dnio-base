@@ -1,9 +1,10 @@
 const router = require('express').Router();
 const mongoose = require('mongoose');
+const log4js = require('log4js');
 
 const crudderUtils = require('../utils/crudder.utils');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 const model = mongoose.model('fileTransfers');
 
 router.get('/count', (req, res) => {

@@ -1,73 +1,68 @@
+'use strict';
 
+const fs = require('fs');
+const path = require('path');
+const log4js = require('log4js');
 const crypto = require('crypto');
+const { Worker } = require('worker_threads');
 
-const config = require('../../config');
-const httpClient = require('../../http-client');
+const logger = log4js.getLogger(global.loggerName);
 
-const logger = global.logger;
-
-function encryptText(data) {
-	const options = {
-		url: config.baseUrlSEC + `/enc/${config.app}/decrypt`,
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		body: { data },
-		json: true
-	};
-	return httpClient.httpRequest(options).then(res => {
-		if (!res) {
-			logger.error('Security service down');
-			throw new Error('Security service down');
-		}
-		if (res.statusCode === 200) {
-			let encryptValue = res.body.data;
-			let obj = {
-				value: encryptValue,
-				checksum: crypto.createHash('md5').update(data).digest('hex')
-			};
-			return obj;
-		} else {
-			throw new Error('Error decrypting text');
-		}
-	}).catch(err => {
-		logger.error('Error requesting Security service');
-		throw err;
-	});
+async function encryptText(data) {
+	return await executeCipher(null, 'encrypt', data);
 }
 
 
-function decryptText(data) {
-	const options = {
-		url: config.baseUrlSEC + `/enc/${config.app}/decrypt`,
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		body: { data },
-		json: true
-	};
-	return httpClient.httpRequest(options).then(res => {
-		if (!res) {
-			logger.error('Security service down');
-			throw new Error('Security service down');
-		}
-		if (res.statusCode === 200) {
-			return res.body.data;
-		} else {
-			throw new Error('Error encrypting text');
-		}
-	}).catch(err => {
-		logger.error('Error requesting Security service');
-		throw err;
-	});
+async function decryptText(data) {
+	return await executeCipher(null, 'decrypt', data);
 }
 
 function md5(text) {
 	return crypto.createHash('md5').update(text).digest('hex');
 }
 
+/**
+ * 
+ * @param {string} txnId The txnId of the current request
+ * @param {string} text The text data to send in thread for encryption/decryption
+ */
+function executeCipher(txnId, action, text) {
+	const baseKey = global.baseKey;
+	const baseCert = global.baseCert;
+	const encryptionKey = global.encryptionKey;
+	logger.debug(`[${txnId}] Exec. thread :: cipher`);
+	return new Promise((resolve, reject) => {
+		let responseSent = false;
+		const filePath = path.join(process.cwd(), 'api/threads', 'cipher.js');
+		if (!fs.existsSync(filePath)) {
+			logger.error(`[${txnId}] Exec. thread :: cipher :: INVALID_FILE`);
+			return reject(new Error('INVALID_FILE'));
+		}
+		const worker = new Worker(filePath, {
+			workerData: {
+				text,
+				baseKey,
+				baseCert,
+				encryptionKey,
+				action
+			}
+		});
+		worker.on('message', function (data) {
+			responseSent = true;
+			worker.terminate();
+			resolve(data);
+		});
+		worker.on('error', reject);
+		worker.on('exit', code => {
+			if (!responseSent) {
+				logger.error(`[${txnId}] Exec. thread :: cipher :: Worker stopped with exit code ${code}`);
+				reject(new Error(`Worker stopped with exit code ${code}`));
+			}
+		});
+	});
+}
+
 module.exports.encryptText = encryptText;
 module.exports.decryptText = decryptText;
 module.exports.md5 = md5;
+module.exports.executeCipher = executeCipher;

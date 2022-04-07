@@ -1,6 +1,7 @@
+const log4js = require('log4js');
 const _ = require('lodash');
 
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 
 function IsString(val) {
 	return val && val.constructor.name === 'String';

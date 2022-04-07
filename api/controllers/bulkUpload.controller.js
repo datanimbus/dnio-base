@@ -1,12 +1,13 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const log4js = require('log4js');
 let definition = require('../helpers/bulkCreate.definition.js').definition;
 const SMCrud = require('@appveen/swagger-mongoose-crud');
 const schema = new mongoose.Schema(definition, {timestamps: true});
 
 schema.index({createdAt: 1},{expireAfterSeconds: 3600});
-const logger = global.logger;
+const logger = log4js.getLogger(global.loggerName);
 var options = {
 	logger: logger,
 	collectionName: 'complex.bulkCreate'
