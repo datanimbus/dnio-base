@@ -540,7 +540,7 @@ e.bulkDelete = function (relatedService) {
 			return dropCollections(collectionsToDrop);
 		}).then(() => {
 			var options = {
-				url: config.baseUrlSM + '/service/' + (process.env.SERVICE_ID) + '/statusChangeFromMaintenance' + `?app=${config.app}`,
+				url: config.baseUrlSM + '/' + (process.env.DATA_STACK_APP) + '/service/utils/' + (process.env.SERVICE_ID) + '/statusChangeFromMaintenance',
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json'
