@@ -411,7 +411,7 @@ router.get('/', (req, res) => {
 			let count = 30;
 			let select = '';
 			let sort = '';
-			
+			let querySelect;
 			if (req.query.count && +req.query.count > 0) {
 				count = +req.query.count;
 			}
@@ -451,7 +451,7 @@ router.get('/', (req, res) => {
 						} else if (parseInt(querySort[key]) == -1) {
 							sort += `-${key} `;
 						} else {
-							logger.error(`Invalid value for key :: ${key} :: ${querySort[key]}`)
+							logger.error(`Invalid value for key :: ${key} :: ${querySort[key]}`);
 							throw new Error(`Invalid value for key :: ${key} :: ${querySort[key]}`);
 						}
 					});
@@ -577,7 +577,7 @@ router.post('/', (req, res) => {
 		logger.info(`[${txnId}] Create request received.`);
 
 		if (req.query.txn == true) {
-			logger.info(`[${txnId}] Create request is a part of a transaction ${id}`)
+			logger.info(`[${txnId}] Create request is a part of a transaction ${id}`);
 			return transactionUtils.transferToTransaction(req, res);
 		}
 		try {
@@ -714,7 +714,7 @@ router.put('/:id', (req, res) => {
 		logger.info(`[${txnId}] Schema Free ? ${serviceData.schemaFree}`);
 
 		if (req.query.txn == true) {
-			logger.info(`[${txnId}] Update request is a part of a transaction ${id}`)
+			logger.info(`[${txnId}] Update request is a part of a transaction ${id}`);
 			return transactionUtils.transferToTransaction(req, res);
 		}
 
@@ -829,13 +829,13 @@ router.put('/:id', (req, res) => {
 							if (payload[key] === undefined) {
 								doc.set(key, undefined);
 							}
-						}	
-					})
+						}
+					});
 					Object.keys(payload).forEach(key => {
 						if (doc.get(key) !== payload[key])
 							doc.set(key, payload[key]);
 					});
-					
+
 				}
 				status = await doc.save();
 				logger.debug(`[${txnId}] Update status - ${status}`);
@@ -860,7 +860,7 @@ router.delete('/:id', (req, res) => {
 		logger.info(`[${txnId}] Delete request received for record ${id}`);
 
 		if (req.query.txn == true) {
-			logger.info(`[${txnId}] Delete request is a part of a transaction ${id}`)
+			logger.info(`[${txnId}] Delete request is a part of a transaction ${id}`);
 			return transactionUtils.transferToTransaction(req, res);
 		}
 		if (!specialFields.hasPermissionForDELETE(req, req.user.appPermissions)) {

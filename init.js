@@ -136,19 +136,19 @@ async function clearUnusedFiles() {
 							reject(err);
 						}
 					})
-					.then(() => {
-						mongoose.connection.db.collection(`${config.serviceCollection}.files`).deleteOne({ filename: _f });
-					})
-					.catch(err => logger.error(`Error deleting file ${_f} from Azure Blob ${err}`));
+						.then(() => {
+							mongoose.connection.db.collection(`${config.serviceCollection}.files`).deleteOne({ filename: _f });
+						})
+						.catch(err => logger.error(`Error deleting file ${_f} from Azure Blob ${err}`));
 				});
 			} else {
-				logger.error(`External Storage type is not allowed`);
+				logger.error('External Storage type is not allowed');
 				throw new Error(`External Storage ${storage} not allowed`);
 			}
 			
 			return Promise.all(promise);
 		} catch (err) {
-			logger.error(`Error deleting unused files from DB`);
+			logger.error('Error deleting unused files from DB');
 		}
 	}
 	return arr.reduce(reduceHandler, Promise.resolve());
