@@ -27,7 +27,7 @@ async function getDocumentIds(req, serviceId, filter) {
 	let document;
 	if (!service) {
 		service = httpClient.httpRequest({
-			url: config.baseUrlSM + '/service/' + serviceId + `?app=${config.app}`,
+			url: config.baseUrlSM + '/' + config.app + '/service/' + serviceId + `?app=${config.app}`,
 			method: 'GET',
 			headers: {
 				'txnId': req ? req.headers[global.txnIdHeader] : '',
