@@ -150,6 +150,50 @@ function genrateCode(config) {
 	code.push('\t}');
 	code.push('}');
 	code.push('');
+
+	/**------------------------ WORKFLOW RELATION FILTER ----------------------- */
+	code.push('/**');
+	code.push(' * @param {*} req The Incomming Request Object');
+	code.push(' * @param {*} filter The Filter Object');
+	code.push(' * @param {*} errors The errors while fetching RefIds');
+	code.push(' * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths');
+	code.push(' */');
+	code.push('async function patchRelationInWorkflowFilter(req, filter, errors) {');
+	code.push('\tif (!errors) {');
+	code.push('\t\terrors = {};');
+	code.push('\t}');
+	code.push('\ttry {');
+	code.push('\t\tif (typeof filter !== \'object\') {');
+	code.push('\t\t\treturn filter;');
+	code.push('\t\t}');
+	code.push('\t\tlet flag = 0;');
+	code.push('\t\tconst tempFilter = {};');
+	code.push('\t\tlet promises = Object.keys(filter).map(async (key) => {');
+	parseSchemaForWorkflowFilter(schema);
+	code.push('\t\t\tif (!flag) {');
+	code.push('\t\t\t\tif (typeof filter[key] == \'object\' && filter[key]) {');
+	code.push('\t\t\t\t\tif (Array.isArray(filter[key])) {');
+	code.push('\t\t\t\t\t\tconst promiseArr = filter[key].map(async (item, i) => {');
+	code.push('\t\t\t\t\t\t\treturn await patchRelationInWorkflowFilter(req, item, errors);');
+	code.push('\t\t\t\t\t\t});');
+	code.push('\t\t\t\t\t\ttempFilter[key] = (await Promise.all(promiseArr)).filter(e => e ? Object.keys(e).length : 0);');
+	code.push('\t\t\t\t\t} else {');
+	code.push('\t\t\t\t\t\ttempFilter[key] = await patchRelationInWorkflowFilter(req, filter[key], errors);');
+	code.push('\t\t\t\t\t}');
+	code.push('\t\t\t\t} else {');
+	code.push('\t\t\t\t\ttempFilter[key] = filter[key]');
+	code.push('\t\t\t\t}');
+	code.push('\t\t\t}');
+	code.push('\t\t});');
+	code.push('\t\tpromises = await Promise.all(promises);');
+	code.push('\t\tpromises = null;');
+	code.push('\t\treturn tempFilter;');
+	code.push('\t} catch (e) {');
+	code.push('\t\tthrow e;');
+	code.push('\t}');
+	code.push('}');
+	code.push('');
+
 	/**------------------------ SECURE FIELD ENCRYPT ----------------------- */
 	code.push('/**');
 	code.push(' * @param {*} req The Incomming Request Object');
@@ -286,6 +330,7 @@ function genrateCode(config) {
 	code.push('module.exports.encryptSecureFields = encryptSecureFields;');
 	code.push('module.exports.decryptSecureFields = decryptSecureFields;');
 	code.push('module.exports.patchRelationInFilter = patchRelationInFilter;');
+	code.push('module.exports.patchRelationInWorkflowFilter = patchRelationInWorkflowFilter;');
 	code.push('module.exports.fixBoolean = fixBoolean;');
 	code.push('module.exports.enrichGeojson = enrichGeojson;');
 	code.push('module.exports.validateDateFields = validateDateFields;');
@@ -674,6 +719,60 @@ function genrateCode(config) {
 						code.push('\t\t\t}');
 					} else if (def.definition[0].type == 'Object') {
 						parseSchemaForFilter(def.definition[0].definition, path);
+					}
+				}
+			}
+		});
+	}
+
+	function parseSchemaForWorkflowFilter(schema, parentKey) {
+		schema.forEach(def => {
+			let key = def.key;
+			const path = parentKey ? parentKey + '.' + key : key;
+			if (key != '_id' && def.properties) {
+				if (def.properties.relatedTo && def.type != 'Array') {
+					code.push(`\t\t\tif (key.startsWith('data.new.${path}')) {`);
+					code.push('\t\t\t\ttry {');
+					code.push(`\t\t\t\t\tconst tempKey = key.split('${path}.')[1];`);
+					code.push(`\t\t\t\t\tconst ids = await commonUtils.getDocumentIds(req, '${def.properties.relatedTo}', { [tempKey]: filter[key] })`);
+					code.push('\t\t\t\t\tif (ids && ids.length > 0) {');
+					code.push(`\t\t\t\t\t\tif (!tempFilter['data.new.${path}._id'] || !tempFilter['data.new.${path}._id']['$in']) {`);
+					code.push(`\t\t\t\t\t\t\ttempFilter['data.new.${path}._id'] = { $in: ids };`);
+					code.push('\t\t\t\t\t\t} else {');
+					code.push(`\t\t\t\t\t\t\ttempFilter['data.new.${path}._id']['$in'] = tempFilter['data.new.${path}._id']['$in'].concat(ids);`);
+					code.push('\t\t\t\t\t\t}');
+					code.push('\t\t\t\t\t} else {');
+					code.push('\t\t\t\t\t\ttempFilter[key] = filter[key]');
+					code.push('\t\t\t\t\t}');
+					code.push('\t\t\t\t\tflag = true;');
+					code.push('\t\t\t\t} catch (e) {');
+					code.push(`\t\t\t\t\terrors['data.new.${path}'] = e.message ? e.message : e;`);
+					code.push('\t\t\t\t}');
+					code.push('\t\t\t}');
+				} else if (def.type == 'Object') {
+					parseSchemaForWorkflowFilter(def.definition, path);
+				} else if (def.type == 'Array') {
+					if (def.definition[0].properties.relatedTo) {
+						code.push(`\t\t\tif (key.startsWith('data.new.${path}')) {`);
+						code.push('\t\t\t\ttry {');
+						code.push(`\t\t\t\t\tconst tempKey = key.split('${path}.')[1];`);
+						code.push(`\t\t\t\t\tconst ids = await commonUtils.getDocumentIds(req, '${def.properties.relatedTo}', { [tempKey]: filter[key] })`);
+						code.push('\t\t\t\t\tif (ids && ids.length > 0) {');
+						code.push(`\t\t\t\t\t\tif (!tempFilter['data.new.${path}._id'] || !tempFilter['data.new.${path}._id']['$in']) {`);
+						code.push(`\t\t\t\t\t\t\ttempFilter['data.new.${path}._id'] = { $in: ids };`);
+						code.push('\t\t\t\t\t\t} else {');
+						code.push(`\t\t\t\t\t\t\ttempFilter['data.new.${path}._id']['$in'] = tempFilter['data.new.${path}._id']['$in'].concat(ids);`);
+						code.push('\t\t\t\t\t\t}');
+						code.push('\t\t\t\t\t} else {');
+						code.push('\t\t\t\t\t\ttempFilter[key] = filter[key]');
+						code.push('\t\t\t\t\t}');
+						code.push('\t\t\t\t\tflag = true;');
+						code.push('\t\t\t\t} catch (e) {');
+						code.push(`\t\t\t\t\terrors['data.new.${path}'] = e.message ? e.message : e;`);
+						code.push('\t\t\t\t}');
+						code.push('\t\t\t}');
+					} else if (def.definition[0].type == 'Object') {
+						parseSchemaForWorkflowFilter(def.definition[0].definition, path);
 					}
 				}
 			}

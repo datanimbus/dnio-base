@@ -28,7 +28,7 @@ router.get('/count', async (req, res) => {
 		try {
 			if (req.query.filter) {
 				filter = JSON.parse(req.query.filter);
-				const tempFilter = await specialFields.patchRelationInFilter(
+				const tempFilter = await specialFields.patchRelationInWorkflowFilter(
 					req,
 					filter,
 					errors
@@ -132,7 +132,7 @@ router.get('/', async (req, res) => {
 		try {
 			if (req.query.filter) {
 				filter = JSON.parse(req.query.filter);
-				const tempFilter = await specialFields.patchRelationInFilter(
+				const tempFilter = await specialFields.patchRelationInWorkflowFilter(
 					req,
 					filter,
 					errors
