@@ -661,24 +661,6 @@ function genrateCode(config) {
 					code.push(`\t\t\t\t\terrors['${path}'] = e.message ? e.message : e;`);
 					code.push('\t\t\t\t}');
 					code.push('\t\t\t}');
-					code.push(`\t\t\telse if (key.startsWith('data.new.${path}')) {`);
-					code.push('\t\t\t\ttry {');
-					code.push(`\t\t\t\t\tconst tempKey = key.split('${path}.')[1];`);
-					code.push(`\t\t\t\t\tconst ids = await commonUtils.getDocumentIds(req, '${def.properties.relatedTo}', { [tempKey]: filter[key] })`);
-					code.push('\t\t\t\t\tif (ids && ids.length > 0) {');
-					code.push(`\t\t\t\t\t\tif (!tempFilter['data.new.${path}._id'] || !tempFilter['data.new.${path}._id']['$in']) {`);
-					code.push(`\t\t\t\t\t\t\ttempFilter['data.new.${path}._id'] = { $in: ids };`);
-					code.push('\t\t\t\t\t\t} else {');
-					code.push(`\t\t\t\t\t\t\ttempFilter['data.new.${path}._id']['$in'] = tempFilter['data.new.${path}._id']['$in'].concat(ids);`);
-					code.push('\t\t\t\t\t\t}');
-					code.push('\t\t\t\t\t} else {');
-					code.push('\t\t\t\t\t\ttempFilter[key] = filter[key]');
-					code.push('\t\t\t\t\t}');
-					code.push('\t\t\t\t\tflag = true;');
-					code.push('\t\t\t\t} catch (e) {');
-					code.push(`\t\t\t\t\terrors['data.new.${path}'] = e.message ? e.message : e;`);
-					code.push('\t\t\t\t}');
-					code.push('\t\t\t}');
 				} else if (def.type == 'Object') {
 					parseSchemaForFilter(def.definition, path);
 				} else if (def.type == 'Array') {
@@ -697,24 +679,6 @@ function genrateCode(config) {
 						code.push('\t\t\t\t\tflag = true;');
 						code.push('\t\t\t\t} catch (e) {');
 						code.push(`\t\t\t\t\terrors['${path}'] = e.message ? e.message : e;`);
-						code.push('\t\t\t\t}');
-						code.push('\t\t\t}');
-						code.push(`\t\t\telse if (key.startsWith('data.new.${path}')) {`);
-						code.push('\t\t\t\ttry {');
-						code.push(`\t\t\t\t\tconst tempKey = key.split('${path}.')[1];`);
-						code.push(`\t\t\t\t\tconst ids = await commonUtils.getDocumentIds(req, '${def.properties.relatedTo}', { [tempKey]: filter[key] })`);
-						code.push('\t\t\t\t\tif (ids && ids.length > 0) {');
-						code.push(`\t\t\t\t\t\tif (!tempFilter['data.new.${path}._id'] || !tempFilter['data.new.${path}._id']['$in']) {`);
-						code.push(`\t\t\t\t\t\t\ttempFilter['data.new.${path}._id'] = { $in: ids };`);
-						code.push('\t\t\t\t\t\t} else {');
-						code.push(`\t\t\t\t\t\t\ttempFilter['data.new.${path}._id']['$in'] = tempFilter['data.new.${path}._id']['$in'].concat(ids);`);
-						code.push('\t\t\t\t\t\t}');
-						code.push('\t\t\t\t\t} else {');
-						code.push('\t\t\t\t\t\ttempFilter[key] = filter[key]');
-						code.push('\t\t\t\t\t}');
-						code.push('\t\t\t\t\tflag = true;');
-						code.push('\t\t\t\t} catch (e) {');
-						code.push(`\t\t\t\t\terrors['data.new.${path}'] = e.message ? e.message : e;`);
 						code.push('\t\t\t\t}');
 						code.push('\t\t\t}');
 					} else if (def.definition[0].type == 'Object') {
