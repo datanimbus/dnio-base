@@ -231,7 +231,6 @@ async function execute() {
 		result.status = 'Error';
 	}
 	return result;
-
 }
 
 setTimeout(() => {

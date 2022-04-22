@@ -77,7 +77,6 @@ async function execute() {
 	var txtWriteStream = fs.createWriteStream(outputDir + fileName + '.txt');
 	let cursor;
 
-
 	try {
 		if (filter) {
 			filter = typeof filter === 'string' ? JSON.parse(filter) : filter;

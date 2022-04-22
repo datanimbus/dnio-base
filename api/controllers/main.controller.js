@@ -410,7 +410,6 @@ router.get('/', (req, res) => {
 			let count = 30;
 			let select = '';
 			let sort = '';
-
 			if (req.query.count && +req.query.count > 0) {
 				count = +req.query.count;
 			}
