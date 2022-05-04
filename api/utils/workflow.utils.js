@@ -339,7 +339,7 @@ async function schemaValidation(req, newData, oldData) {
 	}
 	let modelData = new model(newData);
 	modelData.isNew = false;
-	logger.debug(JSON.stringify({ modelData }));
+	logger.trace(JSON.stringify({ modelData }));
 	try {
 		await modelData.validate();
 		return modelData.toObject();

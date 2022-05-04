@@ -171,7 +171,7 @@ function cursor(req, model) {
 }
 
 function simulateDocs(dataArr, generateId, _req, operation) {
-	logger.debug(dataArr, generateId, _req, operation);
+	logger.trace(dataArr, generateId, _req, operation);
 	// TBD
 }
 

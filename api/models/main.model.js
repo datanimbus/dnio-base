@@ -388,7 +388,7 @@ schema.post('remove', function (doc) {
 			}
 		});
 	});
-	logger.debug(JSON.stringify({ updateList }));
+	logger.trace(JSON.stringify({ updateList }));
 	updateList.forEach(ulObj => {
 		helperUtil.crudDocuments(ulObj._service, 'PUT', ulObj.doc, null, doc._req);
 	});

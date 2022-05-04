@@ -123,7 +123,7 @@ async function clearUnusedFiles() {
 				promise = filesToBeDeleted.map(_f => deleteFileFromDB(_f));
 			} else if (storage === 'AZURE') {
 				promise = filesToBeDeleted.map(_f => {
-					logger.debug(`Deleting file - ${_f}`);
+					logger.trace(`Deleting file - ${_f}`);
 					let data = {};
 					data.filename = _f;
 					data.connectionString = config.fileStorage[storage].connectionString;
