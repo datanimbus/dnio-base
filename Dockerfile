@@ -9,7 +9,8 @@ COPY package.json /app
 
 RUN set -ex; apk add --no-cache --virtual .fetch-deps curl tar git ;
 
-RUN npm i --production
+RUN npm install -g npm
+RUN npm install --production
 RUN npm audit fix
 
 COPY app.js /app
