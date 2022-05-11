@@ -22,7 +22,8 @@ const dataStackNS = process.env.DATA_STACK_NAMESPACE
 let XLSX = require('xlsx');
 let queueMgmt = require('../../queueManagement.js');
 var client = queueMgmt.client;
-var zip = new require('node-zip')();
+var JSZip = require('jszip');
+var zip = new JSZip();
 let async = require('async');
 let mathQueue = async.priorityQueue(processMathRequest);
 let runInit = true;
@@ -2119,9 +2120,9 @@ function expandedExport(req, res, expand) {
                     }
                     return createExcel(fileName,data,mapping);
                 })
-                .then(() => {
+                .then(async () => {
                     zip.file(fileName, fs.readFileSync(fileName));
-                    var data = zip.generate({ base64: false, compression: 'DEFLATE' });
+                    var data = await zip.generateAsync({ base64: false, compression: 'DEFLATE' });
                     fs.writeFileSync(downloadFile, data, 'binary');
                     fs.createReadStream(downloadFile).
                         pipe(global.gfsBucketExport.openUploadStream(crypto.createHash('md5').update(uuid() + global.serverStartTime).digest("hex"), {
