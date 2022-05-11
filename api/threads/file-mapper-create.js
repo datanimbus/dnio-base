@@ -5,15 +5,20 @@ const mongoose = require('mongoose');
 mongoose.set('useFindAndModify', false);
 
 const config = require('../../config');
-require('../../queue');
 
-const LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceName} v.${config.serviceVersion}] [Worker]` : `[${config.serviceName} v.${config.serviceVersion}] [Worker]`;
+let additionalLoggerIdentifier = 'Worker/MapperCreate';
+
+let LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceId}] [${additionalLoggerIdentifier}]` : `[${config.serviceId}][${additionalLoggerIdentifier}]`;
+global.loggerName = LOGGER_NAME;
+
 const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
+global.LOG_LEVEL = LOG_LEVEL;
+
 log4js.configure({
 	appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
 	categories: { default: { appenders: ['out'], level: LOG_LEVEL } }
 });
-const logger = log4js.getLogger(LOGGER_NAME);
+let logger = log4js.getLogger(LOGGER_NAME);
 
 global.userHeader = 'user';
 global.txnIdHeader = 'txnId';
@@ -21,9 +26,13 @@ global.baseKey = workerData.baseKey;
 global.baseCert = workerData.baseCert;
 global.encryptionKey = workerData.encryptionKey;
 
-require('../../db-factory');
-
 async function execute() {
+	await require('../../db-factory').initForWorker(additionalLoggerIdentifier);
+
+	logger = global.logger;
+
+	require('../../queue');
+
 	const workflowUtils = require('../utils/workflow.utils');
 	const { mergeCustomizer } = require('./../utils/common.utils');
 	// const authorDB = global.authorDB;

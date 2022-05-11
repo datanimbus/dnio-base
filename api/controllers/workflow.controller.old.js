@@ -329,7 +329,7 @@ router.put('/doc/:id', (req, res) => {
 			doc.audit.push(auditData);
 			doc._req = req;
 			const savedData = await doc.save();
-			logger.debug(JSON.stringify({ savedData }));
+			logger.trace(JSON.stringify({ savedData }));
 			return res.status(200).json({ message: 'Edit Successful.' });
 		} catch (e) {
 			if (typeof e === 'string') {

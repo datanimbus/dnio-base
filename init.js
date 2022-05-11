@@ -40,11 +40,11 @@ function setDefaultTimezone() {
 				if (!_d.defaultTimezone) {
 					logger.info(`Timezone of ${config.app} :: Not set, switching to data.stack default config`);
 					global.defaultTimezone = config.dataStackDefaultTimezone;
-					logger.info(`Timezone of ${config.app} :: Set as ${config.dataStackDefaultTimezone}`);
+					logger.info(`Timezone of ${config.app} : ${config.dataStackDefaultTimezone}`);
 					return;
 				}
 				global.defaultTimezone = _d.defaultTimezone;
-				logger.info(`Timezone of ${config.app} :: Set as ${global.defaultTimezone}`);
+				logger.info(`Timezone of ${config.app} : ${global.defaultTimezone}`);
 			});
 	} catch (err) {
 		logger.error(`Timezone of ${config.app} :: ${err.message}`);
@@ -84,8 +84,8 @@ startCronJob();
 async function clearUnusedFiles() {
 	const batch = 1000;
 	const storage = config.fileStorage.storage;
-	logger.info('Cron triggered to clear unused file attachment');
-	logger.info(`Storage Enigne - ${config.fileStorage.storage}`);
+	logger.debug('Cron triggered to clear unused file attachment');
+	logger.debug(`Storage Enigne - ${config.fileStorage.storage}`);
 	const datefilter = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
 	const count = await mongoose.connection.db.collection(`${config.serviceCollection}.files`).count({ 'uploadDate': { '$lte': datefilter } }, { filename: 1 });
 	let arr = [];
@@ -114,16 +114,16 @@ async function clearUnusedFiles() {
 				}
 			});
 			fileInUse = fileInUse.filter(_f => _f);
-			logger.info({ fileInUse });
+			logger.trace(JSON.stringify({ fileInUse }));
 			let filesToBeDeleted = _.difference(allFilename, fileInUse);
-			logger.info({ filesToBeDeleted });
+			logger.info('Files to be deleted - ', JSON.stringify({ filesToBeDeleted }));
 
 			let promise;
 			if (storage === 'GRIDFS') {
 				promise = filesToBeDeleted.map(_f => deleteFileFromDB(_f));
 			} else if (storage === 'AZURE') {
 				promise = filesToBeDeleted.map(_f => {
-					logger.info(`Deleting file - ${_f}`);
+					logger.trace(`Deleting file - ${_f}`);
 					let data = {};
 					data.filename = _f;
 					data.connectionString = config.fileStorage[storage].connectionString;
@@ -136,19 +136,19 @@ async function clearUnusedFiles() {
 							reject(err);
 						}
 					})
-					.then(() => {
-						mongoose.connection.db.collection(`${config.serviceCollection}.files`).deleteOne({ filename: _f });
-					})
-					.catch(err => logger.error(`Error deleting file ${_f} from Azure Blob ${err}`));
+						.then(() => {
+							mongoose.connection.db.collection(`${config.serviceCollection}.files`).deleteOne({ filename: _f });
+						})
+						.catch(err => logger.error(`Error deleting file ${_f} from Azure Blob ${err}`));
 				});
 			} else {
-				logger.error(`External Storage type is not allowed`);
+				logger.error('External Storage type is not allowed');
 				throw new Error(`External Storage ${storage} not allowed`);
 			}
-			
+
 			return Promise.all(promise);
 		} catch (err) {
-			logger.error(`Error deleting unused files from DB`);
+			logger.error('Error deleting unused files from DB');
 		}
 	}
 	return arr.reduce(reduceHandler, Promise.resolve());
@@ -181,7 +181,7 @@ function deleteFileFromDB(filename) {
 async function informSM() {
 	logger.trace('Ping SM service');
 	const options = {
-		url: config.baseUrlSM + '/service/' + config.serviceId + '/statusChange',
+		url: `${config.baseUrlSM}/${config.app}/service/utils/${config.serviceId}/statusChange`,
 		method: 'PUT',
 		headers: {
 			'Content-Type': 'application/json',
@@ -195,6 +195,7 @@ async function informSM() {
 		if (res.statusCode === 200) {
 			let maintenanceInfo = null;
 			const body = res.body;
+			logger.trace('SM status change API called successfully');
 			logger.trace('SM status change api response :: ', JSON.stringify(body));
 			if (body.status == 'Maintenance') {
 				logger.info('Service going into maintenance mode!');
@@ -218,7 +219,7 @@ async function informSM() {
 			throw new Error('Service not found');
 		}
 	}).catch(err => {
-		logger.error(`Error pinging service-manager :: ${err.message}`);
+		logger.error(`Error pinging SM :: ${err.message}`);
 	});
 }
 
@@ -240,12 +241,13 @@ async function GetKeys() {
 			global.baseKey = body.baseKey;
 			global.baseCert = body.baseCert;
 			global.encryptionKey = body.encryptionKey;
-			logger.trace('Found Keys', body);
+			logger.debug(`Keys for ${config.appNamespace} fetched`);
+			logger.trace(`Keys for ${config.appNamespace} : ${JSON.stringify(body)}`);
 		} else {
 			throw new Error('Service not found');
 		}
 	} catch (err) {
-		logger.error(`Error pinging service-manager :: ${err.message}`);
+		logger.error(`Error pinging USER :: ${err.message}`);
 	}
 }
 module.exports = init;

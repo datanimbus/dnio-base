@@ -27,7 +27,7 @@ async function getDocumentIds(req, serviceId, filter) {
 	let document;
 	if (!service) {
 		service = httpClient.httpRequest({
-			url: config.baseUrlSM + '/service/' + serviceId + `?app=${config.app}`,
+			url: config.baseUrlSM + '/' + config.app + '/service/' + serviceId + `?app=${config.app}`,
 			method: 'GET',
 			headers: {
 				'txnId': req ? req.headers[global.txnIdHeader] : '',
@@ -72,11 +72,12 @@ async function getDocumentIds(req, serviceId, filter) {
 async function getUserDoc(req, userId) {
 	let key = 'USER_' + userId + '_' + req.headers[global.userHeader];
 	let user = documentCache.get(key);
-	const userUrl = `/api/a/rbac/usr/app/${config.app}/${userId}`;
+	const userUrl = `/api/a/rbac/${config.app}/user/${userId}`;
+	logger.debug(`getUserDoc :: User URL : ${userUrl}`);
 	try {
 		if (!user) {
 			user = await httpClient.httpRequest({
-				url: `${config.baseUrlUSR}/usr/app/${config.app}/${userId}`,
+				url: `${config.baseUrlUSR}/${config.app}/user/${userId}`,
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
@@ -115,7 +116,7 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 	try {
 		if (!service) {
 			service = httpClient.httpRequest({
-				url: config.baseUrlSM + '/service/' + serviceId + `?app=${config.app}`,
+				url: `${config.baseUrlSM}/${config.appNamespace}/service/${serviceId}/?app=${config.app}`,
 				method: 'GET',
 				headers: {
 					'TxnId': req ? req.headers[global.txnIdHeader] : '',
@@ -164,7 +165,7 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 		}
 		return document;
 	} catch (e) {
-		logger.error('Error in getServiceDoc :: ', e);
+		logger.error('Error in getServiceDoc :: ', e.message);
 		if (throwError) {
 			throw e;
 		} else {
@@ -441,7 +442,7 @@ async function upsertDocument(req, serviceId, document) {
 
 e.getServiceDetail = function (serviceId, req) {
 	var options = {
-		url: config.baseUrlSM + '/service/' + serviceId + '?select=port,api,relatedSchemas,app,preHooks&app=' + config.app,
+		url: config.baseUrlSM + '/' + config.app + '/service/' + serviceId + '?select=port,api,relatedSchemas,app,preHooks&app=' + config.app,
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -478,7 +479,7 @@ e.getStoredServiceDetail = function (serviceId, serviceDetailsObj, req) {
 		return Promise.resolve();
 	} else {
 		var options = {
-			url: config.baseUrlSM + '/service/' + serviceId + '?select=port,api,relatedSchemas,app,preHooks,definition' + `&app=${config.app}`,
+			url: `${config.baseUrlSM}/${config.appNamespace}/service/${serviceId}?select=port,api,relatedSchemas,app,preHooks,definition&app=${config.app}`,
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
@@ -539,7 +540,7 @@ e.bulkDelete = function (relatedService) {
 			return dropCollections(collectionsToDrop);
 		}).then(() => {
 			var options = {
-				url: config.baseUrlSM + '/service/' + (process.env.SERVICE_ID) + '/statusChangeFromMaintenance' + `?app=${config.app}`,
+				url: config.baseUrlSM + '/' + (process.env.DATA_STACK_APP) + '/service/utils/' + (process.env.SERVICE_ID) + '/statusChangeFromMaintenance',
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json'

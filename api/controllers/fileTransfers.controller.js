@@ -138,7 +138,7 @@ router.put('/:fileId/readStatus', async (req, res) => {
 			return res.status(404).json({ message: 'File not found.' });
 		}
 		logger.debug(`[${txnId}] File status :: ${fileId} :: Found`);
-		logger.debug(`[${txnId}] File status :: ${fileId} :: ${JSON.stringify(doc)}`);
+		logger.trace(`[${txnId}] File status :: ${fileId} :: ${JSON.stringify(doc)}`);
 		doc.isRead = isRead;
 		if (doc._metadata) doc._metadata.lastUpdated = new Date();
 		await doc.save();

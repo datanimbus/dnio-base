@@ -22,7 +22,8 @@ const dataStackNS = process.env.DATA_STACK_NAMESPACE
 let XLSX = require('xlsx');
 let queueMgmt = require('../../queueManagement.js');
 var client = queueMgmt.client;
-var zip = new require('node-zip')();
+var JSZip = require('jszip');
+var zip = new JSZip();
 let async = require('async');
 let mathQueue = async.priorityQueue(processMathRequest);
 let runInit = true;
@@ -2119,9 +2120,9 @@ function expandedExport(req, res, expand) {
                     }
                     return createExcel(fileName,data,mapping);
                 })
-                .then(() => {
+                .then(async () => {
                     zip.file(fileName, fs.readFileSync(fileName));
-                    var data = zip.generate({ base64: false, compression: 'DEFLATE' });
+                    var data = await zip.generateAsync({ base64: false, compression: 'DEFLATE' });
                     fs.writeFileSync(downloadFile, data, 'binary');
                     fs.createReadStream(downloadFile).
                         pipe(global.gfsBucketExport.openUploadStream(crypto.createHash('md5').update(uuid() + global.serverStartTime).digest("hex"), {
@@ -2375,7 +2376,7 @@ function roundMath(id, session, value, operation, field, precision, prevVersion)
     ])
     // .session(session)
         .then(_a => {
-            logger.debug(JSON.stringify({ _a, prevVersion }));
+            logger.trace(JSON.stringify({ _a, prevVersion }));
             if (!_a || !_a[0]) {
                 throw new Error('Document not found');
             }
@@ -2385,7 +2386,7 @@ function roundMath(id, session, value, operation, field, precision, prevVersion)
             if (_a && _a[0]) {
                 prevVersion = _a[0]['docVersion'];
             }
-            logger.debug("new " + JSON.stringify({ _a, prevVersion }));
+            logger.trace("new " + JSON.stringify({ _a, prevVersion }));
             return _a && _a[0] && (_a[0].y || _a[0].y === 0) ? { val: parseFloat(_a[0].y.toFixed(precision)) , prevVersion } : null;
         })
 }
@@ -2463,7 +2464,7 @@ function doRoundMathAPI(req) {
                 if (pField && (pField.precision || pField.precision == 0)) {
                     return roundMath(id, session, body["$inc"][curr], "$add", curr, pField.precision, prevVersion)
                         .then(_val => {
-                            logger.debug({ _val });
+                            logger.trace({ _val });
                             if (_val) {
                                 prevVersion = _val.prevVersion;
                                 if (!updateBody['$set']) {
@@ -2535,10 +2536,10 @@ function doRoundMathAPI(req) {
         .then(_newBody => {
             resBody = _newBody;
             if (!_newBody) {
-                logger.debug({ _newBody });
+                logger.trace({ _newBody });
                 throw new Error('CUSTOM_READ_CONFLICT');
             }
-            logger.debug(JSON.stringify({ resBody }));
+            logger.trace(JSON.stringify({ resBody }));
         })
         .then(() => {
             return resBody;

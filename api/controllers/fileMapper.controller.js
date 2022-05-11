@@ -173,6 +173,7 @@ router.put('/:fileId/mapping', (req, res) => {
 			commonUtils.informThroughSocket(req, socketData);
 		} catch (e) {
 			let message;
+			console.log(e);
 			if (typeof e === 'string') {
 				message = e;
 			} else {

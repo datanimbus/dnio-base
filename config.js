@@ -1,24 +1,54 @@
-const serviceJSON = require('./service.json');
+const NodeCache = require('node-cache');
+const log4js = require('log4js');
+
+// const serviceJSON = require('./service.json');
 const e = {};
+
+// SETTING GLOBALS
+global.Promise = require('bluebird');
+global.serverStartTime = new Date();
+global.status = null;
+global.activeRequest = 0;
+// For threads to pick txnId and user headers
+global.userHeader = 'user';
+global.txnIdHeader = 'txnid';
+
+// global.logger = logger;
+global.serviceCache = new NodeCache({ stdTTL: 60, checkperiod: 120, useClones: false });
+global.documentCache = new NodeCache({ stdTTL: 60, checkperiod: 120, useClones: false });
+global.trueBooleanValues = ['y', 'yes', 'true', '1'];
+global.falseBooleanValues = ['n', 'no', 'false', '0'];
+
+e.updateLogger = (additionalLoggerIdentifier) => {
+	let LOGGER_NAME = e.isK8sEnv() ? `[${e.appNamespace}] [${e.hostname}] [${e.serviceName} v.${e.serviceVersion}]` : `[${e.serviceName} v.${e.serviceVersion}]`;
+	if (additionalLoggerIdentifier) LOGGER_NAME += ` [${additionalLoggerIdentifier}]`;
+	global.loggerName = LOGGER_NAME;
+	log4js.configure({
+		appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
+		categories: { default: { appenders: ['out'], level: global.LOG_LEVEL } }
+	});
+	let logger = log4js.getLogger(LOGGER_NAME);
+	global.logger = logger;
+};
 
 e.isK8sEnv = function () {
 	return process.env.KUBERNETES_SERVICE_HOST && process.env.KUBERNETES_SERVICE_PORT;
 };
 
-function parseBoolean(val) {
+e.parseBoolean = val => {
 	if (typeof val === 'boolean') return val;
 	else if (typeof val === 'string') {
 		return val.toLowerCase() === 'true';
 	} else {
 		return false;
 	}
-}
+};
 
 e.hookConnectionTimeout = parseInt(process.env.HOOK_CONNECTION_TIMEOUT) || 30;
-e.mongoUrl = process.env.MONGO_APPCENTER_URL || 'mongodb://localhost';
+e.mongoUrl = process.env.MONGO_APPCENTER_URL || 'mongodb://localhost:27017';
 e.authorDB = process.env.MONGO_AUTHOR_DBNAME || 'datastackConfig';
-e.mongoAuthorUrl = process.env.MONGO_AUTHOR_URL || 'mongodb://localhost';
-e.mongoLogUrl = process.env.MONGO_LOGS_URL || 'mongodb://localhost';
+e.mongoAuthorUrl = process.env.MONGO_AUTHOR_URL || 'mongodb://localhost:27017';
+e.mongoLogUrl = process.env.MONGO_LOGS_URL || 'mongodb://localhost:27017';
 e.logsDB = process.env.MONGO_LOGS_DBNAME || 'datastackLogs';
 e.googleKey = process.env.GOOGLE_API_KEY || '';
 e.queueName = 'webHooks';
@@ -42,7 +72,7 @@ e.mongoAppCenterOptions = {
 	useUnifiedTopology: true,
 	useNewUrlParser: true,
 	minSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
-	dbName: process.env.DATA_STACK_NAMESPACE + '-' + process.env.DATA_STACK_APP
+	dbName: null
 };
 e.mongoLogsOptions = {
 	useUnifiedTopology: true,
@@ -57,30 +87,34 @@ e.transactionOptions = {
 	writeConcern: { w: 'majority' }
 };
 
-e.allowedExt = (process.env.DATA_STACK_ALLOWED_FILE_TYPE ? process.env.DATA_STACK_ALLOWED_FILE_TYPE : 'ppt,xls,csv,doc,jpg,png,apng,gif,webp,flif,cr2,orf,arw,dng,nef,rw2,raf,tif,bmp,jxr,psd,zip,tar,rar,gz,bz2,7z,dmg,mp4,mid,mkv,webm,mov,avi,mpg,mp2,mp3,m4a,oga,ogg,ogv,opus,flac,wav,spx,amr,pdf,epub,exe,swf,rtf,wasm,woff,woff2,eot,ttf,otf,ico,flv,ps,xz,sqlite,nes,crx,xpi,cab,deb,ar,rpm,Z,lz,msi,mxf,mts,blend,bpg,docx,pptx,xlsx,3gp,3g2,jp2,jpm,jpx,mj2,aif,qcp,odt,ods,odp,xml,mobi,heic,cur,ktx,ape,wv,wmv,wma,dcm,ics,glb,pcap,dsf,lnk,alias,voc,ac3,m4v,m4p,m4b,f4v,f4p,f4b,f4a,mie,asf,ogm,ogx,mpc').split(',');
+e.allFileTypes = 'ppt,xls,csv,doc,jpg,png,apng,gif,webp,flif,cr2,orf,arw,dng,nef,rw2,raf,tif,bmp,jxr,psd,zip,tar,rar,gz,bz2,7z,dmg,mp4,mid,mkv,webm,mov,avi,mpg,mp2,mp3,m4a,oga,ogg,ogv,opus,flac,wav,spx,amr,pdf,epub,exe,swf,rtf,wasm,woff,woff2,eot,ttf,otf,ico,flv,ps,xz,sqlite,nes,crx,xpi,cab,deb,ar,rpm,Z,lz,msi,mxf,mts,blend,bpg,docx,pptx,xlsx,3gp,3g2,jp2,jpm,jpx,mj2,aif,qcp,odt,ods,odp,xml,mobi,heic,cur,ktx,ape,wv,wmv,wma,dcm,ics,glb,pcap,dsf,lnk,alias,voc,ac3,m4v,m4p,m4b,f4v,f4p,f4b,f4a,mie,asf,ogm,ogx,mpc'.split(',');
+
 
 e.hostname = process.env.HOSTNAME;
 e.namespace = process.env.DATA_STACK_NAMESPACE || 'appveen';
-e.app = process.env.DATA_STACK_APP || 'Adam';
 e.appNamespace = process.env.DATA_STACK_APP_NS;
-e.servicePort = process.env.SERVICE_PORT;
 e.serviceId = process.env.SERVICE_ID;
-e.serviceName = process.env.SERVICE_NAME;
-e.serviceVersion = process.env.SERVICE_VERSION;
-e.serviceDB = process.env.DATA_STACK_NAMESPACE + '-' + process.env.DATA_STACK_APP;
-e.serviceEndpoint = process.env.SERVICE_ENDPOINT;
-e.serviceCollection = process.env.SERVICE_COLLECTION;
-e.permanentDelete = process.env.PERMANENT_DELETE ? parseBoolean(process.env.PERMANENT_DELETE) : true;
+// POPULATED IN DB-FACTORY
+e.app = null;
+e.serviceName = null;
+e.servicePort = null;
+e.serviceVersion = null;
+e.serviceDB = null;
+e.serviceEndpoint = null;
+e.serviceCollection = null;
+e.permanentDelete = null;
+e.disableInsights = null;
+e.disableAudits = null;
+// ID Config ENV Varaiables
+e.ID_PADDING = null;
+e.ID_PREFIX = null;
+e.ID_SUFFIX = null;
+e.ID_COUNTER = null;
+e.allowedExt = null;
+
 e.MaxJSONSize = process.env.MAX_JSON_SIZE || '1mb';
 e.dataStackDefaultTimezone = process.env.TZ_DEFAULT || 'Zulu';
-e.disableInsights = serviceJSON.disableInsights;
-e.disableAudits = serviceJSON.versionValidity.validityValue == 0;
 
-// ID Config ENV Varaiables
-e.ID_PADDING = process.env.ID_PADDING;
-e.ID_PREFIX = process.env.ID_PREFIX;
-e.ID_SUFFIX = process.env.ID_SUFFIX;
-e.ID_COUNTER = process.env.ID_COUNTER;
 
 e.baseUrlSM = get('sm') + '/sm';
 e.baseUrlNE = get('ne') + '/ne';
@@ -127,7 +161,7 @@ function get(_service) {
 
 e.fileStorage = {
 	storage: process.env.STORAGE_ENGINE || 'GRIDFS',	//GRIDFS/AZURE/GCS/S3
-	'AZURE' : {
+	'AZURE': {
 		'connectionString': process.env.STORAGE_AZURE_CONNECTION_STRING,
 		'container': process.env.STORAGE_AZURE_CONTAINER,
 		'sharedKey': process.env.STORAGE_AZURE_SHARED_KEY,

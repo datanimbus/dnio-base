@@ -58,6 +58,10 @@ function patchRelationInFilter() {
 
 }
 
+function patchRelationInWorkflowFilter() {
+
+}
+
 function expandDocument() {
 
 }
@@ -125,6 +129,7 @@ module.exports.expandDocument = expandDocument;
 module.exports.encryptSecureFields = encryptSecureFields;
 module.exports.decryptSecureFields = decryptSecureFields;
 module.exports.patchRelationInFilter = patchRelationInFilter;
+module.exports.patchRelationInWorkflowFilter = patchRelationInWorkflowFilter;
 module.exports.fixBoolean = fixBoolean;
 module.exports.enrichGeojson = enrichGeojson;
 module.exports.validateDateFields = validateDateFields;
