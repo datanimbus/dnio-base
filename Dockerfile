@@ -1,4 +1,4 @@
-FROM node:14.19.0-alpine3.15
+FROM node:fermium-alpine
 
 WORKDIR /app
 
@@ -12,6 +12,7 @@ RUN set -ex; apk add --no-cache --virtual .fetch-deps curl tar git ;
 RUN npm install -g npm
 RUN npm install --production
 RUN npm audit fix
+RUN rm -rf /usr/local/lib/node_modules/npm/node_modules/node-gyp/test
 
 
 COPY app.js /app
