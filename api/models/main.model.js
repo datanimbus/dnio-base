@@ -271,7 +271,7 @@ schema.post('save', function (doc, next) {
 	const webHookData = {};
 	webHookData._id = newData._id;
 	webHookData.user = req.headers[global.userHeader];
-	webHookData.txnId = req.headers[global.txnIdHeader] || req.headers['txnid'];
+	webHookData.txnId = req.headers[global.txnIdHeader] || req.headers['txnid'] || req.headers['TxnId'];
 	webHookData.new = JSON.parse(JSON.stringify(newData));
 	webHookData.old = JSON.parse(JSON.stringify(oldData));
 	next();

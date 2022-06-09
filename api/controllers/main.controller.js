@@ -1310,7 +1310,7 @@ async function processMathQueue(obj, callback) {
 
 function pushWebHookAndAuditData(req, webHookData) {
 	webHookData.user = req.headers[global.userHeader];
-	webHookData.txnId = req.headers[global.txnIdHeader] || req.headers['txnid'];
+	webHookData.txnId = req.headers[global.txnIdHeader] || req.headers['txnid'] || req.headers['TxnId'];
 	hooksUtils.prepPostHooks(JSON.parse(JSON.stringify(webHookData)));
 	if (!config.disableAudits) {
 		let auditData = {};
