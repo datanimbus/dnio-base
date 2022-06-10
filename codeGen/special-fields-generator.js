@@ -749,40 +749,79 @@ function genrateCode(config) {
 			const path = parentKey ? parentKey + '.' + key : key;
 			if (key != '_id' && def.properties) {
 				if (def.properties.password && def.type != 'Array') {
-					code.push(`\tlet ${_.camelCase(path + '.value')}New = _.get(newData, '${path}.value')`);
-					code.push(`\tlet ${_.camelCase(path + '.value')}Old = _.get(oldData, '${path}.value')`);
-					code.push(`\tif (${_.camelCase(path + '.value')}New && ${_.camelCase(path + '.value')}New != ${_.camelCase(path + '.value')}Old) {`);
-					code.push('\t\ttry {');
-					code.push(`\t\t\tconst doc = await commonUtils.encryptText(req, ${_.camelCase(path + '.value')}New);`);
-					code.push('\t\t\tif (doc) {');
-					code.push(`\t\t\t\t_.set(newData, '${path}', doc);`);
-					code.push('\t\t\t}');
-					code.push('\t\t} catch (e) {');
-					code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
-					code.push('\t\t}');
-					code.push('\t}');
+					if (def.properties.longText || def.properties.richText) {
+						code.push(`\tlet ${_.camelCase(path)}New = _.get(newData, '${path}')`);
+						code.push(`\tlet ${_.camelCase(path)}Old = _.get(oldData, '${path}')`);
+						code.push(`\tif (${_.camelCase(path)}New && ${_.camelCase(path)}New != ${_.camelCase(path)}Old) {`);
+						code.push('\t\ttry {');
+						code.push(`\t\t\tconst doc = await commonUtils.encryptText(req, ${_.camelCase(path)}New);`);
+						code.push('\t\t\tif (doc && doc.value) {');
+						code.push(`\t\t\t\t_.set(newData, '${path}', doc.value);`);
+						code.push('\t\t\t}');
+						code.push('\t\t} catch (e) {');
+						code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
+						code.push('\t\t}');
+						code.push('\t}');
+					} else if (!def.properties.fileType) {
+						code.push(`\tlet ${_.camelCase(path + '.value')}New = _.get(newData, '${path}.value')`);
+						code.push(`\tlet ${_.camelCase(path + '.value')}Old = _.get(oldData, '${path}.value')`);
+						code.push(`\tif (${_.camelCase(path + '.value')}New && ${_.camelCase(path + '.value')}New != ${_.camelCase(path + '.value')}Old) {`);
+						code.push('\t\ttry {');
+						code.push(`\t\t\tconst doc = await commonUtils.encryptText(req, ${_.camelCase(path + '.value')}New);`);
+						code.push('\t\t\tif (doc) {');
+						code.push(`\t\t\t\t_.set(newData, '${path}', doc);`);
+						code.push('\t\t\t}');
+						code.push('\t\t} catch (e) {');
+						code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
+						code.push('\t\t}');
+						code.push('\t}');	
+					}
 				} else if (def.type == 'Object') {
 					parseSchemaForEncryption(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].properties.password) {
-						code.push(`\tlet ${_.camelCase(path)}New = _.get(newData, '${path}') || [];`);
-						code.push(`\tlet ${_.camelCase(path)}Old = _.get(oldData, '${path}') || [];`);
-						code.push(`\tif (${_.camelCase(path)}New && Array.isArray(${_.camelCase(path)}New) && ${_.camelCase(path)}New.length > 0) {`);
-						code.push(`\t\tlet promises = ${_.camelCase(path)}New.map(async (item, i) => {`);
-						code.push('\t\t\ttry {');
-						code.push(`\t\t\t\tif (item && item.value && !${_.camelCase(path)}Old.find(e => e.value == item.value)) {`);
-						code.push('\t\t\t\t\tconst doc = await commonUtils.encryptText(req, item.value);');
-						code.push('\t\t\t\t\tif (doc) {');
-						code.push('\t\t\t\t\t\t_.assign(item, doc);');
-						code.push('\t\t\t\t\t}');
-						code.push('\t\t\t\t}');
-						code.push('\t\t\t} catch (e) {');
-						code.push(`\t\t\t\terrors['${path}.' + i] = e.message ? e.message : e;`);
-						code.push('\t\t\t}');
-						code.push('\t\t});');
-						code.push('\t\tpromises = await Promise.all(promises);');
-						code.push('\t\tpromises = null;');
-						code.push('\t}');
+						if (def.properties.longText || def.properties.richText) {
+							code.push(`\tlet ${_.camelCase(path)}New = _.get(newData, '${path}') || [];`);
+							code.push(`\tlet ${_.camelCase(path)}Old = _.get(oldData, '${path}') || [];`);
+							code.push(`\tif (${_.camelCase(path)}New && Array.isArray(${_.camelCase(path)}New) && ${_.camelCase(path)}New.length > 0) {`);
+							code.push(`\t\tlet promises = ${_.camelCase(path)}New.map(async (item, i) => {`);
+							code.push('\t\t\ttry {');
+							code.push(`\t\t\t\tif (item && !${_.camelCase(path)}Old.find(e => e == item)) {`);
+							code.push('\t\t\t\t\tconst doc = await commonUtils.encryptText(req, item);');
+							code.push('\t\t\t\t\tif (doc && doc.value) {');
+							code.push('\t\t\t\t\t\treturn doc.value;');
+							code.push('\t\t\t\t\t}');
+							code.push('\t\t\t\t} else {');
+							code.push('\t\t\t\t\treturn item;');
+							code.push('\t\t\t\t}');
+							code.push('\t\t\t} catch (e) {');
+							code.push(`\t\t\t\terrors['${path}.' + i] = e.message ? e.message : e;`);
+							code.push('\t\t\t}');
+							code.push('\t\t});');
+							code.push('\t\tpromises = await Promise.all(promises);');
+							code.push(`\t\t_.set(newData, '${path}', promises);`);
+							code.push('\t\tpromises = null;');
+							code.push('\t}');
+						} else if (!def.properties.fileType) {
+							code.push(`\tlet ${_.camelCase(path)}New = _.get(newData, '${path}') || [];`);
+							code.push(`\tlet ${_.camelCase(path)}Old = _.get(oldData, '${path}') || [];`);
+							code.push(`\tif (${_.camelCase(path)}New && Array.isArray(${_.camelCase(path)}New) && ${_.camelCase(path)}New.length > 0) {`);
+							code.push(`\t\tlet promises = ${_.camelCase(path)}New.map(async (item, i) => {`);
+							code.push('\t\t\ttry {');
+							code.push(`\t\t\t\tif (item && item.value && !${_.camelCase(path)}Old.find(e => e.value == item.value)) {`);
+							code.push('\t\t\t\t\tconst doc = await commonUtils.encryptText(req, item.value);');
+							code.push('\t\t\t\t\tif (doc) {');
+							code.push('\t\t\t\t\t\t_.assign(item, doc);');
+							code.push('\t\t\t\t\t}');
+							code.push('\t\t\t\t}');
+							code.push('\t\t\t} catch (e) {');
+							code.push(`\t\t\t\terrors['${path}.' + i] = e.message ? e.message : e;`);
+							code.push('\t\t\t}');
+							code.push('\t\t});');
+							code.push('\t\tpromises = await Promise.all(promises);');
+							code.push('\t\tpromises = null;');
+							code.push('\t}');
+						}
 					} else if (def.definition[0].type == 'Object') {
 						code.push(`\tlet ${_.camelCase(path)}New = _.get(newData, '${path}') || [];`);
 						code.push(`\tlet ${_.camelCase(path)}Old = _.get(oldData, '${path}') || [];`);
@@ -806,46 +845,81 @@ function genrateCode(config) {
 			const path = parentKey ? parentKey + '.' + key : key;
 			if (key != '_id' && def.properties) {
 				if (def.properties.password && def.type != 'Array') {
-					code.push(`\tlet ${_.camelCase(path + '.value')} = _.get(newData, '${path}.value')`);
-					code.push(`\tif (${_.camelCase(path + '.value')}) {`);
-					code.push('\t\ttry {');
-					code.push(`\t\t\tconst doc = await commonUtils.decryptText(req, ${_.camelCase(path + '.value')});`);
-					code.push('\t\t\tif (doc) {');
-					code.push('\t\t\t\tif(req.query && req.query.forFile) {');
-					code.push(`\t\t\t\t\t_.set(newData, '${path}', doc);`);
-					code.push('\t\t\t\t} else {');
-					code.push(`\t\t\t\t\t_.set(newData, '${path}.value', doc);`);
-					code.push('\t\t\t\t}');
-					code.push('\t\t\t}');
-					code.push('\t\t} catch (e) {');
-					code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
-					code.push('\t\t}');
-					code.push('\t}');
+					if (def.properties.richText || def.properties.longText) {
+						code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}')`);
+						code.push(`\tif (${_.camelCase(path)}) {`);
+						code.push('\t\ttry {');
+						code.push(`\t\t\tconst doc = await commonUtils.decryptText(req, ${_.camelCase(path)});`);
+						code.push('\t\t\tif (doc) {');
+						code.push(`\t\t\t\t\t_.set(newData, '${path}', doc);`);
+						code.push('\t\t\t}');
+						code.push('\t\t} catch (e) {');
+						code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
+						code.push('\t\t}');
+						code.push('\t}');
+					} else if (!def.properties.fileType) {
+						code.push(`\tlet ${_.camelCase(path + '.value')} = _.get(newData, '${path}.value')`);
+						code.push(`\tif (${_.camelCase(path + '.value')}) {`);
+						code.push('\t\ttry {');
+						code.push(`\t\t\tconst doc = await commonUtils.decryptText(req, ${_.camelCase(path + '.value')});`);
+						code.push('\t\t\tif (doc) {');
+						code.push('\t\t\t\tif(req.query && req.query.forFile) {');
+						code.push(`\t\t\t\t\t_.set(newData, '${path}', doc);`);
+						code.push('\t\t\t\t} else {');
+						code.push(`\t\t\t\t\t_.set(newData, '${path}.value', doc);`);
+						code.push('\t\t\t\t}');
+						code.push('\t\t\t}');
+						code.push('\t\t} catch (e) {');
+						code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
+						code.push('\t\t}');
+						code.push('\t}');
+					}
 				} else if (def.type == 'Object') {
 					parseSchemaForDecryption(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].properties.password) {
-						code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}') || [];`);
-						code.push(`\tif (${_.camelCase(path)} && Array.isArray(${_.camelCase(path)}) && ${_.camelCase(path)}.length > 0) {`);
-						code.push(`\t\tlet promises = ${_.camelCase(path)}.map(async (item, i) => {`);
-						code.push('\t\t\ttry {');
-						code.push('\t\t\t\tif (item && item.value) {');
-						code.push('\t\t\t\t\tconst doc = await commonUtils.decryptText(req, item.value);');
-						code.push('\t\t\t\t\tif (doc) {');
-						code.push('\t\t\t\t\t\tif (req.query && req.query.forFile) {');
-						code.push('\t\t\t\t\t\t\titem = doc;');
-						code.push('\t\t\t\t\t\t} else {');
-						code.push('\t\t\t\t\t\t\titem.value = doc;');
-						code.push('\t\t\t\t\t\t}');
-						code.push('\t\t\t\t\t}');
-						code.push('\t\t\t\t}');
-						code.push('\t\t\t} catch (e) {');
-						code.push(`\t\t\t\terrors['${path}.' + i] = e.message ? e.message : e;`);
-						code.push('\t\t\t}');
-						code.push('\t\t});');
-						code.push('\t\tpromises = await Promise.all(promises);');
-						code.push('\t\tpromises = null;');
-						code.push('\t}');
+						if (def.properties.richText || def.properties.longText) {
+							code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}') || [];`);
+							code.push(`\tif (${_.camelCase(path)} && Array.isArray(${_.camelCase(path)}) && ${_.camelCase(path)}.length > 0) {`);
+							code.push(`\t\tlet promises = ${_.camelCase(path)}.map(async (item, i) => {`);
+							code.push('\t\t\ttry {');
+							code.push('\t\t\t\tif (item) {');
+							code.push('\t\t\t\t\tconst doc = await commonUtils.decryptText(req, item);');
+							code.push('\t\t\t\t\tif (doc) {');
+							code.push('\t\t\t\t\t\t\treturn doc;');
+							code.push('\t\t\t\t\t}');
+							code.push('\t\t\t\t}');
+							code.push('\t\t\t} catch (e) {');
+							code.push(`\t\t\t\terrors['${path}.' + i] = e.message ? e.message : e;`);
+							code.push('\t\t\t}');
+							code.push('\t\t});');
+							code.push('\t\tpromises = await Promise.all(promises);');
+							// code.push(`\t\t_.set(newData, '${path}', promises);`);
+							code.push('\t\tpromises = null;');
+							code.push('\t}');
+						} else if (!def.properties.fileType) {
+							code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}') || [];`);
+							code.push(`\tif (${_.camelCase(path)} && Array.isArray(${_.camelCase(path)}) && ${_.camelCase(path)}.length > 0) {`);
+							code.push(`\t\tlet promises = ${_.camelCase(path)}.map(async (item, i) => {`);
+							code.push('\t\t\ttry {');
+							code.push('\t\t\t\tif (item && item.value) {');
+							code.push('\t\t\t\t\tconst doc = await commonUtils.decryptText(req, item.value);');
+							code.push('\t\t\t\t\tif (doc) {');
+							code.push('\t\t\t\t\t\tif (req.query && req.query.forFile) {');
+							code.push('\t\t\t\t\t\t\titem = doc;');
+							code.push('\t\t\t\t\t\t} else {');
+							code.push('\t\t\t\t\t\t\titem.value = doc;');
+							code.push('\t\t\t\t\t\t}');
+							code.push('\t\t\t\t\t}');
+							code.push('\t\t\t\t}');
+							code.push('\t\t\t} catch (e) {');
+							code.push(`\t\t\t\terrors['${path}.' + i] = e.message ? e.message : e;`);
+							code.push('\t\t\t}');
+							code.push('\t\t});');
+							code.push('\t\tpromises = await Promise.all(promises);');
+							code.push('\t\tpromises = null;');
+							code.push('\t}');
+						}
 					} else if (def.definition[0].type == 'Object') {
 						code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}') || [];`);
 						code.push(`\tif (${_.camelCase(path)} && Array.isArray(${_.camelCase(path)}) && ${_.camelCase(path)}.length > 0) {`);
