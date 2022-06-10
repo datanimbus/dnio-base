@@ -820,7 +820,7 @@ async function reject(req, res) {
 async function decryptAndExpandWFItems(wfItems, req) {
 	if (wfItems && Array.isArray(wfItems)) {
 		// Decrypting secured fields
-		if (specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
+		if (specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0] && req.query.decrypt == true) {
 			let promises = [];
 			wfItems.forEach(e => {
 				if (e && e.data && e.data.old)
