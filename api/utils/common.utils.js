@@ -861,7 +861,7 @@ function decryptData(data, nestedKey, forFile) {
 							data[keys[0]].value = _d;
 						return data;
 					});
-			} if (data[keys[0]] && typeof data[keys[0]] == 'string') {
+			} else if (data[keys[0]] && typeof data[keys[0]] == 'string') {
 				return decryptText(data[keys[0]])
 					.then(_d => {
 						data[keys[0]] = _d;
