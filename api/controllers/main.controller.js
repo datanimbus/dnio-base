@@ -492,7 +492,7 @@ router.get('/', (req, res) => {
 					specialFields.secureFields &&
 					specialFields.secureFields.length &&
 					specialFields.secureFields[0] &&
-					req.query.decrypt == true
+					(req.query.decrypt == true || req.query.decrypt == 'true')
 				) {
 					let promises = docs.map((e) =>
 						specialFields.decryptSecureFields(req, e, null)
@@ -549,7 +549,7 @@ router.get('/:id', (req, res) => {
 					specialFields.secureFields &&
 					specialFields.secureFields.length &&
 					specialFields.secureFields[0] &&
-					req.query.decrypt == true
+					(req.query.decrypt == true || req.query.decrypt == 'true')
 				) {
 					await specialFields.decryptSecureFields(req, doc, null);
 				}
