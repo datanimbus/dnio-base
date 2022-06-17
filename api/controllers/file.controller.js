@@ -3,9 +3,11 @@ const uuid = require('uuid/v1');
 const log4js = require('log4js');
 const mongoose = require('mongoose');
 const moment = require('moment');
+const commonUtils = require('../utils/common.utils');
 const storageEngine = require('@appveen/data.stack-utils').storageEngine;
 
 const fs = require('fs');
+const path = require('path');
 const crypto = require('crypto');
 
 const config = require('../../config');
@@ -66,10 +68,12 @@ router.get('/download/:id', (req, res) => {
 		try {
 			const id = req.params.id;
 			const storage = config.fileStorage.storage;
+			const encryptionKey =  req.query.encryptionKey;
 			let txnId = req.get('txnid');
 
 			logger.debug(`[${txnId}] File download request received for id ${id}`);
 			logger.debug(`[${txnId}] Storage Enigne - ${storage}`);
+			logger.debug(`[${txnId}] Encryption Key - ${encryptionKey}`);
 
 			if (storage === 'GRIDFS') {
 				let file;
@@ -84,15 +88,45 @@ router.get('/download/:id', (req, res) => {
 				}
 				res.set('Content-Type', file.contentType);
 				res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
-				const readstream = global.gfsBucket.openDownloadStream(file._id);
-				readstream.on('error', function (err) {
-					logger.error(`[${txnId}] Error streaming file - ${err}`);
-					return res.end();
-				});
-				readstream.pipe(res);
 
+				if (encryptionKey) {
+					const readstream = global.gfsBucket.openDownloadStream(file._id);
+					readstream.on('error', function (err) {
+						logger.error(`[${txnId}] Error streaming file - ${err}`);
+						return res.end();
+					});
+					let bufferData = Buffer.from();
+					let dataString;
+					
+					readstream.on('data', function (data) {
+						bufferData.push(data);
+					});
+					readstream.on('end', function() {
+						dataString = bufferData.toString();
+
+						let tmpFilePath = path.join(process.cwd(), 'tmp', file._id);
+						let writeStream = fs.createWriteStream(tmpFilePath);
+						
+						writeStream.write(dataString);
+						writeStream.on('end', async function () {
+	
+							await commonUtils.decryptFile({ path: tmpFilePath, filename: id}, encryptionKey);
+
+							let tmpReadStream = fs.createReadStream(tmpFilePath);
+							tmpReadStream.pipe(res);
+						});
+					});
+				} else {
+					const readstream = global.gfsBucket.openDownloadStream(file._id);
+					readstream.on('error', function (err) {
+						logger.error(`[${txnId}] Error streaming file - ${err}`);
+						return res.end();
+					});
+					
+					readstream.pipe(res);
+				}
 			} else if (storage === 'AZURE') {
-				return await downloadFileFromAzure(id, storage, txnId, res);
+				return await downloadFileFromAzure(id, storage, txnId, res, encryptionKey);
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
 				throw new Error(`External Storage ${storage} not allowed`);
@@ -119,15 +153,26 @@ router.post('/upload', (req, res) => {
 			let txnId = req.get('txnid');
 			const sampleFile = req.file;
 			const filename = sampleFile.originalname;
+			const encryptionKey =  req.query.encryptionKey;
 
 			logger.debug(`[${txnId}] File upload request received - ${filename}`);
 			logger.debug(`[${txnId}] Storage Enigne - ${config.fileStorage.storage}`);
+			logger.debug(`[${txnId}] Encryption Key - ${encryptionKey}`);
+
+			if (encryptionKey) {
+				try {
+					await commonUtils.encryptFile(sampleFile, encryptionKey);
+				} catch (err) {
+					logger.error(`[${txnId}] Error requesting Security service`, err);
+					throw err;
+				}
+			}
 
 			if (storage === 'GRIDFS') {
 				fs.createReadStream(sampleFile.path).
 					pipe(global.gfsBucket.openUploadStream(crypto.createHash('md5').update(uuid() + global.serverStartTime).digest('hex'), {
 						contentType: sampleFile.mimetype,
-						metadata: { filename }
+						metadata: { filename, encrypted: encryptionKey ? true : false }
 					})).
 					on('error', function (error) {
 						logger.error(`[${txnId}] Error uploading file - ${error}`);
@@ -145,7 +190,7 @@ router.post('/upload', (req, res) => {
 
 			} else if (storage === 'AZURE') {
 				try {
-					let file = await createFileObject(req.file);
+					let file = await createFileObject(req.file, encryptionKey);
 
 					logger.trace(`[${txnId}] File object details - ${JSON.stringify(file)}`);
 
@@ -194,7 +239,7 @@ router.post('/upload', (req, res) => {
 	});
 });
 
-async function downloadFileFromAzure(id, storage, txnId, res) {
+async function downloadFileFromAzure(id, storage, txnId, res, encryptionKey) {
 	try {
 		let file = await mongoose.model('files').findOne({ filename: id });
 
@@ -213,11 +258,30 @@ async function downloadFileFromAzure(id, storage, txnId, res) {
 		data.sharedKey = config.fileStorage[storage].sharedKey;
 		data.timeout = config.fileStorage[storage].timeout;
 
-		let downloadUrl = await storageEngine.azureBlob.downloadFileLink(data);
+		if (encryptionKey) {
+			let bufferData = await storageEngine.azureBlob.downloadFileBuffer(data);
 
-		logger.debug(`[${txnId}] Redirecting response to Azure download link`);
+			res.set('Content-Type', file.contentType);
+			res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
+			
+			let tmpFilePath = path.join(process.cwd(), 'tmp', file._id);
+			let writeStream = fs.createWriteStream(tmpFilePath);
+						
+			writeStream.write(bufferData.toString());
+			writeStream.on('end', async function () {
+	
+				await commonUtils.decryptFile({ path: tmpFilePath, filename: id}, encryptionKey);
 
-		return res.redirect(downloadUrl);
+				let tmpReadStream = fs.createReadStream(tmpFilePath);
+				tmpReadStream.pipe(res);
+			});
+		} else {
+			let downloadUrl = await storageEngine.azureBlob.downloadFileLink(data);
+
+			logger.debug(`[${txnId}] Redirecting response to Azure download link`);
+	
+			return res.redirect(downloadUrl);
+		}
 	} catch (err) {
 		logger.error(`[${txnId}] Error downloading file - ${err.message}`);
 		return res.end();
@@ -225,7 +289,7 @@ async function downloadFileFromAzure(id, storage, txnId, res) {
 }
 
 // Read a request file object and convert to ds file object format
-async function createFileObject(file) {
+async function createFileObject(file, encryptionKey) {
 	let fileObj = {};
 	fileObj.length = file.size;
 	fileObj.uploadDate = moment().format('YYYY-MM-DDTHH:mm:ss');
@@ -233,6 +297,7 @@ async function createFileObject(file) {
 	fileObj.contentType = file.mimetype;
 	fileObj.metadata = { filename: file.originalname };
 	fileObj.md5 = await createMD5Hash(file);
+	fileObj.encrypted = encryptionKey ? true : false;
 
 	return fileObj;
 }

@@ -8,6 +8,14 @@ const { Worker } = require('worker_threads');
 
 const logger = log4js.getLogger(global.loggerName);
 
+async function encryptFile(file, encryptionKey) {
+	return await executeFileCipher(null, 'encrypt', file, encryptionKey);
+}
+
+async function decryptFile(file, encryptionKey) {
+	return await executeFileCipher(null, 'decrypt', file, encryptionKey);
+}
+
 async function encryptText(data) {
 	return await executeCipher(null, 'encrypt', data);
 }
@@ -62,6 +70,45 @@ function executeCipher(txnId, action, text) {
 	});
 }
 
+
+/**
+ * 
+ * @param {string} txnId The txnId of the current request
+ * @param {string} text The text data to send in thread for encryption/decryption
+ */
+ function executeFileCipher(txnId, action, file, encryptionKey) {
+	logger.debug(`[${txnId}] Exec. thread :: file-cipher`);
+	return new Promise((resolve, reject) => {
+		let responseSent = false;
+		const filePath = path.join(process.cwd(), 'api/threads', 'file-cipher.js');
+		if (!fs.existsSync(filePath)) {
+			logger.error(`[${txnId}] Exec. thread :: file-cipher :: INVALID_FILE`);
+			return reject(new Error('INVALID_FILE'));
+		}
+		const worker = new Worker(filePath, {
+			workerData: {
+				file,
+				encryptionKey,
+				action
+			}
+		});
+		worker.on('message', function (data) {
+			responseSent = true;
+			worker.terminate();
+			resolve(data);
+		});
+		worker.on('error', reject);
+		worker.on('exit', code => {
+			if (!responseSent) {
+				logger.error(`[${txnId}] Exec. thread :: file-cipher :: Worker stopped with exit code ${code}`);
+				reject(new Error(`Worker stopped with exit code ${code}`));
+			}
+		});
+	});
+}
+
+module.exports.encryptFile = encryptFile;
+module.exports.decryptFile = decryptFile;
 module.exports.encryptText = encryptText;
 module.exports.decryptText = decryptText;
 module.exports.md5 = md5;
