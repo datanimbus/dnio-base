@@ -254,6 +254,37 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 // 	}
 // }
 
+/**
+ * 
+ * @param {*} file The File to encrypt
+ * @param {*} encryptionKey The key to encrypt with
+ */
+async function encryptFile(file, encryptionKey) {
+	try {
+		const res = await secUtils.encryptFile(file, encryptionKey);
+		return res.body.data;
+	} catch (e) {
+		logger.error('Error requesting Security service', e);
+		throw e;
+	}
+}
+
+
+/**
+ * 
+ * @param {*} file The File to decrypt
+ * @param {*} encryptionKey The key to decrypt with
+ */
+async function decryptFile(file, encryptionKey) {
+	try {
+		const res = await secUtils.decryptFile(file, encryptionKey);
+		return res.body.data;
+	} catch (e) {
+		logger.error('Error requesting Security service', e);
+		throw e;
+	}
+}
+
 
 /**
  * 
@@ -1079,6 +1110,8 @@ function removeNullForUniqueAttribute(obj, key) {
 e.getDocumentIds = getDocumentIds;
 e.getServiceDoc = getServiceDoc;
 e.getUserDoc = getUserDoc;
+e.encryptFile = encryptFile;
+e.decryptFile = decryptFile;
 e.encryptText = encryptText;
 e.decryptText = decryptText;
 e.getGeoDetails = getGeoDetails;
