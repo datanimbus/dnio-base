@@ -68,7 +68,7 @@ router.get('/download/:id', (req, res) => {
 		try {
 			const id = req.params.id;
 			const storage = config.fileStorage.storage;
-			const encryptionKey =  req.query.encryptionKey;
+			const encryptionKey = req.query.encryptionKey;
 			let txnId = req.get('txnid');
 
 			logger.debug(`[${txnId}] File download request received for id ${id}`);
@@ -86,43 +86,54 @@ router.get('/download/:id', (req, res) => {
 				if (!file) {
 					return res.status(400).json({ message: 'File not found' });
 				}
-				res.set('Content-Type', file.contentType);
-				res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
+				// res.set('Content-Type', file.contentType);
+				// res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
 
 				if (encryptionKey) {
+					let dataString = '';
 					const readstream = global.gfsBucket.openDownloadStream(file._id);
 					readstream.on('error', function (err) {
 						logger.error(`[${txnId}] Error streaming file - ${err}`);
 						return res.end();
 					});
-					let bufferData = Buffer.from();
-					let dataString;
-					
+
 					readstream.on('data', function (data) {
-						bufferData.push(data);
+						if (data)
+							dataString += Buffer.from(data).toString();
 					});
-					readstream.on('end', function() {
-						dataString = bufferData.toString();
 
-						let tmpFilePath = path.join(process.cwd(), 'tmp', file._id);
-						let writeStream = fs.createWriteStream(tmpFilePath);
-						
-						writeStream.write(dataString);
-						writeStream.on('end', async function () {
-	
-							await commonUtils.decryptFile({ path: tmpFilePath, filename: id}, encryptionKey);
+					readstream.on('end', async function () {
+						let tmpDirPath = path.join(process.cwd(), 'tmp');
+						let tmpFilePath = path.join(process.cwd(), 'tmp', id);
 
-							let tmpReadStream = fs.createReadStream(tmpFilePath);
-							tmpReadStream.pipe(res);
-						});
+						if (!fs.existsSync(tmpDirPath)) {
+							fs.mkdirSync(tmpDirPath);
+						}
+						fs.writeFileSync(tmpFilePath, dataString);
+
+						await commonUtils.decryptFile({ path: tmpFilePath, filename: id }, encryptionKey);
+
+						res.set('Content-Type', file.contentType);
+						res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
+
+						let tmpReadStream = fs.createReadStream(tmpFilePath);
+						tmpReadStream.on('error', function (err) {
+							logger.error(`[${txnId}] Error streaming file - ${err}`);
+							return res.end();
+						})
+
+						tmpReadStream.pipe(res);
 					});
 				} else {
+					res.set('Content-Type', file.contentType);
+					res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
+
 					const readstream = global.gfsBucket.openDownloadStream(file._id);
 					readstream.on('error', function (err) {
 						logger.error(`[${txnId}] Error streaming file - ${err}`);
 						return res.end();
 					});
-					
+
 					readstream.pipe(res);
 				}
 			} else if (storage === 'AZURE') {
@@ -153,7 +164,7 @@ router.post('/upload', (req, res) => {
 			let txnId = req.get('txnid');
 			const sampleFile = req.file;
 			const filename = sampleFile.originalname;
-			const encryptionKey =  req.query.encryptionKey;
+			const encryptionKey = req.query.encryptionKey;
 
 			logger.debug(`[${txnId}] File upload request received - ${filename}`);
 			logger.debug(`[${txnId}] Storage Enigne - ${config.fileStorage.storage}`);
@@ -209,7 +220,7 @@ router.post('/upload', (req, res) => {
 					let resp = await mongoose.model('files').create(file);
 
 					file._id = resp._id;
-					
+
 					logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
 
 					return res.status(200).json(file);
@@ -263,14 +274,14 @@ async function downloadFileFromAzure(id, storage, txnId, res, encryptionKey) {
 
 			res.set('Content-Type', file.contentType);
 			res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
-			
+
 			let tmpFilePath = path.join(process.cwd(), 'tmp', file._id);
 			let writeStream = fs.createWriteStream(tmpFilePath);
-						
+
 			writeStream.write(bufferData.toString());
 			writeStream.on('end', async function () {
-	
-				await commonUtils.decryptFile({ path: tmpFilePath, filename: id}, encryptionKey);
+
+				await commonUtils.decryptFile({ path: tmpFilePath, filename: id }, encryptionKey);
 
 				let tmpReadStream = fs.createReadStream(tmpFilePath);
 				tmpReadStream.pipe(res);
@@ -279,7 +290,7 @@ async function downloadFileFromAzure(id, storage, txnId, res, encryptionKey) {
 			let downloadUrl = await storageEngine.azureBlob.downloadFileLink(data);
 
 			logger.debug(`[${txnId}] Redirecting response to Azure download link`);
-	
+
 			return res.redirect(downloadUrl);
 		}
 	} catch (err) {

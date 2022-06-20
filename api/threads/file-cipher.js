@@ -15,14 +15,14 @@ try {
 	let fileData = fs.readFileSync(file.path);
 
 	switch (action) {
-	case 'encrypt': {
-        resultData = encrypt(fileData, encryptionKey);
-        break;
-	}
-	case 'decrypt': {
-		resultData = decrypt(fileData, encryptionKey);
-		break;
-	}
+		case 'encrypt': {
+			resultData = encrypt(fileData, encryptionKey);
+			break;
+		}
+		case 'decrypt': {
+			resultData = decrypt(fileData.toString(), encryptionKey);
+			break;
+		}
 	}
 
 	fs.writeFileSync(file.path, resultData);

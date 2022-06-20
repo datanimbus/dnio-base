@@ -76,7 +76,7 @@ function executeCipher(txnId, action, text) {
  * @param {string} txnId The txnId of the current request
  * @param {string} text The text data to send in thread for encryption/decryption
  */
- function executeFileCipher(txnId, action, file, encryptionKey) {
+function executeFileCipher(txnId, action, file, encryptionKey) {
 	logger.debug(`[${txnId}] Exec. thread :: file-cipher`);
 	return new Promise((resolve, reject) => {
 		let responseSent = false;
