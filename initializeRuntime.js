@@ -52,7 +52,7 @@ module.exports = async (app) => {
 		}
 	});
 
-	app.use(AuthCacheMW({ secret: config.TOKEN_SECRET, decodeOnly: true, app: config.app }));
+	app.use(AuthCacheMW({ secret: config.RBAC_JWT_KEY, decodeOnly: true, app: config.app }));
 
 	app.use(function (req, res, next) {
 		let allowedExt = config.allowedExt || [];
