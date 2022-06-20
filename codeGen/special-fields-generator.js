@@ -780,7 +780,7 @@ function genrateCode(config) {
 					parseSchemaForEncryption(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].properties.password) {
-						if (def.properties.longText || def.properties.richText) {
+						if (def.definition[0].properties.longText || def.definition[0].properties.richText) {
 							code.push(`\tlet ${_.camelCase(path)}New = _.get(newData, '${path}') || [];`);
 							code.push(`\tlet ${_.camelCase(path)}Old = _.get(oldData, '${path}') || [];`);
 							code.push(`\tif (${_.camelCase(path)}New && Array.isArray(${_.camelCase(path)}New) && ${_.camelCase(path)}New.length > 0) {`);
@@ -802,7 +802,7 @@ function genrateCode(config) {
 							code.push(`\t\t_.set(newData, '${path}', promises);`);
 							code.push('\t\tpromises = null;');
 							code.push('\t}');
-						} else if (!def.properties.fileType) {
+						} else if (!def.definition[0].properties.fileType) {
 							code.push(`\tlet ${_.camelCase(path)}New = _.get(newData, '${path}') || [];`);
 							code.push(`\tlet ${_.camelCase(path)}Old = _.get(oldData, '${path}') || [];`);
 							code.push(`\tif (${_.camelCase(path)}New && Array.isArray(${_.camelCase(path)}New) && ${_.camelCase(path)}New.length > 0) {`);
@@ -878,7 +878,7 @@ function genrateCode(config) {
 					parseSchemaForDecryption(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].properties.password) {
-						if (def.properties.richText || def.properties.longText) {
+						if (def.definition[0].properties.richText || def.definition[0].properties.longText) {
 							code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}') || [];`);
 							code.push(`\tif (${_.camelCase(path)} && Array.isArray(${_.camelCase(path)}) && ${_.camelCase(path)}.length > 0) {`);
 							code.push(`\t\tlet promises = ${_.camelCase(path)}.map(async (item, i) => {`);
@@ -894,10 +894,10 @@ function genrateCode(config) {
 							code.push('\t\t\t}');
 							code.push('\t\t});');
 							code.push('\t\tpromises = await Promise.all(promises);');
-							// code.push(`\t\t_.set(newData, '${path}', promises);`);
+							code.push(`\t\t_.set(newData, '${path}', promises);`);
 							code.push('\t\tpromises = null;');
 							code.push('\t}');
-						} else if (!def.properties.fileType) {
+						} else if (!def.definition[0].properties.fileType) {
 							code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}') || [];`);
 							code.push(`\tif (${_.camelCase(path)} && Array.isArray(${_.camelCase(path)}) && ${_.camelCase(path)}.length > 0) {`);
 							code.push(`\t\tlet promises = ${_.camelCase(path)}.map(async (item, i) => {`);

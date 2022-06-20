@@ -268,7 +268,8 @@ async function downloadFileFromAzure(id, storage, txnId, res, encryptionKey) {
 		data.containerName = config.fileStorage[storage].container;
 		data.sharedKey = config.fileStorage[storage].sharedKey;
 		data.timeout = config.fileStorage[storage].timeout;
-
+		data.fileName =  id;
+		
 		if (encryptionKey) {
 			let bufferData = await storageEngine.azureBlob.downloadFileBuffer(data);
 
@@ -306,9 +307,11 @@ async function createFileObject(file, encryptionKey) {
 	fileObj.uploadDate = moment().format('YYYY-MM-DDTHH:mm:ss');
 	fileObj.filename = file.filename + '.' + file.originalname.split('.').pop();
 	fileObj.contentType = file.mimetype;
-	fileObj.metadata = { filename: file.originalname };
+	fileObj.metadata = { 
+		filename: file.originalname,
+		encrypted: encryptionKey ? true : false
+	};
 	fileObj.md5 = await createMD5Hash(file);
-	fileObj.encrypted = encryptionKey ? true : false;
 
 	return fileObj;
 }
