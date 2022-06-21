@@ -869,7 +869,8 @@ function decryptData(data, nestedKey, forFile) {
 		if (data[keys[0]]) {
 			if (Array.isArray(data[keys[0]])) {
 				let promises = data[keys[0]].map(_d => {
-					return decryptText(_d.value)
+					if (_d.value) {
+						return decryptText(_d.value)
 						.then(_decrypted => {
 							if (forFile)
 								_d = _decrypted;
@@ -877,6 +878,14 @@ function decryptData(data, nestedKey, forFile) {
 								_d.value = _decrypted;
 							return _d;
 						});
+					} else {
+						return decryptText(_d)
+						.then(_decrypted => {
+							_d = _decrypted;
+							
+							return _d;
+						});
+					}
 				});
 				return Promise.all(promises)
 					.then(_d => {

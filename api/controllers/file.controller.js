@@ -75,6 +75,11 @@ router.get('/download/:id', (req, res) => {
 			logger.debug(`[${txnId}] Storage Enigne - ${storage}`);
 			logger.debug(`[${txnId}] Encryption Key - ${encryptionKey}`);
 
+			let tmpDirPath = path.join(process.cwd(), 'tmp');
+			if (!fs.existsSync(tmpDirPath)) {
+				fs.mkdirSync(tmpDirPath);
+			}
+
 			if (storage === 'GRIDFS') {
 				let file;
 				try {
@@ -86,15 +91,10 @@ router.get('/download/:id', (req, res) => {
 				if (!file) {
 					return res.status(400).json({ message: 'File not found' });
 				}
-				// res.set('Content-Type', file.contentType);
-				// res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
 
 				if (encryptionKey) {
-					let tmpDirPath = path.join(process.cwd(), 'tmp');
 					let tmpFilePath = path.join(process.cwd(), 'tmp', id);
-					if (!fs.existsSync(tmpDirPath)) {
-						fs.mkdirSync(tmpDirPath);
-					}
+
 
 					const readStream = global.gfsBucket.openDownloadStream(file._id);
 					const writeStream = fs.createWriteStream(tmpFilePath);
@@ -292,7 +292,7 @@ async function downloadFileFromAzure(id, storage, txnId, res, encryptionKey) {
 			tmpReadStream.on('error', function (err) {
 				logger.error(`[${txnId}] Error streaming file - ${err}`);
 				return res.end();
-			})
+			});
 
 		} else {
 			let downloadUrl = await storageEngine.azureBlob.downloadFileLink(data);
