@@ -90,37 +90,39 @@ router.get('/download/:id', (req, res) => {
 				// res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
 
 				if (encryptionKey) {
-					let dataString = '';
-					const readstream = global.gfsBucket.openDownloadStream(file._id);
-					readstream.on('error', function (err) {
+					let tmpDirPath = path.join(process.cwd(), 'tmp');
+					let tmpFilePath = path.join(process.cwd(), 'tmp', id);
+					if (!fs.existsSync(tmpDirPath)) {
+						fs.mkdirSync(tmpDirPath);
+					}
+
+					const readStream = global.gfsBucket.openDownloadStream(file._id);
+					const writeStream = fs.createWriteStream(tmpFilePath);
+
+					readStream.pipe(writeStream);
+
+					readStream.on('error', function (err) {
 						logger.error(`[${txnId}] Error streaming file - ${err}`);
 						return res.end();
 					});
 
-					readstream.on('data', function (data) {
-						if (data)
-							dataString += Buffer.from(data).toString();
+					writeStream.on('error', function (err) {
+						logger.error(`[${txnId}] Error streaming file - ${err}`);
+						return res.end();
 					});
 
-					readstream.on('end', async function () {
-						let tmpDirPath = path.join(process.cwd(), 'tmp');
-						let tmpFilePath = path.join(process.cwd(), 'tmp', id);
+					writeStream.on('close', async function () {
 
-						if (!fs.existsSync(tmpDirPath)) {
-							fs.mkdirSync(tmpDirPath);
-						}
-						fs.writeFileSync(tmpFilePath, dataString);
-
-						await commonUtils.decryptFile({ path: tmpFilePath, filename: id }, encryptionKey);
+						await commonUtils.decryptFile({ path: tmpFilePath }, encryptionKey);
 
 						res.set('Content-Type', file.contentType);
 						res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
 
-						let tmpReadStream = fs.createReadStream(tmpFilePath);
+						let tmpReadStream = fs.createReadStream(tmpFilePath + '.dec');
 						tmpReadStream.on('error', function (err) {
 							logger.error(`[${txnId}] Error streaming file - ${err}`);
 							return res.end();
-						})
+						});
 
 						tmpReadStream.pipe(res);
 					});
@@ -170,9 +172,11 @@ router.post('/upload', (req, res) => {
 			logger.debug(`[${txnId}] Storage Enigne - ${config.fileStorage.storage}`);
 			logger.debug(`[${txnId}] Encryption Key - ${encryptionKey}`);
 
+			let filePath = sampleFile.path;
 			if (encryptionKey) {
 				try {
 					await commonUtils.encryptFile(sampleFile, encryptionKey);
+					filePath += '.enc';
 				} catch (err) {
 					logger.error(`[${txnId}] Error requesting Security service`, err);
 					throw err;
@@ -180,7 +184,7 @@ router.post('/upload', (req, res) => {
 			}
 
 			if (storage === 'GRIDFS') {
-				fs.createReadStream(sampleFile.path).
+				fs.createReadStream(filePath).
 					pipe(global.gfsBucket.openUploadStream(crypto.createHash('md5').update(uuid() + global.serverStartTime).digest('hex'), {
 						contentType: sampleFile.mimetype,
 						metadata: { filename, encrypted: encryptionKey ? true : false }
@@ -206,7 +210,7 @@ router.post('/upload', (req, res) => {
 					logger.trace(`[${txnId}] File object details - ${JSON.stringify(file)}`);
 
 					let pathFile = JSON.parse(JSON.stringify(file));
-					pathFile.path = req.file.path;
+					pathFile.path = filePath;
 
 					let data = {};
 					data.file = pathFile;
@@ -268,8 +272,8 @@ async function downloadFileFromAzure(id, storage, txnId, res, encryptionKey) {
 		data.containerName = config.fileStorage[storage].container;
 		data.sharedKey = config.fileStorage[storage].sharedKey;
 		data.timeout = config.fileStorage[storage].timeout;
-		data.fileName =  id;
-		
+		data.fileName = id;
+
 		if (encryptionKey) {
 			let bufferData = await storageEngine.azureBlob.downloadFileBuffer(data);
 
@@ -307,7 +311,7 @@ async function createFileObject(file, encryptionKey) {
 	fileObj.uploadDate = moment().format('YYYY-MM-DDTHH:mm:ss');
 	fileObj.filename = file.filename + '.' + file.originalname.split('.').pop();
 	fileObj.contentType = file.mimetype;
-	fileObj.metadata = { 
+	fileObj.metadata = {
 		filename: file.originalname,
 		encrypted: encryptionKey ? true : false
 	};
