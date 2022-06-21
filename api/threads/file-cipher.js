@@ -14,18 +14,18 @@ const encryptionKey = workerData.encryptionKey;
 		}
 		let resultData;
 		switch (action) {
-			case 'encrypt': {
-				await encryptFile(file, encryptionKey);
-				resultData = 'File Encrypted';
+		case 'encrypt': {
+			await encryptFile(file, encryptionKey);
+			resultData = 'File Encrypted';
 
-				break;
-			}
-			case 'decrypt': {
-				await decryptFile(file, encryptionKey);
-				resultData = 'File Decrypted';
+			break;
+		}
+		case 'decrypt': {
+			await decryptFile(file, encryptionKey);
+			resultData = 'File Decrypted';
 
-				break;
-			}
+			break;
+		}
 		}
 		parentPort.postMessage({ statusCode: 200, body: { message: resultData } });
 	} catch (err) {

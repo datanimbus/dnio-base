@@ -280,17 +280,20 @@ async function downloadFileFromAzure(id, storage, txnId, res, encryptionKey) {
 			res.set('Content-Type', file.contentType);
 			res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
 
-			let tmpFilePath = path.join(process.cwd(), 'tmp', file._id);
-			let writeStream = fs.createWriteStream(tmpFilePath);
+			let tmpFilePath = path.join(process.cwd(), 'tmp', id);
 
-			writeStream.write(bufferData.toString());
-			writeStream.on('end', async function () {
+			fs.writeFileSync(tmpFilePath, bufferData);
 
-				await commonUtils.decryptFile({ path: tmpFilePath, filename: id }, encryptionKey);
+			await commonUtils.decryptFile({ path: tmpFilePath }, encryptionKey);
 
-				let tmpReadStream = fs.createReadStream(tmpFilePath);
-				tmpReadStream.pipe(res);
-			});
+			let tmpReadStream = fs.createReadStream(tmpFilePath + '.dec');
+			tmpReadStream.pipe(res);
+
+			tmpReadStream.on('error', function (err) {
+				logger.error(`[${txnId}] Error streaming file - ${err}`);
+				return res.end();
+			})
+
 		} else {
 			let downloadUrl = await storageEngine.azureBlob.downloadFileLink(data);
 
