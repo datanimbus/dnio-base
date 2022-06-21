@@ -15,7 +15,7 @@ function filterMongooseFields(schemaObj) {
 function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 	if (schemaArr[0] && schemaArr[0].key == '_self') {
 		let attribute = schemaArr[0];
-		if (attribute['properties'] && (attribute['properties']['password'])) {
+		if (attribute['properties'] && (attribute['properties']['password'] && !attribute['properties']['fileType'])) {
 			specialFields['secureFields'].push(nestedKey);
 		}
 		if (attribute['type'] === 'Object') {
@@ -60,9 +60,9 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 			if (attribute['properties'] && attribute['properties']['dateType']) {
 				specialFields['dateFields'].push({ field: nestedKey, dateType: attribute['properties']['dateType'], defaultTimezone:  attribute['properties']['defaultTimezone'] });
 			}
-			if (attribute['properties'] && (attribute['properties']['password'])) {
-				specialFields['secureFields'].push(nestedKey);
-			}
+			// if (attribute['properties'] && (attribute['properties']['password'])) {
+			// 	specialFields['secureFields'].push(nestedKey);
+			// }
 		}
 	} else {
 		schemaArr.forEach(attribute => {
@@ -252,7 +252,7 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 				if (attribute['properties'] && attribute['properties']['createOnly']) {
 					specialFields['createOnlyFields'].push(newNestedKey);
 				}
-				if (attribute['properties'] && attribute['properties']['password']) {
+				if (attribute['properties'] && attribute['properties']['password'] && !attribute['properties']['fileType']) {
 					specialFields['secureFields'].push(newNestedKey);
 				}
 				if (attribute['properties'] && attribute['properties']['unique'] && !attribute['properties']['password']) {
