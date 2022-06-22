@@ -113,12 +113,18 @@ router.get('/download/:id', (req, res) => {
 
 					writeStream.on('close', async function () {
 
-						await commonUtils.decryptFile({ path: tmpFilePath }, encryptionKey);
+						let downloadFilePath = tmpFilePath;
+						try {
+							await commonUtils.decryptFile({ path: tmpFilePath }, encryptionKey);
+							downloadFilePath += '.dec';
+						} catch (err) {
+							logger.error(err);
+						}
 
 						res.set('Content-Type', file.contentType);
 						res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
 
-						let tmpReadStream = fs.createReadStream(tmpFilePath + '.dec');
+						let tmpReadStream = fs.createReadStream(downloadFilePath);
 						tmpReadStream.on('error', function (err) {
 							logger.error(`[${txnId}] Error streaming file - ${err}`);
 							return res.end();
@@ -150,15 +156,17 @@ router.get('/download/:id', (req, res) => {
 			}
 			throw e;
 		} finally {
-			/****** Removing temp files if exist ******/
-			let filesToRemove = [path.join(tmpDirPath, id), path.join(tmpDirPath, id + '.dec')];
-			filesToRemove.forEach(file => {
-				if (fs.existsSync(file)) {
-					fs.unlink(file, (err) => {
-						if (err) logger.error('Error in deleting file: ' + file, err);
-					});
-				}
-			});
+			setTimeout(() => {
+				/****** Removing temp files if exist ******/
+				let filesToRemove = [path.join(tmpDirPath, id), path.join(tmpDirPath, id + '.dec')];
+				filesToRemove.forEach(file => {
+					if (fs.existsSync(file)) {
+						fs.unlink(file, (err) => {
+							if (err) logger.error('Error in deleting file: ' + file, err);
+						});
+					}
+				});
+			}, 5000);
 		}
 	}
 	execute().catch(err => {
@@ -256,15 +264,17 @@ router.post('/upload', (req, res) => {
 			}
 			throw e;
 		} finally {
-			/****** Removing temp files if exist ******/
-			let filesToRemove = [filePath, filePath.split('.enc')[0]];
-			filesToRemove.forEach(file => {
-				if (fs.existsSync(file)) {
-					fs.unlink(file, (err) => {
-						if (err) logger.error('Error in deleting file: ' + file, err);
-					});
-				}
-			});
+			setTimeout(() => {
+				/****** Removing temp files if exist ******/
+				let filesToRemove = [filePath, filePath.split('.enc')[0]];
+				filesToRemove.forEach(file => {
+					if (fs.existsSync(file)) {
+						fs.unlink(file, (err) => {
+							if (err) logger.error('Error in deleting file: ' + file, err);
+						});
+					}
+				});
+			}, 5000);
 		}
 	}
 	execute().catch(err => {
@@ -305,9 +315,16 @@ async function downloadFileFromAzure(id, storage, txnId, res, encryptionKey) {
 
 			fs.writeFileSync(tmpFilePath, bufferData);
 
-			await commonUtils.decryptFile({ path: tmpFilePath }, encryptionKey);
+			let downloadFilePath = tmpFilePath;
+			try {
+				await commonUtils.decryptFile({ path: tmpFilePath }, encryptionKey);
+				downloadFilePath += '.dec';
+			} catch (err) {
+				logger.error(err);
+			}
 
-			let tmpReadStream = fs.createReadStream(tmpFilePath + '.dec');
+
+			let tmpReadStream = fs.createReadStream(downloadFilePath);
 			tmpReadStream.pipe(res);
 
 			tmpReadStream.on('error', function (err) {
