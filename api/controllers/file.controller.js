@@ -65,8 +65,9 @@ router.get('/:id/view', (req, res) => {
 
 router.get('/download/:id', (req, res) => {
 	async function execute() {
+		let tmpDirPath, id;
 		try {
-			const id = req.params.id;
+			id = req.params.id;
 			const storage = config.fileStorage.storage;
 			const encryptionKey = req.query.encryptionKey;
 			let txnId = req.get('txnid');
@@ -75,7 +76,7 @@ router.get('/download/:id', (req, res) => {
 			logger.debug(`[${txnId}] Storage Enigne - ${storage}`);
 			logger.debug(`[${txnId}] Encryption Key - ${encryptionKey}`);
 
-			let tmpDirPath = path.join(process.cwd(), 'tmp');
+			tmpDirPath = path.join(process.cwd(), 'tmp');
 			if (!fs.existsSync(tmpDirPath)) {
 				fs.mkdirSync(tmpDirPath);
 			}
@@ -94,7 +95,6 @@ router.get('/download/:id', (req, res) => {
 
 				if (encryptionKey) {
 					let tmpFilePath = path.join(process.cwd(), 'tmp', id);
-
 
 					const readStream = global.gfsBucket.openDownloadStream(file._id);
 					const writeStream = fs.createWriteStream(tmpFilePath);
@@ -149,6 +149,16 @@ router.get('/download/:id', (req, res) => {
 				throw new Error(e);
 			}
 			throw e;
+		} finally {
+			/****** Removing temp files if exist ******/
+			let filesToRemove = [path.join(tmpDirPath, id), path.join(tmpDirPath, id + '.dec')];
+			filesToRemove.forEach(file => {
+				if (fs.existsSync(file)) {
+					fs.unlink(file, (err) => {
+						if (err) logger.error('Error in deleting file: ' + file, err);
+					});
+				}
+			});
 		}
 	}
 	execute().catch(err => {
@@ -161,6 +171,7 @@ router.get('/download/:id', (req, res) => {
 
 router.post('/upload', (req, res) => {
 	async function execute() {
+		let filePath;
 		try {
 			const storage = config.fileStorage.storage;
 			let txnId = req.get('txnid');
@@ -172,7 +183,7 @@ router.post('/upload', (req, res) => {
 			logger.debug(`[${txnId}] Storage Enigne - ${config.fileStorage.storage}`);
 			logger.debug(`[${txnId}] Encryption Key - ${encryptionKey}`);
 
-			let filePath = sampleFile.path;
+			filePath = sampleFile.path;
 			if (encryptionKey) {
 				try {
 					await commonUtils.encryptFile(sampleFile, encryptionKey);
@@ -244,6 +255,16 @@ router.post('/upload', (req, res) => {
 				throw new Error(e);
 			}
 			throw e;
+		} finally {
+			/****** Removing temp files if exist ******/
+			let filesToRemove = [filePath, filePath.split('.enc')[0]];
+			filesToRemove.forEach(file => {
+				if (fs.existsSync(file)) {
+					fs.unlink(file, (err) => {
+						if (err) logger.error('Error in deleting file: ' + file, err);
+					});
+				}
+			});
 		}
 	}
 	execute().catch(err => {

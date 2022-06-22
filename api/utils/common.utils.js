@@ -871,20 +871,20 @@ function decryptData(data, nestedKey, forFile) {
 				let promises = data[keys[0]].map(_d => {
 					if (_d.value) {
 						return decryptText(_d.value)
-						.then(_decrypted => {
-							if (forFile)
-								_d = _decrypted;
-							else
-								_d.value = _decrypted;
-							return _d;
-						});
+							.then(_decrypted => {
+								if (forFile)
+									_d = _decrypted;
+								else
+									_d.value = _decrypted;
+								return _d;
+							});
 					} else {
 						return decryptText(_d)
-						.then(_decrypted => {
-							_d = _decrypted;
-							
-							return _d;
-						});
+							.then(_decrypted => {
+								_d = _decrypted;
+
+								return _d;
+							});
 					}
 				});
 				return Promise.all(promises)
