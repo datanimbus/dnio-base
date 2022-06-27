@@ -30,6 +30,8 @@ COPY queue.js /app
 
 COPY api /app/api
 
+COPY views /app/views
+
 COPY codeGen /app/codeGen
 
 ENV IMAGE_TAG=__image_tag__
