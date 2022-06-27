@@ -114,7 +114,7 @@ e.allowedExt = null;
 
 e.MaxJSONSize = process.env.MAX_JSON_SIZE || '1mb';
 e.dataStackDefaultTimezone = process.env.TZ_DEFAULT || 'Zulu';
-
+e.fqdn = process.env.FQDN;
 
 e.baseUrlSM = get('sm') + '/sm';
 e.baseUrlNE = get('ne') + '/ne';

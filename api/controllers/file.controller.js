@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const moment = require('moment');
 const commonUtils = require('../utils/common.utils');
 const storageEngine = require('@appveen/data.stack-utils').storageEngine;
+const Mustache = require('mustache');
 
 const fs = require('fs');
 const path = require('path');
@@ -103,12 +104,12 @@ router.get('/download/:id', (req, res) => {
 
 					readStream.on('error', function (err) {
 						logger.error(`[${txnId}] Error streaming file - ${err}`);
-						return res.end();
+						renderError(res, 500, err.message || 'Error on reading file', { fqdn: config.fqdn });
 					});
 
 					writeStream.on('error', function (err) {
 						logger.error(`[${txnId}] Error streaming file - ${err}`);
-						return res.end();
+						renderError(res, 500, err.message || 'Error on reading file', { fqdn: config.fqdn });
 					});
 
 					writeStream.on('close', async function () {
@@ -119,6 +120,11 @@ router.get('/download/:id', (req, res) => {
 							downloadFilePath += '.dec';
 						} catch (err) {
 							logger.error(err);
+							if (err.code == 'ERR_OSSL_EVP_BAD_DECRYPT') {
+								return renderError(res, 400, "Bad Decryption Key", { fqdn: config.fqdn });
+							} else {
+								return renderError(res, 500, err.message, { fqdn: config.fqdn });
+							}
 						}
 
 						res.set('Content-Type', file.contentType);
@@ -127,7 +133,7 @@ router.get('/download/:id', (req, res) => {
 						let tmpReadStream = fs.createReadStream(downloadFilePath);
 						tmpReadStream.on('error', function (err) {
 							logger.error(`[${txnId}] Error streaming file - ${err}`);
-							return res.end();
+							renderError(res, 500, err.message || 'Error on reading file', { fqdn: config.fqdn });
 						});
 
 						tmpReadStream.pipe(res);
@@ -176,6 +182,12 @@ router.get('/download/:id', (req, res) => {
 		});
 	});
 });
+
+function renderError(res, statusCode, message, options) {
+	const doc = fs.readFileSync(path.join(process.cwd(), 'views', 'error.mustache'), 'utf-8');
+	const output = Mustache.render(doc, { statusCode, message, ...options });
+	res.end(output);
+}
 
 router.post('/upload', (req, res) => {
 	async function execute() {
@@ -308,9 +320,6 @@ async function downloadFileFromAzure(id, storage, txnId, res, encryptionKey) {
 		if (encryptionKey) {
 			let bufferData = await storageEngine.azureBlob.downloadFileBuffer(data);
 
-			res.set('Content-Type', file.contentType);
-			res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
-
 			let tmpFilePath = path.join(process.cwd(), 'tmp', id);
 
 			fs.writeFileSync(tmpFilePath, bufferData);
@@ -321,15 +330,22 @@ async function downloadFileFromAzure(id, storage, txnId, res, encryptionKey) {
 				downloadFilePath += '.dec';
 			} catch (err) {
 				logger.error(err);
+				if (err.code == 'ERR_OSSL_EVP_BAD_DECRYPT') {
+					return renderError(res, 400, "Bad Decryption Key", { fqdn: config.fqdn });
+				} else {
+					return renderError(res, 500, err.message, { fqdn: config.fqdn });
+				}
 			}
 
+			res.set('Content-Type', file.contentType);
+			res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
 
 			let tmpReadStream = fs.createReadStream(downloadFilePath);
 			tmpReadStream.pipe(res);
 
 			tmpReadStream.on('error', function (err) {
 				logger.error(`[${txnId}] Error streaming file - ${err}`);
-				return res.end();
+				renderError(res, 500, err.message || 'Error on reading file');
 			});
 
 		} else {
@@ -341,7 +357,7 @@ async function downloadFileFromAzure(id, storage, txnId, res, encryptionKey) {
 		}
 	} catch (err) {
 		logger.error(`[${txnId}] Error downloading file - ${err.message}`);
-		return res.end();
+		throw err;
 	}
 }
 

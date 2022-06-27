@@ -14,18 +14,18 @@ const encryptionKey = workerData.encryptionKey;
 		}
 		let resultData;
 		switch (action) {
-		case 'encrypt': {
-			await encryptFile(file, encryptionKey);
-			resultData = 'File Encrypted';
+			case 'encrypt': {
+				await encryptFile(file, encryptionKey);
+				resultData = 'File Encrypted';
 
-			break;
-		}
-		case 'decrypt': {
-			await decryptFile(file, encryptionKey);
-			resultData = 'File Decrypted';
+				break;
+			}
+			case 'decrypt': {
+				await decryptFile(file, encryptionKey);
+				resultData = 'File Decrypted';
 
-			break;
-		}
+				break;
+			}
 		}
 		parentPort.postMessage({ statusCode: 200, body: { message: resultData } });
 	} catch (err) {
@@ -62,45 +62,53 @@ const encryptionKey = workerData.encryptionKey;
 
 function encryptFile(file, key) {
 	return new Promise(async (resolve, reject) => {
-		const digestHash = crypto.createHash('sha256').update(key).digest('hex');
-		const allocatedKey = Buffer.alloc(32, digestHash);
-		const iv = crypto.randomBytes(IV_LENGTH);
-		const rStream = fs.createReadStream(file.path);
-		const wStream = fs.createWriteStream(file.path + '.enc');
-		const cipher = crypto.createCipheriv('aes-256-cbc', allocatedKey, iv);
-		wStream.write(iv);
-		wStream.on('close', function () {
-			resolve();
-		});
-		rStream.on('error', function (err) {
+		try {
+			const digestHash = crypto.createHash('sha256').update(key).digest('hex');
+			const allocatedKey = Buffer.alloc(32, digestHash);
+			const iv = crypto.randomBytes(IV_LENGTH);
+			const rStream = fs.createReadStream(file.path);
+			const wStream = fs.createWriteStream(file.path + '.enc');
+			const cipher = crypto.createCipheriv('aes-256-cbc', allocatedKey, iv);
+			wStream.write(iv);
+			wStream.on('close', function () {
+				resolve();
+			});
+			rStream.on('error', function (err) {
+				reject(err);
+			});
+			wStream.on('error', function (err) {
+				reject(err);
+			});
+			rStream.pipe(cipher).pipe(wStream);
+		} catch (err) {
 			reject(err);
-		});
-		wStream.on('error', function (err) {
-			reject(err);
-		});
-		rStream.pipe(cipher).pipe(wStream);
+		}
 	});
 }
 
 
 function decryptFile(file, key) {
 	return new Promise(async (resolve, reject) => {
-		const digestHash = crypto.createHash('sha256').update(key).digest('hex');
-		const allocatedKey = Buffer.alloc(32, digestHash);
-		const iv = await getIvFromStream(file.path);
-		const rStream = fs.createReadStream(file.path, { start: IV_LENGTH });
-		const wStream = fs.createWriteStream(file.path + '.dec');
-		const cipher = crypto.createDecipheriv('aes-256-cbc', allocatedKey, iv);
-		wStream.on('close', function () {
-			resolve();
-		});
-		rStream.on('error', function (err) {
+		try {
+			const digestHash = crypto.createHash('sha256').update(key).digest('hex');
+			const allocatedKey = Buffer.alloc(32, digestHash);
+			const iv = await getIvFromStream(file.path);
+			const rStream = fs.createReadStream(file.path, { start: IV_LENGTH });
+			const wStream = fs.createWriteStream(file.path + '.dec');
+			const cipher = crypto.createDecipheriv('aes-256-cbc', allocatedKey, iv);
+			wStream.on('close', function () {
+				resolve();
+			});
+			rStream.on('error', function (err) {
+				reject(err);
+			});
+			wStream.on('error', function (err) {
+				reject(err);
+			});
+			rStream.pipe(cipher).pipe(wStream);
+		} catch (err) {
 			reject(err);
-		});
-		wStream.on('error', function (err) {
-			reject(err);
-		});
-		rStream.pipe(cipher).pipe(wStream);
+		}
 	});
 }
 
