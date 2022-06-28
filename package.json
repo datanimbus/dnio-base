@@ -15,7 +15,7 @@
         "@appveen/ds-auth-cache": "1.0.2",
         "@appveen/utils": "^2.1.6",
         "archiver": "^5.2.0",
-        "async": "^3.2.0",
+        "async": "^3.2.4",
         "bluebird": "^3.7.2",
         "cookie-parser": "^1.4.5",
         "express": "^4.17.1",
