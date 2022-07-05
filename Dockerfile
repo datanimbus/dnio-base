@@ -7,7 +7,7 @@ RUN apk upgrade
 
 COPY package.json /app
 
-RUN set -ex; apk add --no-cache --virtual .fetch-deps curl tar git ;
+RUN set -ex; apk add --no-cache --virtual .fetch-deps curl tar ;
 
 RUN npm install -g npm
 RUN npm install --production
