@@ -314,6 +314,7 @@ function genrateCode(config) {
 	/**----------------------- DYNAMIC-FILTER ------------------- */
 	code.push('');
 	code.push('async function getDynamicFilter(req, data) {');
+	code.push('\tlet filter;');
 	parseRoleForDynamicFilters(config.role.roles);
 	code.push('\treturn filter;');
 	code.push('}');
@@ -1301,7 +1302,7 @@ function genrateCode(config) {
 				filter = JSON.parse(filter);
 			}
 			const paths = parseObject(filter, filter);
-			tempCode.push(`\tconst filter = ${JSON.stringify(filter)};`);
+			tempCode.push(`\tfilter = ${JSON.stringify(filter)};`);
 			paths.forEach(item => {
 				if (item.type === 'Service') {
 					const id = _.camelCase(uuid());
