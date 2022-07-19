@@ -28,924 +28,179 @@ if (!config.permanentDelete)
 	softDeletedModel = mongoose.model(config.serviceId + '.deleted');
 const mathQueue = async.priorityQueue(processMathQueue);
 
-router.get('/doc', (req, res) => {
-	async function execute() {
-		try {
-			if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
-				return res.status(403).json({
-					message: 'You don\'t have permission to fetch documentation',
-				});
-			}
-			const obj = await swaggerParser.parse('../swagger/swagger.yaml');
-			obj.host = req.query.host;
-			obj.basePath = req.query.basePath ? req.query.basePath : obj.basePath;
-			addAuthHeader(obj.paths, req.query.token);
-			res.status(200).json(obj);
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
-		}
-	}
-	execute().catch((err) => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message,
-		});
-	});
-});
-
-router.get('/utils/securedFields', (req, res) => {
-	async function execute() {
-		try {
-			if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
-				return res.status(403).json({
-					message: 'You don\'t have permission to fetch secure fields',
-				});
-			}
-			res.status(200).json(specialFields.secureFields);
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
-		}
-	}
-	execute().catch((err) => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message,
-		});
-	});
-});
-
-router.get('/utils/bulkShow', (req, res) => {
-	async function execute() {
-		try {
-			if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
-				return res.status(403).json({
-					message: 'You don\'t have permission to fetch records',
-				});
-			}
-			const ids = req.query.id ? req.query.id.split(',') : [];
-			const filter = {
-				_id: {
-					$in: ids,
-				},
-				'_metadata.deleted': false,
-			};
-			let select = '';
-			let sort = '';
-			if (req.query.select && req.query.select.trim()) {
-				select = req.query.select.split(',').join(' ');
-			}
-			if (req.query.sort && req.query.sort.trim()) {
-				sort = req.query.sort.split(',').join(' ');
-			}
-			const docs = await model.find(filter).select(select).sort(sort).lean();
-			docs.forEach(doc => specialFields.filterByPermission(req, req.user.appPermissions, doc));
-			res.status(200).json(docs);
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
-		}
-	}
-	execute().catch((err) => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message,
-		});
-	});
-});
-
-router.put('/bulkUpdate', (req, res) => {
-	async function execute() {
-		const id = req.query.id;
-		if (!id) {
-			return res.status(400).json({
-				message: 'Invalid IDs',
-			});
-		}
-		if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
+router.get('/doc', async (req, res) => {
+	let txnId = req.get(global.txnIdHeader);
+	try {
+		if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
 			return res.status(403).json({
-				message: 'You don\'t have permission to update records',
+				message: 'You don\'t have permission to fetch documentation',
 			});
 		}
-		if (req.query.txn == true) {
-			return transactionUtils.transferToTransaction(req, res);
-		}
-		try {
-			addExpireAt(req);
-		} catch (err) {
-			return res.status(400).json({ message: err.message });
-		}
-		// const workflowModel = global.authorDB.model('workflow');
-		let txnId = req.get(global.txnIdHeader);
-		const workflowModel = mongoose.model('workflow');
-		try {
-			const ids = id.split(',');
-			const filter = {
-				_id: {
-					$in: ids,
-				},
-				'_metadata.deleted': false,
-			};
-			const docs = await model.find(filter);
-			const promises = docs.map(async (doc) => {
-				doc._req = req;
-				doc._oldDoc = doc.toObject();
-				const payload = doc.toObject();
-				_.mergeWith(payload, req.body, mergeCustomizer);
-				const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
-				if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
-					const wfItem = workflowUtils.getWorkflowItem(
-						req,
-						'PUT',
-						doc._id,
-						'Pending',
-						payload,
-						doc.toObject()
-					);
-					const wfDoc = new workflowModel(wfItem);
-					wfDoc._req = req;
-					let status = await wfDoc.save();
-					doc._metadata.workflow = status._id;
-					return await model.findByIdAndUpdate(doc._id, {
-						'_metadata.workflow': status._id,
-					});
-				} else {
-					_.mergeWith(doc, req.body, mergeCustomizer);
-					return new Promise((resolve) => {
-						doc.save().then(resolve).catch(resolve);
-					});
-				}
-			});
-			const allResult = await Promise.all(promises);
-			if (allResult.every((e) => e._id)) {
-				return res.status(200).json(allResult);
-			} else if (allResult.every((e) => !e._id)) {
-				return res.status(400).json(allResult);
-			} else {
-				return res.status(207).json(allResult);
-			}
-		} catch (e) {
-			handleError(e, txnId);
-		}
+		const obj = await swaggerParser.parse('../swagger/swagger.yaml');
+		obj.host = req.query.host;
+		obj.basePath = req.query.basePath ? req.query.basePath : obj.basePath;
+		addAuthHeader(obj.paths, req.query.token);
+		res.status(200).json(obj);
+	} catch (err) {
+		handleError(res, err, txnId);
 	}
-	execute().catch((err) => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message,
-		});
-	});
 });
 
-router.delete('/utils/bulkDelete', (req, res) => {
-	async function execute() {
-		const ids = req.body.ids;
-		if (!ids || ids.length == 0) {
-			return res.status(400).json({
-				message: 'Invalid IDs',
-			});
-		}
-		if (!specialFields.hasPermissionForDELETE(req, req.user.appPermissions)) {
+router.get('/utils/securedFields', async (req, res) => {
+	let txnId = req.get(global.txnIdHeader);
+	try {
+		if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
 			return res.status(403).json({
-				message: 'You don\'t have permission to delete records',
+				message: 'You don\'t have permission to fetch secure fields',
 			});
 		}
-		if (req.query.txn == true) {
-			return transactionUtils.transferToTransaction(req, res);
-		}
-		// const workflowModel = global.authorDB.model('workflow');
-		let txnId = req.get(global.txnIdHeader);
-		const workflowModel = mongoose.model('workflow');
-		try {
-			let filter = {
-				_id: {
-					$in: ids,
-				},
-				'_metadata.deleted': false,
-			};
-			const dynamicFilter = await specialFields.getDynamicFilter(req);
-			if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
-				filter = { $and: [filter, dynamicFilter] };
-			}
-			const docs = await model.find(filter);
-			const promises = docs.map(async (doc) => {
-				doc._req = req;
-				doc._oldDoc = doc.toObject();
-				const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
-				if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
-					const wfItem = workflowUtils.getWorkflowItem(
-						req,
-						'DELETE',
-						doc._id,
-						'Pending',
-						null,
-						doc.toObject()
-					);
-					const wfDoc = new workflowModel(wfItem);
-					wfDoc._req = req;
-					let status = await wfDoc.save();
-					doc._metadata.workflow = status._id;
-					return await model.findByIdAndUpdate(doc._id, {
-						'_metadata.workflow': status._id,
-					});
-				} else {
-					if (!config.permanentDelete) {
-						let softDeletedDoc = new softDeletedModel(doc);
-						softDeletedDoc.isNew = true;
-						await softDeletedDoc.save();
-					}
-					return new Promise((resolve) => {
-						doc
-							.remove()
-							.then(resolve)
-							.catch(() => resolve(null));
-					});
-				}
-			});
-			const allResult = await Promise.all(promises);
-			const removedIds = allResult
-				.filter((doc) => doc != null)
-				.map((doc) => doc._id);
-			const docsNotRemoved = _.difference(_.uniq(ids), removedIds);
-			if (_.isEmpty(docsNotRemoved)) {
-				return res.status(200).json({});
-			} else {
-				return res.status(400).json({
-					message: 'Could not delete document with id ' + docsNotRemoved,
-				});
-			}
-		} catch (e) {
-			handleError(e, txnId);
-		}
+		res.status(200).json(specialFields.secureFields);
+	} catch (err) {
+		handleError(res, err, txnId);
 	}
-	execute().catch((err) => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message,
-		});
-	});
 });
 
-/**
- * @deprecated
- */
-router.get('/utils/count', (req, res) => {
-	async function execute() {
-		try {
-			let filter = {};
-			let errors = {};
-			try {
-				if (req.query.filter) {
-					filter = JSON.parse(req.query.filter);
-					const tempFilter = await specialFields.patchRelationInFilter(
-						req,
-						filter,
-						errors
-					);
-					if (Array.isArray(tempFilter) && tempFilter.length > 0) {
-						filter = tempFilter[0];
-					} else if (tempFilter) {
-						filter = tempFilter;
-					}
-					filter = modifySecureFieldsFilter(
-						filter,
-						specialFields.secureFields,
-						false
-					);
-				}
-			} catch (e) {
-				logger.error(e);
-				return res.status(400).json({
-					message: e,
-				});
-			}
-			if (filter) {
-				filter = crudderUtils.parseFilter(filter);
-			}
-			if (errors && Object.keys(errors).length > 0) {
-				logger.warn('Error while fetching relation: ', JSON.stringify(errors));
-			}
-			const dynamicFilter = await specialFields.getDynamicFilter(req);
-			if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
-				filter = { $and: [filter, dynamicFilter] };
-			}
-			const count = await model.countDocuments(filter);
-			res.status(200).json(count);
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
-		}
-	}
-	execute().catch((err) => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message,
-		});
-	});
-});
-
-router.get('/', (req, res) => {
-	async function execute() {
-		try {
-			let txnId = req.get('txnId');
-
-			let filter = {};
-			let errors = {};
-			if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
-				logger.error(`[${txnId}] User does not have permission to fetch records ${req.user.appPermissions}`);
-				return res.status(403).json({
-					message: 'You don\'t have permission to fetch records',
-				});
-			}
-			try {
-				logger.trace(`[${txnId}] Schema free ? ${serviceData.schemaFree}`);
-				logger.trace(`[${txnId}] Filter ${req.query.filter}`);
-				logger.trace(`[${txnId}] Sort ${req.query.sort}`);
-				logger.trace(`[${txnId}] Select ${req.query.select}`);
-				logger.trace(`[${txnId}] Skip ${req.query.skip}`);
-				logger.trace(`[${txnId}] Limit ${req.query.limit}`);
-
-				if (req.query.filter) {
-					filter = JSON.parse(req.query.filter);
-					let tempFilter;
-					if (!serviceData.schemaFree) {
-						tempFilter = await specialFields.patchRelationInFilter(
-							req,
-							filter,
-							errors
-						);
-					}
-
-					if (Array.isArray(tempFilter) && tempFilter.length > 0) {
-						filter = tempFilter[0];
-					} else if (tempFilter) {
-						filter = tempFilter;
-					}
-
-					if (!serviceData.schemaFree) {
-						filter = modifySecureFieldsFilter(
-							filter,
-							specialFields.secureFields,
-							false
-						);
-					}
-				}
-			} catch (e) {
-				logger.error(e);
-				return res.status(400).json({
-					message: e,
-				});
-			}
-			if (filter) {
-				filter = crudderUtils.parseFilter(filter);
-			}
-
-			if (errors && Object.keys(errors).length > 0) {
-				logger.warn('Error while fetching relation: ', JSON.stringify(errors));
-			}
-			const dynamicFilter = await specialFields.getDynamicFilter(req);
-			if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
-				filter = { $and: [filter, dynamicFilter] };
-			}
-			if (req.query.countOnly) {
-				const count = await model.countDocuments(filter);
-				return res.status(200).json(count);
-			}
-			let skip = 0;
-			let count = 30;
-			let select = '';
-			let sort = '';
-			if (req.query.count && +req.query.count > 0) {
-				count = +req.query.count;
-			}
-
-			if (req.query.page && +req.query.page > 0) {
-				skip = count * (+req.query.page - 1);
-			}
-
-			if (req.query.select && req.query.select.trim()) {
-				try {
-					let querySelect = JSON.parse(req.query.select);
-					Object.keys(querySelect).forEach(key => {
-						if (parseInt(querySelect[key]) == 1) {
-							select += `${key} `;
-						} else if (parseInt(querySelect[key]) == 0) {
-							select += `-${key} `;
-						} else {
-							logger.error(`Invalid value for key :: ${key} :: ${querySelect[key]}`);
-							throw new Error(`Invalid value for key :: ${key} :: ${querySelect[key]}`);
-						}
-					});
-					select = select.trim();
-				} catch (err) {
-					if (err.message.indexOf('Invalid value for key') > -1) {
-						throw err;
-					} else {
-						select = req.query.select.split(',').join(' ');
-					}
-				}
-			}
-			if (req.query.sort && req.query.sort.trim()) {
-				try {
-					let querySort = JSON.parse(req.query.sort);
-					Object.keys(querySort).forEach(key => {
-						if (parseInt(querySort[key]) == 1) {
-							sort += `${key} `;
-						} else if (parseInt(querySort[key]) == -1) {
-							sort += `-${key} `;
-						} else {
-							logger.error(`Invalid value for key :: ${key} :: ${querySort[key]}`);
-							throw new Error(`Invalid value for key :: ${key} :: ${querySort[key]}`);
-						}
-					});
-					sort += ' -_metadata.lastUpdated';
-				} catch (err) {
-					if (err.message.indexOf('Invalid value for key') > -1) {
-						throw err;
-					} else {
-						sort = req.query.sort.split(',').join(' ') + ' -_metadata.lastUpdated';
-					}
-				}
-			} else {
-				sort = '-_metadata.lastUpdated';
-			}
-
-			logger.trace(`[${txnId}] Final filter ${JSON.stringify(filter)}`);
-			logger.trace(`[${txnId}] Final Sorter ${JSON.stringify(sort)}`);
-			logger.trace(`[${txnId}] Final Select ${JSON.stringify(select)}`);
-			logger.trace(`[${txnId}] Final Skip ${JSON.stringify(skip)}`);
-			logger.trace(`[${txnId}] Final Limit ${JSON.stringify(count)}`);
-
-			let docs = await model
-				.find(filter)
-				.select(select)
-				.sort(sort)
-				.skip(skip)
-				.limit(count)
-				.lean();
-
-			if (!serviceData.schemaFree) {
-				docs.forEach(doc => specialFields.filterByPermission(req, req.user.appPermissions, doc));
-				if (req.query.expand == true || req.query.expand == 'true') {
-					let promises = docs.map((e) =>
-						specialFields.expandDocument(req, e, null, true)
-					);
-					docs = await Promise.all(promises);
-					promises = null;
-				}
-				if (
-					specialFields.secureFields &&
-					specialFields.secureFields.length &&
-					specialFields.secureFields[0] &&
-					(req.query.decrypt == true || req.query.decrypt == 'true')
-				) {
-					let promises = docs.map((e) =>
-						specialFields.decryptSecureFields(req, e, null)
-					);
-					await Promise.all(promises);
-					promises = null;
-				}
-			}
-			res.status(200).json(docs);
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
-		}
-	}
-	execute().catch((err) => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message,
-		});
-	});
-});
-
-router.get('/:id', (req, res) => {
-	async function execute() {
-		try {
-			let txnId = req.get('txnId');
-			let id = req.params.id;
-			logger.debug(`[${txnId}] Get request received for ${id}`);
-
-			if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
-				logger.error(`[${txnId}] User does not have permission to fetch records ${req.user.appPermissions}`);
-				return res.status(403).json({
-					message: 'You don\'t have permission to fetch a record',
-				});
-			}
-
-			let doc = await model.findById(id).lean();
-			logger.trace(`[${txnId}] Document from DB ${JSON.stringify(doc)}`);
-			if (!doc) {
-				return res.status(404).json({
-					message: `Record With ID ${id} Not Found.`,
-				});
-			}
-
-			if (!serviceData.schemaFree) {
-				specialFields.filterByPermission(req, req.user.appPermissions, doc);
-				const expandLevel = (req.header('expand-level') || 0) + 1;
-				if ((req.query.expand == true || req.query.expand == 'true') && expandLevel < 3) {
-					doc = await specialFields.expandDocument(req, doc);
-				}
-				if (
-					specialFields.secureFields &&
-					specialFields.secureFields.length &&
-					specialFields.secureFields[0] &&
-					(req.query.decrypt == true || req.query.decrypt == 'true')
-				) {
-					await specialFields.decryptSecureFields(req, doc, null);
-				}
-			}
-			res.status(200).json(doc);
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
-		}
-	}
-	execute().catch((err) => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message,
-		});
-	});
-});
-
-router.post('/', (req, res) => {
-	async function execute() {
-		let txnId = req.get(global.txnIdHeader);
-		let id = req.params.id;
-		let payload = req.body;
-		logger.debug(`[${txnId}] Create request received.`);
-		const dynamicFilter = await specialFields.getDynamicFilter(req);
-		if (!_.isEmpty(dynamicFilter)) {
-			const tester = sift(dynamicFilter);
-			if (Array.isArray(payload)) {
-				const testedPayload = payload.filter(tester);
-				if (testedPayload.length != payload.length) {
-					logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
-					return res.status(400).json({ message: 'You don\'t have access for this operation.' });
-				}
-			} else {
-				if (!tester(payload)) {
-					logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
-					return res.status(400).json({ message: 'You don\'t have access for this operation.' });
-				}
-			}
-		}
-		if (req.query.txn == true) {
-			logger.debug(`[${txnId}] Create request is a part of a transaction ${id}`);
-			return transactionUtils.transferToTransaction(req, res);
-		}
-		try {
-			addExpireAt(req);
-		} catch (err) {
-			return res.status(400).json({ message: err.message });
-		}
-
-		if (!specialFields.hasPermissionForPOST(req, req.user.appPermissions)) {
-			logger.error(`[${txnId}] User does not have permission to create records ${req.user.appPermissions}`);
+router.get('/utils/bulkShow', async (req, res) => {
+	let txnId = req.get(global.txnIdHeader);
+	try {
+		if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
 			return res.status(403).json({
-				message: 'You don\'t have permission to create records',
+				message: 'You don\'t have permission to fetch records',
 			});
 		}
-
-		const workflowModel = mongoose.model('workflow');
-
-		try {
-			let promises;
-			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
-
-			if (workflowUtils.isWorkflowEnabled()) logger.debug(`[${txnId}] Is workflow enabled? ${workflowUtils.isWorkflowEnabled()}`);
-			if (hasSkipReview) logger.debug(`[${txnId}] has Skip Review permission? ${hasSkipReview}`);
-			logger.trace(`[${txnId}] Payload ${JSON.stringify(payload)}`);
-
-
-			if (
-				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
-				req.query.draft
-			) {
-				let wfItemStatus = 'Pending';
-				if (req.query.draft) {
-					wfItemStatus = 'Draft';
-				}
-				if (Array.isArray(payload)) {
-					promises = payload.map(async (e) => {
-						const wfItem = workflowUtils.getWorkflowItem(
-							req,
-							'POST',
-							e._id,
-							wfItemStatus,
-							e,
-							null
-						);
-						const doc = new model(e);
-						await doc.validate();
-						const wfDoc = new workflowModel(wfItem);
-						wfDoc._req = req;
-						const status = await wfDoc.save();
-						return {
-							_workflow: status._id,
-							message: 'Workflow has been created',
-						};
-					});
-					promises = await Promise.all(promises);
-				} else {
-					const wfItem = workflowUtils.getWorkflowItem(
-						req,
-						'POST',
-						payload._id,
-						wfItemStatus,
-						payload,
-						null
-					);
-					const doc = new model(payload);
-					await doc.validate();
-					const wfDoc = new workflowModel(wfItem);
-					wfDoc._req = req;
-					const status = await wfDoc.save();
-					promises = {
-						_workflow: status._id,
-						message: 'Workflow has been created',
-					};
-				}
-				res.status(200).json(promises);
-			} else {
-				if (Array.isArray(payload)) {
-					promises = payload.map(async (data) => {
-						if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
-							if (!_.get(data, serviceData.stateModel.attribute)) {
-								_.set(data, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
-							}
-
-							if (!serviceData.stateModel.initialStates.includes(_.get(data, serviceData.stateModel.attribute))) {
-								return { message: 'Record is not in initial state.' };
-							}
-						}
-
-						logger.debug('Creating model');
-						const doc = new model(data);
-						logger.debug('Creating model - DONE');
-						doc._req = req;
-						try {
-							return (await doc.save()).toObject();
-						} catch (e) {
-							logger.error(`[${txnId}] : Error while inserting record :: `, e);
-							return { message: e.message };
-						}
-					});
-					promises = await Promise.all(promises);
-				} else {
-					if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
-						if (!_.get(payload, serviceData.stateModel.attribute)) {
-							_.set(payload, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
-						}
-
-						if (!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
-							throw new Error('Record is not in initial state.');
-						}
-					}
-
-					const doc = new model(payload);
-					doc._req = req;
-					promises = (await doc.save()).toObject();
-				}
-				res.status(200).json(promises);
-			}
-		} catch (e) {
-			handleError(e, txnId);
+		const ids = req.query.id ? req.query.id.split(',') : [];
+		const filter = {
+			_id: {
+				$in: ids,
+			},
+			'_metadata.deleted': false,
+		};
+		let select = '';
+		let sort = '';
+		if (req.query.select && req.query.select.trim()) {
+			select = req.query.select.split(',').join(' ');
 		}
+		if (req.query.sort && req.query.sort.trim()) {
+			sort = req.query.sort.split(',').join(' ');
+		}
+		const docs = await model.find(filter).select(select).sort(sort).lean();
+		docs.forEach(doc => specialFields.filterByPermission(req, req.user.appPermissions, doc));
+		res.status(200).json(docs);
+	} catch (err) {
+		handleError(res, err, txnId);
 	}
-	execute().catch((err) => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message ? err.message : Object.values(err).join(),
-		});
-	});
 });
 
-router.put('/:id', (req, res) => {
-	async function execute() {
-		const upsert = req.query.upsert == 'true';
-		let payload = req.body;
-		let status;
-		let wfId;
-		let isNewDoc = false;
-		let txnId = req.get(global.txnIdHeader);
-		let id = req.params.id;
-		logger.debug(`[${txnId}] Update request received for record ${id}`);
-		logger.debug(`[${txnId}] Schema Free ? ${serviceData.schemaFree}`);
-
-		const dynamicFilter = await specialFields.getDynamicFilter(req);
-		if (!_.isEmpty(dynamicFilter)) {
-			const tester = sift(dynamicFilter);
-			if (!tester(payload)) {
-				logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
-				return res.status(400).json({ message: 'You don\'t have access for this operation.' });
-			}
-		}
-
-		if (req.query.txn == true) {
-			logger.debug(`[${txnId}] Update request is a part of a transaction ${id}`);
-			return transactionUtils.transferToTransaction(req, res);
-		}
-
-		try {
-			addExpireAt(req);
-		} catch (err) {
-			return res.status(400).json({ message: err.message });
-		}
-		if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
-			logger.error(`[${txnId}] User does not have permission to update records ${req.user.appPermissions}`);
-			return res.status(403).json({
-				message: 'You don\'t have permission to update records',
-			});
-		}
-
-		const workflowModel = mongoose.model('workflow');
-		try {
-			let doc = await model.findById(id);
-
-			logger.trace(`[${txnId}] Document from DB - ${JSON.stringify(doc)}`);
-			logger.trace(`[${txnId}] Payload from request - ${JSON.stringify(payload)}`);
-			logger.debug(`[${txnId}] Upsert allowed ? ${upsert}`);
-
-			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
-			logger.debug(`[${txnId}] has Skip Review permissions? ${hasSkipReview}`);
-			logger.debug(`[${txnId}] Is workflow enabled ? ${workflowUtils.isWorkflowEnabled()}`);
-
-			if (!doc && !upsert) {
-				return res.status(404).json({
-					message: 'Document Not Found',
-				});
-			}
-
-			if (!doc && upsert) {
-				logger.info(`[${txnId}] Document not found, creating a new doc : ${id}`);
-				isNewDoc = true;
-				payload._id = req.params.id;
-				delete payload._metadata;
-				delete payload.__v;
-				doc = new model(payload);
-
-				if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
-					if (!_.get(payload, serviceData.stateModel.attribute)) {
-						_.set(payload, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
-					}
-					if (!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
-						throw new Error('Record is not in initial state.');
-					}
-				}
-			}
-
-			if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !isNewDoc && !hasSkipReview
-				&& _.get(payload, serviceData.stateModel.attribute)
-				&& !serviceData.stateModel.states[_.get(doc, serviceData.stateModel.attribute)].includes(_.get(payload, serviceData.stateModel.attribute))
-				&& _.get(doc, serviceData.stateModel.attribute) !== _.get(payload, serviceData.stateModel.attribute)) {
-				throw new Error('State transition is not allowed');
-			}
-
-			if (doc._metadata && doc._metadata.workflow) {
-				return res.status(400).json({
-					message: 'This Document is Locked because of a pending Workflow',
-				});
-			}
-
-			if (!isNewDoc) {
-				delete payload._id;
-				doc._oldDoc = doc.toObject();
-			}
+router.put('/bulkUpdate', async (req, res) => {
+	let txnId = req.get(global.txnIdHeader);
+	const id = req.query.id;
+	if (!id) {
+		return res.status(400).json({
+			message: 'Invalid IDs',
+		});
+	}
+	if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
+		return res.status(403).json({
+			message: 'You don\'t have permission to update records',
+		});
+	}
+	if (req.query.txn == true) {
+		return transactionUtils.transferToTransaction(req, res);
+	}
+	try {
+		addExpireAt(req);
+	} catch (err) {
+		return res.status(400).json({ message: err.message });
+	}
+	// const workflowModel = global.authorDB.model('workflow');
+	const workflowModel = mongoose.model('workflow');
+	try {
+		const ids = id.split(',');
+		const filter = {
+			_id: {
+				$in: ids,
+			},
+			'_metadata.deleted': false,
+		};
+		const docs = await model.find(filter);
+		const promises = docs.map(async (doc) => {
 			doc._req = req;
-
-			if (
-				(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
-				req.query.draft
-			) {
-				let wfItemStatus = 'Pending';
-				if (req.query.draft) {
-					wfItemStatus = 'Draft';
-				}
+			doc._oldDoc = doc.toObject();
+			const payload = doc.toObject();
+			_.mergeWith(payload, req.body, mergeCustomizer);
+			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
+			if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
 				const wfItem = workflowUtils.getWorkflowItem(
 					req,
-					isNewDoc ? 'POST' : 'PUT',
+					'PUT',
 					doc._id,
-					wfItemStatus,
+					'Pending',
 					payload,
-					isNewDoc ? null : doc._oldDoc
+					doc.toObject()
 				);
-				const document = new model(payload);
-				await document.validate();
 				const wfDoc = new workflowModel(wfItem);
 				wfDoc._req = req;
-				status = await wfDoc.save();
-				wfId = status._id;
-				status = await model.findByIdAndUpdate(doc._id, {
+				let status = await wfDoc.save();
+				doc._metadata.workflow = status._id;
+				return await model.findByIdAndUpdate(doc._id, {
 					'_metadata.workflow': status._id,
 				});
-				return res.status(200).json({
-					_workflow: wfId,
-					message: 'Workflow has been created',
-				});
 			} else {
-				logger.debug(`[${txnId}] Merging and saving doc`);
-				if (!serviceData.schemaFree) {
-					_.mergeWith(doc, payload, mergeCustomizer);
-				} else {
-					Object.keys(doc.toObject()).forEach(key => {
-						if (key !== '__v' && key !== '_id' && key !== '_metadata' && key !== '_workflow') {
-							if (payload[key] === undefined) {
-								doc.set(key, undefined);
-							}
-						}
-					});
-					Object.keys(payload).forEach(key => {
-						if (doc.get(key) !== payload[key])
-							doc.set(key, payload[key]);
-					});
-
-				}
-				status = await doc.save();
-				logger.debug(`[${txnId}] Update status - ${status}`);
-				return res.status(200).json(status);
+				_.mergeWith(doc, req.body, mergeCustomizer);
+				return new Promise((resolve) => {
+					doc.save().then(resolve).catch(resolve);
+				});
 			}
-		} catch (e) {
-			handleError(e, txnId);
-		}
-	}
-	execute().catch((err) => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message,
 		});
-	});
+		const allResult = await Promise.all(promises);
+		if (allResult.every((e) => e._id)) {
+			return res.status(200).json(allResult);
+		} else if (allResult.every((e) => !e._id)) {
+			return res.status(400).json(allResult);
+		} else {
+			return res.status(207).json(allResult);
+		}
+	} catch (e) {
+		handleError(res, e, txnId);
+	}
 });
 
-router.delete('/:id', (req, res) => {
-	async function execute() {
-		let txnId = req.get(global.txnIdHeader);
-		let id = req.params.id;
-		logger.debug(`[${txnId}] Delete request received for record ${id}`);
+router.delete('/utils/bulkDelete', async (req, res) => {
+	let txnId = req.get(global.txnIdHeader);
+	const ids = req.body.ids;
+	if (!ids || ids.length == 0) {
+		return res.status(400).json({
+			message: 'Invalid IDs',
+		});
+	}
+	if (!specialFields.hasPermissionForDELETE(req, req.user.appPermissions)) {
+		return res.status(403).json({
+			message: 'You don\'t have permission to delete records',
+		});
+	}
+	if (req.query.txn == true) {
+		return transactionUtils.transferToTransaction(req, res);
+	}
+	// const workflowModel = global.authorDB.model('workflow');
 
-		if (req.query.txn == true) {
-			logger.debug(`[${txnId}] Delete request is a part of a transaction ${id}`);
-			return transactionUtils.transferToTransaction(req, res);
+	const workflowModel = mongoose.model('workflow');
+	try {
+		let filter = {
+			_id: {
+				$in: ids,
+			},
+			'_metadata.deleted': false,
+		};
+		const dynamicFilter = await specialFields.getDynamicFilter(req);
+		if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
+			filter = { $and: [filter, dynamicFilter] };
 		}
-		if (!specialFields.hasPermissionForDELETE(req, req.user.appPermissions)) {
-			logger.error(`[${txnId}] User does not have permission to update/delete records ${req.user.appPermissions}`);
-			return res.status(403).json({
-				message: 'You don\'t have permission to update records',
-			});
-		}
-
-		const workflowModel = mongoose.model('workflow');
-		try {
-			let doc = await model.findById(id);
-
-			const dynamicFilter = await specialFields.getDynamicFilter(req);
-			if (!_.isEmpty(dynamicFilter)) {
-				const tester = sift(dynamicFilter);
-				if (!tester(doc.toObject())) {
-					logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
-					return res.status(400).json({ message: 'You don\'t have access for this operation.' });
-				}
-			}
-			logger.trace(`[${txnId}] Document from DB - ${JSON.stringify(doc)}`);
-
-			let status;
-			if (!doc) {
-				return res.status(404).json({
-					message: `Record With ID ${id} Not Found`,
-				});
-			}
-			if (doc._metadata.workflow) {
-				return res.status(400).json({
-					message: 'This Document is Locked because of a pending Workflow',
-				});
-			}
-
+		const docs = await model.find(filter);
+		const promises = docs.map(async (doc) => {
 			doc._req = req;
 			doc._oldDoc = doc.toObject();
 			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
-
-			logger.debug(`[${txnId}] has Skip Review? ${hasSkipReview}`);
-			logger.debug(`[${txnId}] Workflow Enabled? ${workflowUtils.isWorkflowEnabled()}`);
-
-			let wfId;
 			if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
-				logger.debug(`[${txnId}] Creating workflow.`);
-
 				const wfItem = workflowUtils.getWorkflowItem(
 					req,
 					'DELETE',
@@ -954,106 +209,728 @@ router.delete('/:id', (req, res) => {
 					null,
 					doc.toObject()
 				);
-
-				logger.trace(`[${txnId}] Workflow Item for record ${id} :: ${JSON.stringify(wfItem)}`);
-
 				const wfDoc = new workflowModel(wfItem);
 				wfDoc._req = req;
-				status = await wfDoc.save();
-				wfId = status._id;
+				let status = await wfDoc.save();
 				doc._metadata.workflow = status._id;
-				status = await model.findByIdAndUpdate(doc._id, {
+				return await model.findByIdAndUpdate(doc._id, {
 					'_metadata.workflow': status._id,
 				});
-				logger.trace(`[${txnId}] Update status ${status}`);
 			} else {
-				logger.debug(`[${txnId}] Is permanent delete enabled? ${config.permanentDelete}`);
-
 				if (!config.permanentDelete) {
 					let softDeletedDoc = new softDeletedModel(doc);
 					softDeletedDoc.isNew = true;
 					await softDeletedDoc.save();
 				}
-				status = await doc.remove();
-			}
-			logger.trace(`[${txnId}] Deleted documnet ${id} :: ${status}`);
-			res.status(200).json({
-				_workflow: wfId,
-				message: 'Document Deleted',
-			});
-		} catch (e) {
-			handleError(e, txnId);
-		}
-	}
-	execute().catch((err) => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message,
-		});
-	});
-});
-
-router.put('/:id/math', (req, res) => {
-	async function execute() {
-		try {
-			if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
-				return res.status(403).json({
-					message: 'You don\'t have permission to update records',
+				return new Promise((resolve) => {
+					doc
+						.remove()
+						.then(resolve)
+						.catch(() => resolve(null));
 				});
 			}
-			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
-			if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
-				return res.status(403).json({ message: 'User Must have Admin Permission to use Math API' });
+		});
+		const allResult = await Promise.all(promises);
+		const removedIds = allResult
+			.filter((doc) => doc != null)
+			.map((doc) => doc._id);
+		const docsNotRemoved = _.difference(_.uniq(ids), removedIds);
+		if (_.isEmpty(docsNotRemoved)) {
+			return res.status(200).json({});
+		} else {
+			return res.status(400).json({
+				message: 'Could not delete document with id ' + docsNotRemoved,
+			});
+		}
+	} catch (e) {
+		handleError(res, e, txnId);
+	}
+});
+
+/**
+ * @deprecated
+ */
+router.get('/utils/count', async (req, res) => {
+	let txnId = req.get(global.txnIdHeader);
+	try {
+		let filter = {};
+		let errors = {};
+		try {
+			if (req.query.filter) {
+				filter = JSON.parse(req.query.filter);
+				const tempFilter = await specialFields.patchRelationInFilter(
+					req,
+					filter,
+					errors
+				);
+				if (Array.isArray(tempFilter) && tempFilter.length > 0) {
+					filter = tempFilter[0];
+				} else if (tempFilter) {
+					filter = tempFilter;
+				}
+				filter = modifySecureFieldsFilter(
+					filter,
+					specialFields.secureFields,
+					false
+				);
 			}
-			mathQueue.push({ req, res });
 		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
+			logger.error(e);
+			return res.status(400).json({
+				message: e,
+			});
+		}
+		if (filter) {
+			filter = crudderUtils.parseFilter(filter);
+		}
+		if (errors && Object.keys(errors).length > 0) {
+			logger.warn('Error while fetching relation: ', JSON.stringify(errors));
+		}
+		const dynamicFilter = await specialFields.getDynamicFilter(req);
+		if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
+			filter = { $and: [filter, dynamicFilter] };
+		}
+		const count = await model.countDocuments(filter);
+		res.status(200).json(count);
+	} catch (e) {
+		handleError(res, e, txnId);
+	}
+});
+
+router.get('/', async (req, res) => {
+	let txnId = req.get('txnId');
+	try {
+		let filter = {};
+		let errors = {};
+		if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
+			logger.error(`[${txnId}] User does not have permission to fetch records ${req.user.appPermissions}`);
+			return res.status(403).json({
+				message: 'You don\'t have permission to fetch records',
+			});
+		}
+		try {
+			logger.trace(`[${txnId}] Schema free ? ${serviceData.schemaFree}`);
+			logger.trace(`[${txnId}] Filter ${req.query.filter}`);
+			logger.trace(`[${txnId}] Sort ${req.query.sort}`);
+			logger.trace(`[${txnId}] Select ${req.query.select}`);
+			logger.trace(`[${txnId}] Skip ${req.query.skip}`);
+			logger.trace(`[${txnId}] Limit ${req.query.limit}`);
+
+			if (req.query.filter) {
+				filter = JSON.parse(req.query.filter);
+				let tempFilter;
+				if (!serviceData.schemaFree) {
+					tempFilter = await specialFields.patchRelationInFilter(
+						req,
+						filter,
+						errors
+					);
+				}
+
+				if (Array.isArray(tempFilter) && tempFilter.length > 0) {
+					filter = tempFilter[0];
+				} else if (tempFilter) {
+					filter = tempFilter;
+				}
+
+				if (!serviceData.schemaFree) {
+					filter = modifySecureFieldsFilter(
+						filter,
+						specialFields.secureFields,
+						false
+					);
+				}
 			}
-			throw e;
+		} catch (e) {
+			logger.error(e);
+			return res.status(400).json({
+				message: e,
+			});
+		}
+		if (filter) {
+			filter = crudderUtils.parseFilter(filter);
+		}
+
+		if (errors && Object.keys(errors).length > 0) {
+			logger.warn('Error while fetching relation: ', JSON.stringify(errors));
+		}
+		const dynamicFilter = await specialFields.getDynamicFilter(req);
+		if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
+			filter = { $and: [filter, dynamicFilter] };
+		}
+		if (req.query.countOnly) {
+			const count = await model.countDocuments(filter);
+			return res.status(200).json(count);
+		}
+		let skip = 0;
+		let count = 30;
+		let select = '';
+		let sort = '';
+		if (req.query.count && +req.query.count > 0) {
+			count = +req.query.count;
+		}
+
+		if (req.query.page && +req.query.page > 0) {
+			skip = count * (+req.query.page - 1);
+		}
+
+		if (req.query.select && req.query.select.trim()) {
+			try {
+				let querySelect = JSON.parse(req.query.select);
+				Object.keys(querySelect).forEach(key => {
+					if (parseInt(querySelect[key]) == 1) {
+						select += `${key} `;
+					} else if (parseInt(querySelect[key]) == 0) {
+						select += `-${key} `;
+					} else {
+						logger.error(`Invalid value for key :: ${key} :: ${querySelect[key]}`);
+						throw new Error(`Invalid value for key :: ${key} :: ${querySelect[key]}`);
+					}
+				});
+				select = select.trim();
+			} catch (err) {
+				if (err.message.indexOf('Invalid value for key') > -1) {
+					throw err;
+				} else {
+					select = req.query.select.split(',').join(' ');
+				}
+			}
+		}
+		if (req.query.sort && req.query.sort.trim()) {
+			try {
+				let querySort = JSON.parse(req.query.sort);
+				Object.keys(querySort).forEach(key => {
+					if (parseInt(querySort[key]) == 1) {
+						sort += `${key} `;
+					} else if (parseInt(querySort[key]) == -1) {
+						sort += `-${key} `;
+					} else {
+						logger.error(`Invalid value for key :: ${key} :: ${querySort[key]}`);
+						throw new Error(`Invalid value for key :: ${key} :: ${querySort[key]}`);
+					}
+				});
+				sort += ' -_metadata.lastUpdated';
+			} catch (err) {
+				if (err.message.indexOf('Invalid value for key') > -1) {
+					throw err;
+				} else {
+					sort = req.query.sort.split(',').join(' ') + ' -_metadata.lastUpdated';
+				}
+			}
+		} else {
+			sort = '-_metadata.lastUpdated';
+		}
+
+		logger.trace(`[${txnId}] Final filter ${JSON.stringify(filter)}`);
+		logger.trace(`[${txnId}] Final Sorter ${JSON.stringify(sort)}`);
+		logger.trace(`[${txnId}] Final Select ${JSON.stringify(select)}`);
+		logger.trace(`[${txnId}] Final Skip ${JSON.stringify(skip)}`);
+		logger.trace(`[${txnId}] Final Limit ${JSON.stringify(count)}`);
+
+		let docs = await model
+			.find(filter)
+			.select(select)
+			.sort(sort)
+			.skip(skip)
+			.limit(count)
+			.lean();
+
+		if (!serviceData.schemaFree) {
+			docs.forEach(doc => specialFields.filterByPermission(req, req.user.appPermissions, doc));
+			if (req.query.expand == true || req.query.expand == 'true') {
+				let promises = docs.map((e) =>
+					specialFields.expandDocument(req, e, null, true)
+				);
+				docs = await Promise.all(promises);
+				promises = null;
+			}
+			if (
+				specialFields.secureFields &&
+				specialFields.secureFields.length &&
+				specialFields.secureFields[0] &&
+				(req.query.decrypt == true || req.query.decrypt == 'true')
+			) {
+				let promises = docs.map((e) =>
+					specialFields.decryptSecureFields(req, e, null)
+				);
+				await Promise.all(promises);
+				promises = null;
+			}
+		}
+		res.status(200).json(docs);
+	} catch (e) {
+		handleError(res, e, txnId);
+	}
+});
+
+router.get('/:id', async (req, res) => {
+	let txnId = req.get('txnId');
+	try {
+		let id = req.params.id;
+		logger.debug(`[${txnId}] Get request received for ${id}`);
+
+		if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
+			logger.error(`[${txnId}] User does not have permission to fetch records ${req.user.appPermissions}`);
+			return res.status(403).json({
+				message: 'You don\'t have permission to fetch a record',
+			});
+		}
+
+		let doc = await model.findById(id).lean();
+		logger.trace(`[${txnId}] Document from DB ${JSON.stringify(doc)}`);
+		if (!doc) {
+			return res.status(404).json({
+				message: `Record With ID ${id} Not Found.`,
+			});
+		}
+
+		if (!serviceData.schemaFree) {
+			specialFields.filterByPermission(req, req.user.appPermissions, doc);
+			const expandLevel = (req.header('expand-level') || 0) + 1;
+			if ((req.query.expand == true || req.query.expand == 'true') && expandLevel < 3) {
+				doc = await specialFields.expandDocument(req, doc);
+			}
+			if (
+				specialFields.secureFields &&
+				specialFields.secureFields.length &&
+				specialFields.secureFields[0] &&
+				(req.query.decrypt == true || req.query.decrypt == 'true')
+			) {
+				await specialFields.decryptSecureFields(req, doc, null);
+			}
+		}
+		res.status(200).json(doc);
+	} catch (e) {
+		handleError(res, e, txnId);
+	}
+});
+
+router.post('/', async (req, res) => {
+	let txnId = req.get(global.txnIdHeader);
+	let id = req.params.id;
+	let payload = req.body;
+	logger.debug(`[${txnId}] Create request received.`);
+	const dynamicFilter = await specialFields.getDynamicFilter(req);
+	if (!_.isEmpty(dynamicFilter)) {
+		const tester = sift(dynamicFilter);
+		if (Array.isArray(payload)) {
+			const testedPayload = payload.filter(tester);
+			if (testedPayload.length != payload.length) {
+				logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+				return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+			}
+		} else {
+			if (!tester(payload)) {
+				logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+				return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+			}
 		}
 	}
-	execute().catch((err) => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message,
+	if (req.query.txn == true) {
+		logger.debug(`[${txnId}] Create request is a part of a transaction ${id}`);
+		return transactionUtils.transferToTransaction(req, res);
+	}
+	try {
+		addExpireAt(req);
+	} catch (err) {
+		return res.status(400).json({ message: err.message });
+	}
+
+	if (!specialFields.hasPermissionForPOST(req, req.user.appPermissions)) {
+		logger.error(`[${txnId}] User does not have permission to create records ${req.user.appPermissions}`);
+		return res.status(403).json({
+			message: 'You don\'t have permission to create records',
 		});
-	});
+	}
+
+	const workflowModel = mongoose.model('workflow');
+
+	try {
+		let promises;
+		const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
+
+		if (workflowUtils.isWorkflowEnabled()) logger.debug(`[${txnId}] Is workflow enabled? ${workflowUtils.isWorkflowEnabled()}`);
+		if (hasSkipReview) logger.debug(`[${txnId}] has Skip Review permission? ${hasSkipReview}`);
+		logger.trace(`[${txnId}] Payload ${JSON.stringify(payload)}`);
+
+
+		if (
+			(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
+			req.query.draft
+		) {
+			let wfItemStatus = 'Pending';
+			if (req.query.draft) {
+				wfItemStatus = 'Draft';
+			}
+			if (Array.isArray(payload)) {
+				promises = payload.map(async (e) => {
+					const wfItem = workflowUtils.getWorkflowItem(
+						req,
+						'POST',
+						e._id,
+						wfItemStatus,
+						e,
+						null
+					);
+					const doc = new model(e);
+					await doc.validate();
+					const wfDoc = new workflowModel(wfItem);
+					wfDoc._req = req;
+					const status = await wfDoc.save();
+					return {
+						_workflow: status._id,
+						message: 'Workflow has been created',
+					};
+				});
+				promises = await Promise.all(promises);
+			} else {
+				const wfItem = workflowUtils.getWorkflowItem(
+					req,
+					'POST',
+					payload._id,
+					wfItemStatus,
+					payload,
+					null
+				);
+				const doc = new model(payload);
+				await doc.validate();
+				const wfDoc = new workflowModel(wfItem);
+				wfDoc._req = req;
+				const status = await wfDoc.save();
+				promises = {
+					_workflow: status._id,
+					message: 'Workflow has been created',
+				};
+			}
+			res.status(200).json(promises);
+		} else {
+			if (Array.isArray(payload)) {
+				promises = payload.map(async (data) => {
+					if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
+						if (!_.get(data, serviceData.stateModel.attribute)) {
+							_.set(data, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
+						}
+
+						if (!serviceData.stateModel.initialStates.includes(_.get(data, serviceData.stateModel.attribute))) {
+							return { message: 'Record is not in initial state.' };
+						}
+					}
+
+					logger.debug('Creating model');
+					const doc = new model(data);
+					logger.debug('Creating model - DONE');
+					doc._req = req;
+					try {
+						return (await doc.save()).toObject();
+					} catch (e) {
+						logger.error(`[${txnId}] : Error while inserting record :: `, e);
+						return { message: e.message };
+					}
+				});
+				promises = await Promise.all(promises);
+			} else {
+				if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
+					if (!_.get(payload, serviceData.stateModel.attribute)) {
+						_.set(payload, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
+					}
+
+					if (!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
+						throw new Error('Record is not in initial state.');
+					}
+				}
+
+				const doc = new model(payload);
+				doc._req = req;
+				promises = (await doc.save()).toObject();
+			}
+			res.status(200).json(promises);
+		}
+	} catch (e) {
+		handleError(res, e, txnId);
+	}
+});
+
+router.put('/:id', async (req, res) => {
+	let txnId = req.get(global.txnIdHeader);
+	const upsert = req.query.upsert == 'true';
+	let payload = req.body;
+	let status;
+	let wfId;
+	let isNewDoc = false;
+	let id = req.params.id;
+	logger.debug(`[${txnId}] Update request received for record ${id}`);
+	logger.debug(`[${txnId}] Schema Free ? ${serviceData.schemaFree}`);
+
+	const dynamicFilter = await specialFields.getDynamicFilter(req);
+	if (!_.isEmpty(dynamicFilter)) {
+		const tester = sift(dynamicFilter);
+		if (!tester(payload)) {
+			logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+			return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+		}
+	}
+
+	if (req.query.txn == true) {
+		logger.debug(`[${txnId}] Update request is a part of a transaction ${id}`);
+		return transactionUtils.transferToTransaction(req, res);
+	}
+
+	try {
+		addExpireAt(req);
+	} catch (err) {
+		return res.status(400).json({ message: err.message });
+	}
+	if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
+		logger.error(`[${txnId}] User does not have permission to update records ${req.user.appPermissions}`);
+		return res.status(403).json({
+			message: 'You don\'t have permission to update records',
+		});
+	}
+
+	const workflowModel = mongoose.model('workflow');
+	try {
+		let doc = await model.findById(id);
+
+		logger.trace(`[${txnId}] Document from DB - ${JSON.stringify(doc)}`);
+		logger.trace(`[${txnId}] Payload from request - ${JSON.stringify(payload)}`);
+		logger.debug(`[${txnId}] Upsert allowed ? ${upsert}`);
+
+		const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
+		logger.debug(`[${txnId}] has Skip Review permissions? ${hasSkipReview}`);
+		logger.debug(`[${txnId}] Is workflow enabled ? ${workflowUtils.isWorkflowEnabled()}`);
+
+		if (!doc && !upsert) {
+			return res.status(404).json({
+				message: 'Document Not Found',
+			});
+		}
+
+		if (!doc && upsert) {
+			logger.info(`[${txnId}] Document not found, creating a new doc : ${id}`);
+			isNewDoc = true;
+			payload._id = req.params.id;
+			delete payload._metadata;
+			delete payload.__v;
+			doc = new model(payload);
+
+			if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
+				if (!_.get(payload, serviceData.stateModel.attribute)) {
+					_.set(payload, serviceData.stateModel.attribute, serviceData.stateModel.initialStates[0]);
+				}
+				if (!serviceData.stateModel.initialStates.includes(_.get(payload, serviceData.stateModel.attribute))) {
+					throw new Error('Record is not in initial state.');
+				}
+			}
+		}
+
+		if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !isNewDoc && !hasSkipReview
+			&& _.get(payload, serviceData.stateModel.attribute)
+			&& !serviceData.stateModel.states[_.get(doc, serviceData.stateModel.attribute)].includes(_.get(payload, serviceData.stateModel.attribute))
+			&& _.get(doc, serviceData.stateModel.attribute) !== _.get(payload, serviceData.stateModel.attribute)) {
+			throw new Error('State transition is not allowed');
+		}
+
+		if (doc._metadata && doc._metadata.workflow) {
+			return res.status(400).json({
+				message: 'This Document is Locked because of a pending Workflow',
+			});
+		}
+
+		if (!isNewDoc) {
+			delete payload._id;
+			doc._oldDoc = doc.toObject();
+		}
+		doc._req = req;
+
+		if (
+			(workflowUtils.isWorkflowEnabled() && !hasSkipReview) ||
+			req.query.draft
+		) {
+			let wfItemStatus = 'Pending';
+			if (req.query.draft) {
+				wfItemStatus = 'Draft';
+			}
+			const wfItem = workflowUtils.getWorkflowItem(
+				req,
+				isNewDoc ? 'POST' : 'PUT',
+				doc._id,
+				wfItemStatus,
+				payload,
+				isNewDoc ? null : doc._oldDoc
+			);
+			const document = new model(payload);
+			await document.validate();
+			const wfDoc = new workflowModel(wfItem);
+			wfDoc._req = req;
+			status = await wfDoc.save();
+			wfId = status._id;
+			status = await model.findByIdAndUpdate(doc._id, {
+				'_metadata.workflow': status._id,
+			});
+			return res.status(200).json({
+				_workflow: wfId,
+				message: 'Workflow has been created',
+			});
+		} else {
+			logger.debug(`[${txnId}] Merging and saving doc`);
+			if (!serviceData.schemaFree) {
+				_.mergeWith(doc, payload, mergeCustomizer);
+			} else {
+				Object.keys(doc.toObject()).forEach(key => {
+					if (key !== '__v' && key !== '_id' && key !== '_metadata' && key !== '_workflow') {
+						if (payload[key] === undefined) {
+							doc.set(key, undefined);
+						}
+					}
+				});
+				Object.keys(payload).forEach(key => {
+					if (doc.get(key) !== payload[key])
+						doc.set(key, payload[key]);
+				});
+
+			}
+			status = await doc.save();
+			logger.debug(`[${txnId}] Update status - ${status}`);
+			return res.status(200).json(status);
+		}
+	} catch (e) {
+		handleError(res, e, txnId);
+	}
+});
+
+router.delete('/:id', async (req, res) => {
+	let txnId = req.get(global.txnIdHeader);
+	let id = req.params.id;
+	logger.debug(`[${txnId}] Delete request received for record ${id}`);
+
+	if (req.query.txn == true) {
+		logger.debug(`[${txnId}] Delete request is a part of a transaction ${id}`);
+		return transactionUtils.transferToTransaction(req, res);
+	}
+	if (!specialFields.hasPermissionForDELETE(req, req.user.appPermissions)) {
+		logger.error(`[${txnId}] User does not have permission to update/delete records ${req.user.appPermissions}`);
+		return res.status(403).json({
+			message: 'You don\'t have permission to update records',
+		});
+	}
+
+	const workflowModel = mongoose.model('workflow');
+	try {
+		let doc = await model.findById(id);
+
+		const dynamicFilter = await specialFields.getDynamicFilter(req);
+		if (!_.isEmpty(dynamicFilter)) {
+			const tester = sift(dynamicFilter);
+			if (!tester(doc.toObject())) {
+				logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+				return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+			}
+		}
+		logger.trace(`[${txnId}] Document from DB - ${JSON.stringify(doc)}`);
+
+		let status;
+		if (!doc) {
+			return res.status(404).json({
+				message: `Record With ID ${id} Not Found`,
+			});
+		}
+		if (doc._metadata.workflow) {
+			return res.status(400).json({
+				message: 'This Document is Locked because of a pending Workflow',
+			});
+		}
+
+		doc._req = req;
+		doc._oldDoc = doc.toObject();
+		const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
+
+		logger.debug(`[${txnId}] has Skip Review? ${hasSkipReview}`);
+		logger.debug(`[${txnId}] Workflow Enabled? ${workflowUtils.isWorkflowEnabled()}`);
+
+		let wfId;
+		if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
+			logger.debug(`[${txnId}] Creating workflow.`);
+
+			const wfItem = workflowUtils.getWorkflowItem(
+				req,
+				'DELETE',
+				doc._id,
+				'Pending',
+				null,
+				doc.toObject()
+			);
+
+			logger.trace(`[${txnId}] Workflow Item for record ${id} :: ${JSON.stringify(wfItem)}`);
+
+			const wfDoc = new workflowModel(wfItem);
+			wfDoc._req = req;
+			status = await wfDoc.save();
+			wfId = status._id;
+			doc._metadata.workflow = status._id;
+			status = await model.findByIdAndUpdate(doc._id, {
+				'_metadata.workflow': status._id,
+			});
+			logger.trace(`[${txnId}] Update status ${status}`);
+		} else {
+			logger.debug(`[${txnId}] Is permanent delete enabled? ${config.permanentDelete}`);
+
+			if (!config.permanentDelete) {
+				let softDeletedDoc = new softDeletedModel(doc);
+				softDeletedDoc.isNew = true;
+				await softDeletedDoc.save();
+			}
+			status = await doc.remove();
+		}
+		logger.trace(`[${txnId}] Deleted documnet ${id} :: ${status}`);
+		res.status(200).json({
+			_workflow: wfId,
+			message: 'Document Deleted',
+		});
+	} catch (e) {
+		handleError(res, e, txnId);
+	}
+});
+
+router.put('/:id/math', async (req, res) => {
+	let txnId = req.get(global.txnIdHeader);
+	try {
+		if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
+			return res.status(403).json({
+				message: 'You don\'t have permission to update records',
+			});
+		}
+		const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
+		if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
+			return res.status(403).json({ message: 'User Must have Admin Permission to use Math API' });
+		}
+		mathQueue.push({ req, res });
+	} catch (e) {
+		handleError(res, e, txnId);
+	}
 });
 
 // WHAT is THIS?
-router.post('/hook', (req, res) => {
+router.post('/hook', async (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
-	async function execute() {
-		try {
-			const url = req.query.url;
-			const payload = req.body;
-			if (!url) {
-				return res.status(400).json({
-					message: 'URL is Mandatory',
-				});
-			}
-			try {
-				const httpRes = await hooksUtils.invokeHook({ txnId, hook: { url }, payload });
-				res.status(200).json(httpRes);
-			} catch (e) {
-				res.status(400).json({
-					message: e.message,
-				});
-			}
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+	try {
+		const url = req.query.url;
+		const payload = req.body;
+		if (!url) {
+			return res.status(400).json({
+				message: 'URL is Mandatory',
+			});
 		}
+		try {
+			const httpRes = await hooksUtils.invokeHook({ txnId, hook: { url }, payload });
+			res.status(200).json(httpRes);
+		} catch (e) {
+			res.status(400).json({
+				message: e.message,
+			});
+		}
+	} catch (e) {
+		handleError(res, e, txnId);
 	}
-	execute().catch((err) => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message,
-		});
-	});
 });
 
 function addAuthHeader(paths, jwt) {
@@ -1469,7 +1346,7 @@ async function doRoundMathAPI(req, res, oldNewData) {
 	}
 }
 
-function handleError(err, txnId) {
+function handleError(res, err, txnId) {
 	let message;
 	logger.error(`[${txnId}] : Some Error Occured :: `, err);
 	if (err.response) {
@@ -1494,7 +1371,8 @@ function handleError(err, txnId) {
 	} else {
 		message = err.message;
 	}
-	throw new Error(message);
+	res.status(500).json({ message });
+	// throw new Error(message);
 }
 
 
