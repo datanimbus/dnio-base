@@ -4,3 +4,4 @@ build.sh
 send.sh
 run-local.sh
 .env
+test.js

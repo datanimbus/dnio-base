@@ -5,6 +5,7 @@ const swaggerParser = require('swagger-parser');
 const async = require('async');
 const _ = require('lodash');
 const { flatten } = require('@appveen/utils/objectUtils');
+const sift = require('sift');
 
 const config = require('../../config');
 const specialFields = require('../utils/special-fields.utils');
@@ -222,12 +223,16 @@ router.delete('/utils/bulkDelete', (req, res) => {
 		let txnId = req.get(global.txnIdHeader);
 		const workflowModel = mongoose.model('workflow');
 		try {
-			const filter = {
+			let filter = {
 				_id: {
 					$in: ids,
 				},
 				'_metadata.deleted': false,
 			};
+			const dynamicFilter = await specialFields.getDynamicFilter(req);
+			if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
+				filter = { $and: [filter, dynamicFilter] };
+			}
 			const docs = await model.find(filter);
 			const promises = docs.map(async (doc) => {
 				doc._req = req;
@@ -326,6 +331,10 @@ router.get('/utils/count', (req, res) => {
 			if (errors && Object.keys(errors).length > 0) {
 				logger.warn('Error while fetching relation: ', JSON.stringify(errors));
 			}
+			const dynamicFilter = await specialFields.getDynamicFilter(req);
+			if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
+				filter = { $and: [filter, dynamicFilter] };
+			}
 			const count = await model.countDocuments(filter);
 			res.status(200).json(count);
 		} catch (e) {
@@ -401,6 +410,10 @@ router.get('/', (req, res) => {
 
 			if (errors && Object.keys(errors).length > 0) {
 				logger.warn('Error while fetching relation: ', JSON.stringify(errors));
+			}
+			const dynamicFilter = await specialFields.getDynamicFilter(req);
+			if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
+				filter = { $and: [filter, dynamicFilter] };
 			}
 			if (req.query.countOnly) {
 				const count = await model.countDocuments(filter);
@@ -574,8 +587,24 @@ router.post('/', (req, res) => {
 	async function execute() {
 		let txnId = req.get(global.txnIdHeader);
 		let id = req.params.id;
+		let payload = req.body;
 		logger.debug(`[${txnId}] Create request received.`);
-
+		const dynamicFilter = await specialFields.getDynamicFilter(req);
+		if (dynamicFilter) {
+			const tester = sift(dynamicFilter);
+			if (Array.isArray(payload)) {
+				const testedPayload = payload.filter(tester);
+				if (testedPayload.length != payload.length) {
+					logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+					return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+				}
+			} else {
+				if (!tester(payload)) {
+					logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+					return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+				}
+			}
+		}
 		if (req.query.txn == true) {
 			logger.debug(`[${txnId}] Create request is a part of a transaction ${id}`);
 			return transactionUtils.transferToTransaction(req, res);
@@ -594,7 +623,6 @@ router.post('/', (req, res) => {
 		}
 
 		const workflowModel = mongoose.model('workflow');
-		let payload = req.body;
 
 		try {
 			let promises;
@@ -710,10 +738,24 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
 	async function execute() {
+		const upsert = req.query.upsert == 'true';
+		let payload = req.body;
+		let status;
+		let wfId;
+		let isNewDoc = false;
 		let txnId = req.get(global.txnIdHeader);
 		let id = req.params.id;
 		logger.debug(`[${txnId}] Update request received for record ${id}`);
 		logger.debug(`[${txnId}] Schema Free ? ${serviceData.schemaFree}`);
+
+		const dynamicFilter = await specialFields.getDynamicFilter(req);
+		if (dynamicFilter) {
+			const tester = sift(dynamicFilter);
+			if (!tester(payload)) {
+				logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+				return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+			}
+		}
 
 		if (req.query.txn == true) {
 			logger.debug(`[${txnId}] Update request is a part of a transaction ${id}`);
@@ -734,11 +776,6 @@ router.put('/:id', (req, res) => {
 
 		const workflowModel = mongoose.model('workflow');
 		try {
-			const upsert = req.query.upsert == 'true';
-			let payload = req.body;
-			let status;
-			let wfId;
-			let isNewDoc = false;
 			let doc = await model.findById(id);
 
 			logger.trace(`[${txnId}] Document from DB - ${JSON.stringify(doc)}`);
@@ -875,6 +912,15 @@ router.delete('/:id', (req, res) => {
 		const workflowModel = mongoose.model('workflow');
 		try {
 			let doc = await model.findById(id);
+
+			const dynamicFilter = await specialFields.getDynamicFilter(req);
+			if (dynamicFilter) {
+				const tester = sift(dynamicFilter);
+				if (!tester(doc.toObject())) {
+					logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+					return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+				}
+			}
 			logger.trace(`[${txnId}] Document from DB - ${JSON.stringify(doc)}`);
 
 			let status;

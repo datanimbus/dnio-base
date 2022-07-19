@@ -174,85 +174,75 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 	}
 }
 
-// /**
-//  * 
-//  * @param {*} req The Incoming Request Object
-//  * @param {*} data The data to encrypt
-//  */
-// async function encryptText(req, data) {
-// 	data = data.toString();
-// 	var options = {
-// 		url: config.baseUrlSEC + '/enc/' + config.app + '/encrypt',
-// 		method: 'POST',
-// 		headers: {
-// 			'TxnId': req ? req.headers[global.txnIdHeader] : '',
-// 			'User': req ? req.headers[global.userHeader] : '',
-// 			'Authorization': req ? req.headers.authorization : '',
-// 			'Content-Type': 'application/json',
-// 		},
-// 		body: { data },
-// 		json: true
-// 	};
-// 	try {
-// 		const res = await httpClient.httpRequest(options);
-// 		if (!res) {
-// 			logger.error(`[${req.headers[global.txnIdHeader]}] Security service down`);
-// 			throw new Error('Security service down');
-// 		}
-// 		if (res.statusCode === 200) {
-// 			return {
-// 				value: res.body.data,
-// 				checksum: crypto.createHash('md5').update(data).digest('hex')
-// 			};
-// 		} else {
-// 			logger.error(`[${req.headers[global.txnIdHeader]}] Error response code from security service :: `, res.statusCode);
-// 			logger.error(`[${req.headers[global.txnIdHeader]}] Error response from security service :: `, res.body);
-// 			throw new Error('Error encrypting text');
-// 		}
-// 	} catch (e) {
-// 		logger.error(`[${req.headers[global.txnIdHeader]}] Error requesting Security service`, e);
-// 		throw e;
-// 	}
-// }
 
-// /**
-//  * 
-//  * @param {*} req The Incoming Request Object
-//  * @param {*} data The data to decrypt
-//  */
-// async function decryptText(req, data) {
-// 	if (!data) {
-// 		data = req;
-// 		req = undefined;
-// 	}
-// 	var options = {
-// 		url: config.baseUrlSEC + '/enc/' + config.app + '/decrypt',
-// 		method: 'POST',
-// 		headers: {
-// 			'TxnId': req ? req.headers[global.txnIdHeader] : '',
-// 			'User': req ? req.headers[global.userHeader] : '',
-// 			'Authorization': req ? req.headers.authorization : '',
-// 			'Content-Type': 'application/json',
-// 		},
-// 		body: { data },
-// 		json: true
-// 	};
-// 	try {
-// 		const res = await httpClient.httpRequest(options);
-// 		if (!res) {
-// 			logger.error(`[${req.headers[global.txnIdHeader]}] Security service down`);
-// 			throw new Error('Security service down');
-// 		}
-// 		if (res.statusCode === 200) {
-// 			return res.body.data;
-// 		} else {
-// 			throw new Error('Error decrypting text');
-// 		}
-// 	} catch (e) {
-// 		logger.error(`[${req ? req.headers[global.txnIdHeader] : ''}] Error requesting Security service :: `, e.message ? e.message : (e.body ? e.body : e));
-// 		throw e;
-// 	}
-// }
+
+/**
+ * 
+ * @param {*} req The Incoming Request Object
+ * @param {string} serviceId The Service ID for whose docs needs to be fetched
+ * @param {string} documentId The Document ID that needs to be fetched
+ */
+async function getServiceDocsUsingFilter(req, serviceName, filter, throwError) {
+	const expandLevel = (req.headers['Expand-Level'] || 0) + 1;
+	let service = serviceCache.get(serviceName);
+	try {
+		if (!service) {
+			service = httpClient.httpRequest({
+				url: `${config.baseUrlSM}/${config.appNamespace}/service/?app=${config.app}&filter={"name":"${serviceName}"}&count=1`,
+				method: 'GET',
+				headers: {
+					'TxnId': req ? req.headers[global.txnIdHeader] : '',
+					'User': req ? req.headers[global.userHeader] : '',
+					'Authorization': req ? req.headers.authorization || req.headers.Authorization : '',
+					'Content-Type': 'application/json'
+				},
+				qs: {
+					select: 'api,app,definition,attributeList,collectionName'
+				},
+				json: true
+			}).then(res => res.body[0]);
+			serviceCache.set(serviceName, service);
+		}
+		service = await service;
+		const dataServiceUrl = '/api/c/' + service.app + service.api + '/?filter=' + JSON.stringify(filter);
+		let api = config.baseUrlGW + dataServiceUrl + '?expand=false';
+		// if (expandLevel < 2) {
+		//     api += '?expand=true';
+		// }
+		const document = await httpClient.httpRequest({
+			url: api,
+			method: 'GET',
+			headers: {
+				'TxnId': req ? req.headers[global.txnIdHeader] : '',
+				'Authorization': req ? req.headers.authorization || req.headers.Authorization : '',
+				'Content-Type': 'application/json',
+				'Expand-Level': expandLevel
+			},
+			json: true
+		}).then(res => {
+			const temp = res.body;
+			temp._href = dataServiceUrl;
+			return temp;
+		}).catch(err => {
+			logger.error('Error in getServiceDoc.DocumentFetch :: ', err.statusCode, err.error);
+			logger.trace(err);
+			if (throwError) {
+				throw err;
+			} else {
+				return null;
+			}
+		});
+		return document;
+	} catch (e) {
+		logger.error('Error in getServiceDoc :: ', e.message);
+		if (throwError) {
+			throw e;
+		} else {
+			return null;
+		}
+	}
+}
+
 
 /**
  * 
@@ -1118,6 +1108,7 @@ function removeNullForUniqueAttribute(obj, key) {
 
 e.getDocumentIds = getDocumentIds;
 e.getServiceDoc = getServiceDoc;
+e.getServiceDocsUsingFilter = getServiceDocsUsingFilter;
 e.getUserDoc = getUserDoc;
 e.encryptFile = encryptFile;
 e.decryptFile = decryptFile;

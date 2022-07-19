@@ -1,3 +1,4 @@
+const uuid = require('uuid/v1');
 const _ = require('lodash');
 
 function genrateCode(config) {
@@ -6,7 +7,7 @@ function genrateCode(config) {
 	if (typeof schema === 'string') {
 		schema = JSON.parse(schema);
 	}
-	const code = [];
+	let code = [];
 	code.push('const mongoose = require(\'mongoose\');');
 	code.push('const _ = require(\'lodash\');');
 	code.push('');
@@ -310,6 +311,14 @@ function genrateCode(config) {
 	}
 
 
+	/**----------------------- DYNAMIC-FILTER ------------------- */
+	code.push('');
+	code.push('async function getDynamicFilter(req, data) {');
+	parseRoleForDynamicFilters(config.role.roles);
+	code.push('\treturn filter;');
+	code.push('}');
+	code.push('');
+
 
 
 	/**------------------------ EXPORTS ----------------------- */
@@ -337,6 +346,7 @@ function genrateCode(config) {
 	code.push('module.exports.cascadeRelation = cascadeRelation;');
 
 	code.push('module.exports.filterByPermission = filterByPermission;');
+	code.push('module.exports.getDynamicFilter = getDynamicFilter;');
 
 
 	return code.join('\n');
@@ -774,7 +784,7 @@ function genrateCode(config) {
 						code.push('\t\t} catch (e) {');
 						code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
 						code.push('\t\t}');
-						code.push('\t}');	
+						code.push('\t}');
 					}
 				} else if (def.type == 'Object') {
 					parseSchemaForEncryption(def.definition, path);
@@ -1120,8 +1130,6 @@ function genrateCode(config) {
 
 
 
-
-
 	function parseFieldsForPermisison(fields, parentKey) {
 		Object.keys(fields).forEach(key => {
 			const dataKey = parentKey ? parentKey + '.' + key : key;
@@ -1142,9 +1150,12 @@ function genrateCode(config) {
 		roles.forEach(e => {
 			return e.operations.forEach(o => {
 				if (!methodIdMap[o.method]) {
-					methodIdMap[o.method] = [];
+					methodIdMap[o.method] = {
+						permissionIds: [],
+						rules: e.rules
+					};
 				}
-				methodIdMap[o.method].push(e.id);
+				methodIdMap[o.method].permissionIds.push(e.id);
 			});
 		});
 		Object.keys(methodIdMap).forEach(method => {
@@ -1163,7 +1174,7 @@ function genrateCode(config) {
 			code.push('\t\treturn true;');
 			code.push('\t}');
 			//Normal User Code
-			code.push(`\tif (_.intersection(${JSON.stringify(methodIdMap[method])}, permissions).length > 0) {`);
+			code.push(`\tif (_.intersection(${JSON.stringify(methodIdMap[method].permissionIds)}, permissions).length > 0) {`);
 			code.push('\t\treturn true;');
 			code.push('\t}');
 
@@ -1232,6 +1243,81 @@ function genrateCode(config) {
 		code.push('}');
 		code.push('module.exports.getNextWFStep = getNextWFStep;');
 
+	}
+
+	function parseRoleForDynamicFilters(roles) {
+		roles.forEach(role => {
+			if (role.rule) {
+				role.rule.forEach(rule => {
+					code = code.concat(getFilterGenratorCode(rule.filter));
+				});
+			}
+		});
+		function parseObject(filter, rule, parentKey) {
+			let paths = [];
+			Object.keys(rule).forEach(key => {
+				if (key == '$user') {
+					paths.push({
+						type: 'User',
+						path: parentKey,
+						dynamic: rule[key]
+					});
+				} else if (key == '$service') {
+					paths.push({
+						type: 'Service',
+						path: parentKey,
+						dynamic: rule[key]
+					});
+				} else {
+					if (Array.isArray(rule[key])) {
+						rule[key].forEach((item, i) => {
+							const path = parentKey ? parentKey + `[${i}].` + key : key + `[${i}]`;
+							paths = paths.concat(parseObject(filter, item, path));
+						});
+					} else {
+						const path = parentKey ? parentKey + '.' + key : key;
+						paths = paths.concat(parseObject(filter, rule[key], path));
+					}
+				}
+			});
+			return paths;
+		}
+
+		function convertServiceBlock(block) {
+			const field = block['$field'];
+			const filter = block['$filter'];
+			const segments = field.split('.');
+			const dataService = segments[0];
+			const path = segments.slice(1).join('.');
+			let tempCode = getFilterGenratorCode(filter);
+			tempCode.push(`const doc = await commonService.getServiceDocsUsingFilter(req, '${dataService}', filter, true);`);
+			tempCode.push(`return _.get(doc, '${path}');`);
+			return tempCode;
+		}
+
+		function getFilterGenratorCode(filter) {
+			const tempCode = [];
+			if (typeof filter == 'string') {
+				filter = JSON.parse(filter);
+			}
+			const paths = parseObject(filter, filter);
+			tempCode.push(`\tconst filter = ${JSON.stringify(filter)};`);
+			paths.forEach(item => {
+				if (item.type === 'Service') {
+					const id = _.camelCase(uuid());
+					const variableName = 'var_' + id;
+					const functionName = 'function_' + id;
+					tempCode.push(`\tasync function ${functionName}(req) {`);
+					tempCode.push(`\t\t${convertServiceBlock(item.dynamic).join('\n')}`);
+					tempCode.push(`\t}`);
+					tempCode.push(`\tconst ${variableName} = await ${functionName}(req);`);
+					tempCode.push(`\t_.set(filter, '${item.path}', _.get(req.user, ${variableName}));`);
+				} else {
+					tempCode.push(`\t_.set(filter, '${item.path}', _.get(req.user, '${item.dynamic}'));`);
+				}
+			});
+			return tempCode;
+		}
 	}
 }
 
