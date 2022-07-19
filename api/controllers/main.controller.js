@@ -590,7 +590,7 @@ router.post('/', (req, res) => {
 		let payload = req.body;
 		logger.debug(`[${txnId}] Create request received.`);
 		const dynamicFilter = await specialFields.getDynamicFilter(req);
-		if (dynamicFilter) {
+		if (!_.isEmpty(dynamicFilter)) {
 			const tester = sift(dynamicFilter);
 			if (Array.isArray(payload)) {
 				const testedPayload = payload.filter(tester);
@@ -749,7 +749,7 @@ router.put('/:id', (req, res) => {
 		logger.debug(`[${txnId}] Schema Free ? ${serviceData.schemaFree}`);
 
 		const dynamicFilter = await specialFields.getDynamicFilter(req);
-		if (dynamicFilter) {
+		if (!_.isEmpty(dynamicFilter)) {
 			const tester = sift(dynamicFilter);
 			if (!tester(payload)) {
 				logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
@@ -914,7 +914,7 @@ router.delete('/:id', (req, res) => {
 			let doc = await model.findById(id);
 
 			const dynamicFilter = await specialFields.getDynamicFilter(req);
-			if (dynamicFilter) {
+			if (!_.isEmpty(dynamicFilter)) {
 				const tester = sift(dynamicFilter);
 				if (!tester(doc.toObject())) {
 					logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
