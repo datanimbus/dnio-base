@@ -316,6 +316,9 @@ function genrateCode(config) {
 	code.push('async function getDynamicFilter(req, data) {');
 	code.push('\tlet filter;');
 	parseRoleForDynamicFilters(config.role.roles);
+	code.push('\tif(filter)');
+	code.push('\t\tlogger.debug(JSON.stringify(filter));');
+	code.push('\t}');
 	code.push('\treturn filter;');
 	code.push('}');
 	code.push('');
