@@ -93,12 +93,24 @@ router.get('/utils/bulkShow', async (req, res) => {
 
 router.put('/bulkUpdate', async (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
-	const id = req.query.id;
-	if (!id) {
+	const docs = req.body.docs;
+	const userFilter = req.body.filter;
+	const data = req.body.data;
+	const newDocs = docs.filter(e => !e._id);
+	let invalidParams = 0;
+	if (!docs || docs.length > 0) {
+		invalidParams += 1;
+	}
+	if ((!userFilter || _.isEmpty(userFilter)) && (!data || _.isEmpty(data))) {
+		invalidParams += 2;
+	}
+
+	if (invalidParams == 3) {
 		return res.status(400).json({
-			message: 'Invalid IDs',
+			message: 'Invalid Request, Not sure what to updated',
 		});
 	}
+
 	if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
 		return res.status(403).json({
 			message: 'You don\'t have permission to update records',
@@ -115,19 +127,29 @@ router.put('/bulkUpdate', async (req, res) => {
 	// const workflowModel = global.authorDB.model('workflow');
 	const workflowModel = mongoose.model('workflow');
 	try {
-		const ids = id.split(',');
-		const filter = {
-			_id: {
-				$in: ids,
-			},
+		let filter = {
 			'_metadata.deleted': false,
 		};
+		if (invalidParams == 2) {
+			filter = _.merge(filter, userFilter);
+		} else {
+			const ids = docs.map(e => e._id);
+			filter['_id'] = {
+				$in: ids
+			};
+		}
 		const docs = await model.find(filter);
-		const promises = docs.map(async (doc) => {
+		let promises = docs.map(async (doc) => {
 			doc._req = req;
 			doc._oldDoc = doc.toObject();
 			const payload = doc.toObject();
-			_.mergeWith(payload, req.body, mergeCustomizer);
+			let newData;
+			if (invalidParams == 2) {
+				newData = data;
+			} else {
+				newData = docs.find(e => e._id === payload._id);
+			}
+			_.mergeWith(payload, newData, mergeCustomizer);
 			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 			if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
 				const wfItem = workflowUtils.getWorkflowItem(
@@ -146,13 +168,41 @@ router.put('/bulkUpdate', async (req, res) => {
 					'_metadata.workflow': status._id,
 				});
 			} else {
-				_.mergeWith(doc, req.body, mergeCustomizer);
+				_.mergeWith(doc, newData, mergeCustomizer);
 				return new Promise((resolve) => {
 					doc.save().then(resolve).catch(resolve);
 				});
 			}
 		});
-		const allResult = await Promise.all(promises);
+		let allResult = await Promise.all(promises);
+		if ((req.query.upsert == true || req.query.upsert == 'true') && newDocs.length > 0) {
+			promises = newDocs.map(async (data) => {
+				const doc = new model(data);
+				doc._req = req;
+				if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
+					const wfItem = workflowUtils.getWorkflowItem(
+						req,
+						'POST',
+						doc._id,
+						'Pending',
+						payload,
+						doc.toObject()
+					);
+					const wfDoc = new workflowModel(wfItem);
+					wfDoc._req = req;
+					let status = await wfDoc.save();
+					return {
+						_workflow: status._id,
+						message: 'Workflow has been created',
+					};
+				} else {
+					return new Promise((resolve) => {
+						doc.save().then(resolve).catch(resolve);
+					});
+				}
+			});
+			allResult = _.concat(allResult, (await Promise.all(promises)));
+		}
 		if (allResult.every((e) => e._id)) {
 			return res.status(200).json(allResult);
 		} else if (allResult.every((e) => !e._id)) {
@@ -168,9 +218,10 @@ router.put('/bulkUpdate', async (req, res) => {
 router.delete('/utils/bulkDelete', async (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
 	const ids = req.body.ids;
-	if (!ids || ids.length == 0) {
+	const userFilter = req.body.filter;
+	if ((!ids || ids.length == 0) && (!userFilter || _.isEmpty(userFilter))) {
 		return res.status(400).json({
-			message: 'Invalid IDs',
+			message: 'Invalid Request, Not sure what to delete',
 		});
 	}
 	if (!specialFields.hasPermissionForDELETE(req, req.user.appPermissions)) {
@@ -191,6 +242,13 @@ router.delete('/utils/bulkDelete', async (req, res) => {
 			},
 			'_metadata.deleted': false,
 		};
+		if (ids && ids.length > 0) {
+			filter['_id'] = {
+				$in: ids,
+			};
+		} else {
+			filter = _.merge(filter, userFilter);
+		}
 		const dynamicFilter = await specialFields.getDynamicFilter(req);
 		if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
 			filter = { $and: [filter, dynamicFilter] };
