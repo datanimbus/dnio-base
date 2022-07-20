@@ -116,6 +116,40 @@ router.put('/bulkUpdate', async (req, res) => {
 			message: 'You don\'t have permission to update records',
 		});
 	}
+
+	const dynamicFilter = await specialFields.getDynamicFilter(req);
+	if (!_.isEmpty(dynamicFilter)) {
+		const tester = sift(dynamicFilter);
+		if (data) {
+			if (Array.isArray(data)) {
+				const testedPayload = data.filter(tester);
+				if (testedPayload.length != data.length) {
+					logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+					return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+				}
+			} else {
+				if (!tester(data)) {
+					logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+					return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+				}
+			}
+		} else {
+			if (Array.isArray(docs)) {
+				const testedPayload = docs.filter(tester);
+				if (testedPayload.length != docs.length) {
+					logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+					return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+				}
+			} else {
+				if (!tester(docs)) {
+					logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+					return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+				}
+			}
+		}
+	}
+
+
 	if (req.query.txn == true) {
 		return transactionUtils.transferToTransaction(req, res);
 	}
@@ -186,7 +220,7 @@ router.put('/bulkUpdate', async (req, res) => {
 						doc._id,
 						'Pending',
 						payload,
-						doc.toObject()
+						data
 					);
 					const wfDoc = new workflowModel(wfItem);
 					wfDoc._req = req;
