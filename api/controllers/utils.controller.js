@@ -97,7 +97,7 @@ router.get('/dynamicFilter', async (req, res) => {
 	try {
 		const filter = await specialUtils.getDynamicFilter(req);
 		res.status(200).json({ filter });
-	} catch (e) {
+	} catch (err) {
 		logger.error(err);
 		res.status(500).json({
 			message: err.message
