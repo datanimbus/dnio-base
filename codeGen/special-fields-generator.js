@@ -1269,30 +1269,40 @@ function genrateCode(config) {
 				code.push(`\t}`)
 			}
 		});
-		function parseObject(filter, rule, parentKey) {
+		function parseObject(filter, rule, parentKeys) {
 			let paths = [];
+			if (!parentKeys) {
+				parentKeys = [];
+			}
 			Object.keys(rule).forEach(key => {
+				let tempKey = key;
+				// if (tempKey.endsWith('._id')) {
+				// 	tempKey.replace(/\./, '#');
+				// }
 				if (key == '$user') {
 					paths.push({
 						type: 'User',
-						path: parentKey,
+						path: parentKeys,
 						dynamic: rule[key]
 					});
 				} else if (key == '$service') {
 					paths.push({
 						type: 'Service',
-						path: parentKey,
+						path: parentKeys,
 						dynamic: rule[key]
 					});
 				} else {
 					if (Array.isArray(rule[key])) {
 						rule[key].forEach((item, i) => {
-							const path = parentKey ? parentKey + `[${i}].` + key : key + `[${i}]`;
-							paths = paths.concat(parseObject(filter, item, path));
+							parentKeys.push(tempKey);
+							parentKeys.push(i);
+							// const path = parentKey ? parentKey + `[${i}].` + tempKey : tempKey + `[${i}]`;
+							paths = paths.concat(parseObject(filter, item, parentKeys));
 						});
 					} else {
-						const path = parentKey ? parentKey + '.' + key : key;
-						paths = paths.concat(parseObject(filter, rule[key], path));
+						// const path = parentKey ? parentKey + '.' + tempKey : tempKey;
+						parentKeys.push(tempKey);
+						paths = paths.concat(parseObject(filter, rule[key], parentKeys));
 					}
 				}
 			});
@@ -1338,12 +1348,12 @@ function genrateCode(config) {
 					tempCode.push(`\t}`);
 					tempCode.push(`\tconst ${variableName} = await ${functionName}(req);`);
 					tempCode.push(`\tif (!${variableName} || _.isEmpty(${variableName})) {`);
-					tempCode.push(`\t\t_.set(${filterVarName}, '${item.path}', 'NO_VALUE');`);
+					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, 'NO_VALUE');`);
 					tempCode.push(`\t} else {`);
-					tempCode.push(`\t\t_.set(${filterVarName}, '${item.path}', { $in: ${variableName} });`);
+					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, { $in: ${variableName} });`);
 					tempCode.push(`\t}`);
 				} else {
-					tempCode.push(`\t_.set(${filterVarName}, '${item.path}', (_.get(req.user, '${item.dynamic}') || 'NO_VALUE'));`);
+					tempCode.push(`\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, (_.get(req.user, '${item.dynamic}') || 'NO_VALUE'));`);
 				}
 			});
 			return tempCode;
