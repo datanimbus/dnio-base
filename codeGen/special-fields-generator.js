@@ -318,6 +318,8 @@ function genrateCode(config) {
 	parseRoleForDynamicFilters(config.role.roles);
 	code.push('\tif (filter) {');
 	code.push('\t\tlogger.debug(JSON.stringify(filter));');
+	code.push('\t} else {');
+	code.push('\t\tlogger.debug(\'Dynamic Filter Not Applied.\');');
 	code.push('\t}');
 	code.push('\treturn filter;');
 	code.push('}');
@@ -1252,9 +1254,11 @@ function genrateCode(config) {
 	function parseRoleForDynamicFilters(roles) {
 		roles.forEach(role => {
 			if (role.rule) {
+				code.push(`\tif (_.intersection(['${role.id}'], req.user.appPermissions).length > 0) {`)
 				role.rule.forEach(rule => {
 					code = code.concat(getFilterGenratorCode(rule.filter));
 				});
+				code.push(`\t}`)
 			}
 		});
 		function parseObject(filter, rule, parentKey) {
