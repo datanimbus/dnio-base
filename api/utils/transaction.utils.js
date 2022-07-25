@@ -5,18 +5,21 @@ const config = require('../../config');
 function transferToTransaction(req, res) {
 	const payload = [];
 	if (req.path.indexOf('bulkDelete') > -1) {
-		req.body.ids.forEach(id => {
-			payload.push({
-				operation: 'DELETE',
-				dataService: {
-					app: config.app,
-					name: config.serviceName
-				},
-				data: {
-					_id: id
-				}
+		if (req.body.ids || req.query.ids) {
+			const ids = req.query.ids || req.body.ids;
+			ids.forEach(id => {
+				payload.push({
+					operation: 'DELETE',
+					dataService: {
+						app: config.app,
+						name: config.serviceName
+					},
+					data: {
+						_id: id
+					}
+				});
 			});
-		});
+		}
 	} else if (req.path.indexOf('bulkUpdate') > -1) {
 		const ids = req.query.id.split(',');
 		ids.forEach(id => {
