@@ -54,7 +54,7 @@ module.exports = async (app) => {
 
 	app.use(AuthCacheMW({ secret: config.RBAC_JWT_KEY, decodeOnly: true, app: config.app }));
 
-	app.use(function (req, res, next) {
+	app.use(async function (req, res, next) {
 		let allowedExt = config.allowedExt || [];
 		if (!req.file) return next();
 		logger.debug(`[${req.get(global.txnIdHeader)}] File upload in request`);
@@ -67,7 +67,7 @@ module.exports = async (app) => {
 			logger.error(`[${req.get(global.txnIdHeader)}] File upload :: fileExt :: Not permitted`);
 			flag = false;
 		} else {
-			flag = fileValidator({ type: 'Buffer', data: fs.readFileSync(req.file.path) }, fileExt);
+			flag = await fileValidator({ type: 'Buffer', data: fs.readFileSync(req.file.path) }, fileExt);
 			logger.debug(`[${req.get(global.txnIdHeader)}] Is file ${filename} valid? ${flag}`);
 		}
 		if (flag) next();
