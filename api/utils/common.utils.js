@@ -200,12 +200,17 @@ async function getServiceDocsUsingFilter(req, serviceName, filter, throwError) {
 					select: 'api,app,definition,attributeList,collectionName'
 				},
 				json: true
-			}).then(res => res.body[0]);
+			}).then(res => {
+				if (!res.body || res.body.length == 0) {
+					return null;
+				}
+				return res.body[0];
+			});
 			serviceCache.set(serviceName, service);
 		}
 		service = await service;
 		const dataServiceUrl = '/api/c/' + service.app + service.api + '/?filter=' + JSON.stringify(filter);
-		let api = config.baseUrlGW + dataServiceUrl + '?expand=false';
+		let api = config.baseUrlGW + dataServiceUrl + '&expand=false';
 		// if (expandLevel < 2) {
 		//     api += '?expand=true';
 		// }
