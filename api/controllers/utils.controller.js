@@ -96,7 +96,7 @@ router.post('/simulate', (req, res) => {
 
 router.get('/dynamicFilter/:userId', async (req, res) => {
 	try {
-		if (req.params.userId) {
+		if (!req.params.userId) {
 			return res.status(400).json({ message: 'User ID is required' })
 		}
 		const user = await commonUtils.getUserDoc(req, req.params.userId);
