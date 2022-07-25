@@ -1254,6 +1254,9 @@ function genrateCode(config) {
 	}
 
 	function parseRoleForDynamicFilters(roles) {
+		code.push(`\tif (_.intersection(['ADMIN_${config._id}'], req.user.appPermissions).length > 0) {`);
+		code.push('\t\treturn null;');
+		code.push('\t}');
 		roles.forEach(role => {
 			if (role.rule) {
 				code.push(`\tif (_.intersection(['${role.id}'], req.user.appPermissions).length > 0) {`)
