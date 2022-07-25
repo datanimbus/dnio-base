@@ -6,6 +6,7 @@ const config = require('../../config');
 const crudderUtils = require('../utils/crudder.utils');
 const workflowUtils = require('../utils/workflow.utils');
 const specialUtils = require('../utils/special-fields.utils');
+const commonUtils = require('../utils/common.utils');
 
 const logger = log4js.getLogger(global.loggerName);
 const model = mongoose.model(config.serviceId);
@@ -93,9 +94,13 @@ router.post('/simulate', (req, res) => {
 });
 
 
-router.get('/dynamicFilter', async (req, res) => {
+router.get('/dynamicFilter/:userId', async (req, res) => {
 	try {
-		const filter = await specialUtils.getDynamicFilter(req);
+		if (req.params.userId) {
+			return res.status(400).json({ message: 'User ID is required' })
+		}
+		const user = await commonUtils.getUserDoc(req, req.params.userId);
+		const filter = await specialUtils.getDynamicFilter({ user });
 		res.status(200).json({ filter });
 	} catch (err) {
 		logger.error(err);
