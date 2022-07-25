@@ -5,6 +5,7 @@ const log4js = require('log4js');
 const config = require('../../config');
 const crudderUtils = require('../utils/crudder.utils');
 const workflowUtils = require('../utils/workflow.utils');
+const specialUtils = require('../utils/special-fields.utils');
 
 const logger = log4js.getLogger(global.loggerName);
 const model = mongoose.model(config.serviceId);
@@ -71,7 +72,7 @@ router.post('/simulate', (req, res) => {
 		}
 	}
 	execute().catch(err => {
-		logger.error('Error in simulate api ::',err);
+		logger.error('Error in simulate api ::', err);
 		if (err.source) {
 			if (err.error.message) {
 				err.message = err.error.message;
@@ -89,6 +90,19 @@ router.post('/simulate', (req, res) => {
 			message: err.message
 		});
 	});
+});
+
+
+router.get('/dynamicFilter', async (req, res) => {
+	try {
+		const filter = await specialUtils.getDynamicFilter(req);
+		res.status(200).json({ filter });
+	} catch (e) {
+		logger.error(err);
+		res.status(500).json({
+			message: err.message
+		});
+	}
 });
 
 module.exports = router;

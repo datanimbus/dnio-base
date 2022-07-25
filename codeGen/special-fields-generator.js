@@ -315,13 +315,15 @@ function genrateCode(config) {
 	code.push('');
 	code.push('async function getDynamicFilter(req, data) {');
 	code.push('\tlet filter;');
+	code.push('\tlet allFilters = [];');
 	parseRoleForDynamicFilters(config.role.roles);
-	code.push('\tif (filter) {');
-	code.push('\t\tlogger.debug(JSON.stringify(filter));');
+	code.push('\tif (allFilters && allFilters.length > 0) {');
+	code.push('\t\tlogger.debug(JSON.stringify(allFilters));');
+	code.push('\t\treturn { $and: allFilters };');
 	code.push('\t} else {');
 	code.push('\t\tlogger.debug(\'Dynamic Filter Not Applied.\');');
+	code.push('\t\treturn null;');
 	code.push('\t}');
-	code.push('\treturn filter;');
 	code.push('}');
 	code.push('');
 
@@ -1258,6 +1260,7 @@ function genrateCode(config) {
 				role.rule.forEach(rule => {
 					code = code.concat(getFilterGenratorCode(rule.filter));
 				});
+				code.push(`\t\tallFilters.push(filter);`);
 				code.push(`\t}`)
 			}
 		});
