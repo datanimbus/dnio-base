@@ -318,7 +318,7 @@ function genrateCode(config) {
 	code.push('\tlet allFilters = [];');
 	parseRoleForDynamicFilters(config.role.roles);
 	code.push('\tif (allFilters && allFilters.length > 0) {');
-	code.push('\t\tlogger.debug(JSON.stringify(allFilters));');
+	code.push('\t\tlogger.debug(\'Dynamic Filter Applied\', JSON.stringify(allFilters));');
 	code.push('\t\treturn { $and: allFilters };');
 	code.push('\t} else {');
 	code.push('\t\tlogger.debug(\'Dynamic Filter Not Applied.\');');
@@ -1258,10 +1258,12 @@ function genrateCode(config) {
 		code.push('\t\treturn null;');
 		code.push('\t}');
 		roles.forEach(role => {
-			if (role.rule) {
+			if (role.rule && role.rule.length > 0) {
 				code.push(`\tif (_.intersection(['${role.id}'], req.user.appPermissions).length > 0) {`)
 				role.rule.forEach(rule => {
-					code = code.concat(getFilterGenratorCode(rule.filter));
+					if (!_.isEmpty(rule.filter)) {
+						code = code.concat(getFilterGenratorCode(rule.filter));
+					}
 				});
 				code.push(`\t\tallFilters.push(filter);`);
 				code.push(`\t}`)
@@ -1303,19 +1305,29 @@ function genrateCode(config) {
 			const segments = field.split('.');
 			const dataService = segments[0];
 			const path = segments.slice(1).join('.');
-			let tempCode = getFilterGenratorCode(filter);
-			tempCode.push(`const doc = await commonService.getServiceDocsUsingFilter(req, '${dataService}', filter, true);`);
-			tempCode.push(`return _.get(doc, '${path}');`);
+			let tempCode = getFilterGenratorCode(filter, true);
+			tempCode.push(`if (_.isEmpty(filterInner)) {`);
+			tempCode.push(`\treturn null;`);
+			tempCode.push(`}`);
+			tempCode.push(`const docs = await commonUtils.getServiceDocsUsingFilter(req, '${dataService}', filterInner, true);`);
+			tempCode.push(`return docs.map(doc => _.get(doc, '${path}'));`);
 			return tempCode;
 		}
 
-		function getFilterGenratorCode(filter) {
+		function getFilterGenratorCode(filter, innerBlock) {
 			const tempCode = [];
 			if (typeof filter == 'string') {
 				filter = JSON.parse(filter);
 			}
 			const paths = parseObject(filter, filter);
-			tempCode.push(`\tfilter = ${JSON.stringify(filter)};`);
+			let filterVarName = 'filter';
+			if (innerBlock) {
+				filterVarName += 'Inner';
+				tempCode.push(`\tlet ${filterVarName} = ${JSON.stringify(filter)};`);
+			} else {
+				tempCode.push(`\t${filterVarName} = ${JSON.stringify(filter)};`);
+			}
+
 			paths.forEach(item => {
 				if (item.type === 'Service') {
 					const id = _.camelCase(uuid());
@@ -1325,9 +1337,13 @@ function genrateCode(config) {
 					tempCode.push(`\t\t${convertServiceBlock(item.dynamic).join('\n')}`);
 					tempCode.push(`\t}`);
 					tempCode.push(`\tconst ${variableName} = await ${functionName}(req);`);
-					tempCode.push(`\t_.set(filter, '${item.path}', _.get(req.user, ${variableName}));`);
+					tempCode.push(`\tif (!${variableName} || _.isEmpty(${variableName})) {`);
+					tempCode.push(`\t\t_.set(${filterVarName}, '${item.path}', 'NO_VALUE');`);
+					tempCode.push(`\t} else {`);
+					tempCode.push(`\t\t_.set(${filterVarName}, '${item.path}', { $in: ${variableName} });`);
+					tempCode.push(`\t}`);
 				} else {
-					tempCode.push(`\t_.set(filter, '${item.path}', _.get(req.user, '${item.dynamic}'));`);
+					tempCode.push(`\t_.set(${filterVarName}, '${item.path}', (_.get(req.user, '${item.dynamic}') || 'NO_VALUE'));`);
 				}
 			});
 			return tempCode;
