@@ -1288,7 +1288,7 @@ function genrateCode(config) {
 						path: parentKeys,
 						dynamic: rule[key]
 					});
-				} else {
+				} else if (typeof rule[key] == 'object') {
 					parentKeys.push(tempKey);
 					if (Array.isArray(rule[key])) {
 						rule[key].forEach((item, i) => {
@@ -1300,6 +1300,8 @@ function genrateCode(config) {
 						const keys = JSON.parse(JSON.stringify(parentKeys));
 						paths = paths.concat(parseObject(filter, rule[key], keys));
 					}
+				} else {
+					
 				}
 			});
 			return paths;
