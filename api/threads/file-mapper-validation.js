@@ -1,7 +1,9 @@
 const { parentPort, workerData } = require('worker_threads');
-const _ = require('lodash');
 const mongoose = require('mongoose');
 const log4js = require('log4js');
+const sift = require('sift');
+const _ = require('lodash');
+
 mongoose.set('useFindAndModify', false);
 
 const config = require('../../config');
@@ -32,6 +34,7 @@ async function execute() {
 	const fileMapperUtils = require('../utils/fileMapper.utils');
 	const commonUtils = require('../utils/common.utils');
 	const workflowUtils = require('../utils/workflow.utils');
+	const specialUtils = require('../utils/special-fields.utils');
 
 	const model = mongoose.model('fileMapper');
 	const fileTransfersModel = mongoose.model('fileTransfers');
@@ -39,6 +42,13 @@ async function execute() {
 	const data = workerData.data;
 	const req = workerData.req;
 	const fileId = data.fileId;
+
+	const dynamicFilter = await specialUtils.getDynamicFilter(req);
+	let tester;
+	if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
+		tester = sift(dynamicFilter);
+	}
+
 	let txnId = workerData.req.headers[global.txnIdHeader];
 	logger.debug(`[${txnId}] Worker :: ${fileId}`);
 	const isHeaderProvided = Boolean.valueOf(data.headers);
@@ -73,6 +83,10 @@ async function execute() {
 		temp.fileName = fileName;
 		temp.data = JSON.parse(JSON.stringify(e));
 		temp.sNo = isHeaderProvided ? (i + 1) : i;
+		if (tester && !tester(e)) {
+			temp.status = 'Error';
+			temp.message = 'User Don\'t have enough permissions';
+		}
 		return temp;
 	});
 	mappedSchemaData = null;
@@ -92,9 +106,11 @@ async function execute() {
 	logger.debug('=======================================');
 	logger.debug('INSERT MANY :: ', endTime - startTime);
 	logger.debug('=======================================');
+
+
 	startTime = Date.now();
 	let duplicateDocs = await model.aggregate([
-		{ $match: { fileId, 'data._id': { $exists: true } } },
+		{ $match: { fileId, status: { $ne: 'Error' }, 'data._id': { $exists: true } } },
 		{ $group: { _id: '$data._id', count: { $sum: 1 } } },
 		{ $match: { _id: { $ne: null }, count: { $gt: 1 } } },
 		{ $project: { 'duplicateId': '$_id', _id: 0 } },
@@ -114,9 +130,12 @@ async function execute() {
 	logger.debug('=======================================');
 	logger.debug('STATUS UPDATE :: ', endTime - startTime);
 	logger.debug('=======================================');
+
+
+
 	startTime = Date.now();
 	let conflictDocs = await model.aggregate([
-		{ $match: { fileId, 'data._id': { $exists: true } } },
+		{ $match: { fileId, status: { $ne: 'Error' }, 'data._id': { $exists: true } } },
 		{
 			$lookup:
 			{
@@ -144,7 +163,7 @@ async function execute() {
 	logger.debug('CONFLICT UPDATE :: ', endTime - startTime);
 	logger.debug('=======================================');
 	startTime = Date.now();
-	let pendingDocs = (await model.find({ fileId }));
+	let pendingDocs = (await model.find({ fileId, status: { $ne: 'Error' } }));
 	batch = [pendingDocs];
 	if (pendingDocs.length > 2500) {
 		batch = _.chunk(pendingDocs, 2500);
