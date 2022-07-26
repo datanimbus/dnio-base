@@ -288,9 +288,11 @@ router.delete('/utils/bulkDelete', async (req, res) => {
 		} else {
 			filter = _.merge(filter, userFilter);
 		}
-		const dynamicFilter = await specialFields.getDynamicFilter(req);
-		if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
-			filter = { $and: [filter, dynamicFilter] };
+		if (!serviceData.schemaFree) {
+			const dynamicFilter = await specialFields.getDynamicFilter(req);
+			if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
+				filter = { $and: [filter, dynamicFilter] };
+			}
 		}
 		const docs = await model.find(filter);
 		const promises = docs.map(async (doc) => {
@@ -384,9 +386,11 @@ router.get('/utils/count', async (req, res) => {
 		if (errors && Object.keys(errors).length > 0) {
 			logger.warn('Error while fetching relation: ', JSON.stringify(errors));
 		}
-		const dynamicFilter = await specialFields.getDynamicFilter(req);
-		if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
-			filter = { $and: [filter, dynamicFilter] };
+		if (!serviceData.schemaFree) {
+			const dynamicFilter = await specialFields.getDynamicFilter(req);
+			if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
+				filter = { $and: [filter, dynamicFilter] };
+			}
 		}
 		const count = await model.countDocuments(filter);
 		res.status(200).json(count);
@@ -452,9 +456,11 @@ router.get('/', async (req, res) => {
 		if (errors && Object.keys(errors).length > 0) {
 			logger.warn('Error while fetching relation: ', JSON.stringify(errors));
 		}
-		const dynamicFilter = await specialFields.getDynamicFilter(req);
-		if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
-			filter = { $and: [filter, dynamicFilter] };
+		if (!serviceData.schemaFree) {
+			const dynamicFilter = await specialFields.getDynamicFilter(req);
+			if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
+				filter = { $and: [filter, dynamicFilter] };
+			}
 		}
 		if (req.query.countOnly) {
 			const count = await model.countDocuments(filter);
@@ -608,19 +614,21 @@ router.post('/', async (req, res) => {
 	let id = req.params.id;
 	let payload = req.body;
 	logger.debug(`[${txnId}] Create request received.`);
-	const dynamicFilter = await specialFields.getDynamicFilter(req);
-	if (!_.isEmpty(dynamicFilter)) {
-		const tester = sift(dynamicFilter);
-		if (Array.isArray(payload)) {
-			const testedPayload = payload.filter(tester);
-			if (testedPayload.length != payload.length) {
-				logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
-				return res.status(400).json({ message: 'You don\'t have access for this operation.' });
-			}
-		} else {
-			if (!tester(payload)) {
-				logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
-				return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+	if (!serviceData.schemaFree) {
+		const dynamicFilter = await specialFields.getDynamicFilter(req);
+		if (!_.isEmpty(dynamicFilter)) {
+			const tester = sift(dynamicFilter);
+			if (Array.isArray(payload)) {
+				const testedPayload = payload.filter(tester);
+				if (testedPayload.length != payload.length) {
+					logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+					return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+				}
+			} else {
+				if (!tester(payload)) {
+					logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+					return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+				}
 			}
 		}
 	}
@@ -786,12 +794,14 @@ router.put('/:id', async (req, res) => {
 	logger.debug(`[${txnId}] Update request received for record ${id}`);
 	logger.debug(`[${txnId}] Schema Free ? ${serviceData.schemaFree}`);
 
-	const dynamicFilter = await specialFields.getDynamicFilter(req);
-	if (!_.isEmpty(dynamicFilter)) {
-		const tester = sift(dynamicFilter);
-		if (!tester(payload)) {
-			logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
-			return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+	if (!serviceData.schemaFree) {
+		const dynamicFilter = await specialFields.getDynamicFilter(req);
+		if (!_.isEmpty(dynamicFilter)) {
+			const tester = sift(dynamicFilter);
+			if (!tester(payload)) {
+				logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+				return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+			}
 		}
 	}
 
@@ -943,12 +953,14 @@ router.delete('/:id', async (req, res) => {
 	try {
 		let doc = await model.findById(id);
 
-		const dynamicFilter = await specialFields.getDynamicFilter(req);
-		if (!_.isEmpty(dynamicFilter)) {
-			const tester = sift(dynamicFilter);
-			if (!tester(doc.toObject())) {
-				logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
-				return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+		if (!serviceData.schemaFree) {
+			const dynamicFilter = await specialFields.getDynamicFilter(req);
+			if (!_.isEmpty(dynamicFilter)) {
+				const tester = sift(dynamicFilter);
+				if (!tester(doc.toObject())) {
+					logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
+					return res.status(400).json({ message: 'You don\'t have access for this operation.' });
+				}
 			}
 		}
 		logger.trace(`[${txnId}] Document from DB - ${JSON.stringify(doc)}`);
