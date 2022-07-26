@@ -1265,7 +1265,9 @@ function genrateCode(config) {
 						code = code.concat(getFilterGenratorCode(rule.filter));
 					}
 				});
-				code.push(`\t\tallFilters.push(filter);`);
+				code.push(`\t\tif (filter && !_.isEmpty(filter)) {`);
+				code.push(`\t\t\tallFilters.push(filter);`);
+				code.push(`\t\t}`);
 				code.push(`\t}`)
 			}
 		});
@@ -1301,7 +1303,7 @@ function genrateCode(config) {
 						paths = paths.concat(parseObject(filter, rule[key], keys));
 					}
 				} else {
-					
+
 				}
 			});
 			return paths;
