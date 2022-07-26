@@ -1276,9 +1276,6 @@ function genrateCode(config) {
 			}
 			Object.keys(rule).forEach(key => {
 				let tempKey = key;
-				// if (tempKey.endsWith('._id')) {
-				// 	tempKey.replace(/\./, '#');
-				// }
 				if (key == '$user') {
 					paths.push({
 						type: 'User',
@@ -1292,17 +1289,16 @@ function genrateCode(config) {
 						dynamic: rule[key]
 					});
 				} else {
+					parentKeys.push(tempKey);
 					if (Array.isArray(rule[key])) {
 						rule[key].forEach((item, i) => {
-							parentKeys.push(tempKey);
-							parentKeys.push(i);
-							// const path = parentKey ? parentKey + `[${i}].` + tempKey : tempKey + `[${i}]`;
-							paths = paths.concat(parseObject(filter, item, parentKeys));
+							const keys = JSON.parse(JSON.stringify(parentKeys));
+							keys.push(i);
+							paths = paths.concat(parseObject(filter, item, keys));
 						});
 					} else {
-						// const path = parentKey ? parentKey + '.' + tempKey : tempKey;
-						parentKeys.push(tempKey);
-						paths = paths.concat(parseObject(filter, rule[key], parentKeys));
+						const keys = JSON.parse(JSON.stringify(parentKeys));
+						paths = paths.concat(parseObject(filter, rule[key], keys));
 					}
 				}
 			});
