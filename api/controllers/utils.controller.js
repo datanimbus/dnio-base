@@ -11,68 +11,44 @@ const commonUtils = require('../utils/common.utils');
 const logger = log4js.getLogger(global.loggerName);
 const model = mongoose.model(config.serviceId);
 
-router.post('/aggregate', (req, res) => {
-	async function execute() {
-		try {
-			const payload = req.body;
-			const flag = crudderUtils.validateAggregation(payload);
-			if (!flag) {
-				return res.status(400).json({
-					message: 'Invalid key in aggregation body'
-				});
-			}
-			const docs = await model.aggregate(payload);
-			res.status(200).json(docs);
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
+router.post('/aggregate', async (req, res) => {
+	try {
+		const payload = req.body;
+		const flag = crudderUtils.validateAggregation(payload);
+		if (!flag) {
+			return res.status(400).json({
+				message: 'Invalid key in aggregation body'
+			});
 		}
-	}
-	execute().catch(err => {
+		const docs = await model.aggregate(payload);
+		res.status(200).json(docs);
+	} catch (err) {
 		logger.error(err);
 		res.status(500).json({
 			message: err.message
 		});
-	});
+	}
 });
 
-router.put('/hrefUpdate', (req, res) => {
-	async function execute() {
-		try {
-			global.outgoingAPIs[req.body.id] = req.body;
-			res.status(200).json({ message: 'Href Updated' });
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
-		}
-	}
-	execute().catch(err => {
+router.put('/hrefUpdate', async (req, res) => {
+	try {
+		global.outgoingAPIs[req.body.id] = req.body;
+		res.status(200).json({ message: 'Href Updated' });
+	} catch (err) {
 		logger.error(err);
 		res.status(500).json({
 			message: err.message
 		});
-	});
+	}
 });
 
-router.post('/simulate', (req, res) => {
-	async function execute() {
-		try {
-			const payload = req.body;
-			const operation = req.query.operation;
-			const data = await workflowUtils.simulate(req, payload, { simulate: true, source: 'simulate', trigger: 'form-submit', operation: operation });
-			res.status(200).json(data);
-		} catch (e) {
-			if (typeof e === 'string') {
-				throw new Error(e);
-			}
-			throw e;
-		}
-	}
-	execute().catch(err => {
+router.post('/simulate', async (req, res) => {
+	try {
+		const payload = req.body;
+		const operation = req.query.operation;
+		const data = await workflowUtils.simulate(req, payload, { simulate: true, source: 'simulate', trigger: 'form-submit', operation: operation });
+		res.status(200).json(data);
+	} catch (err) {
 		logger.error('Error in simulate api ::', err);
 		if (err.source) {
 			if (err.error.message) {
@@ -90,7 +66,7 @@ router.post('/simulate', (req, res) => {
 		res.status(500).json({
 			message: err.message
 		});
-	});
+	}
 });
 
 
