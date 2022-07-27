@@ -44,6 +44,7 @@ async function execute() {
 	const fileId = data.fileId;
 
 	const dynamicFilter = await specialUtils.getDynamicFilter(req);
+	logger.debug('Dynamic Filter in File Mapper:', dynamicFilter);
 	let tester;
 	if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
 		tester = sift(dynamicFilter);
@@ -84,6 +85,7 @@ async function execute() {
 		temp.data = JSON.parse(JSON.stringify(e));
 		temp.sNo = isHeaderProvided ? (i + 1) : i;
 		if (tester && !tester(e)) {
+			logger.debug('Record was rejected because of dynamic filter:', temp.sNo);
 			temp.status = 'Error';
 			temp.message = 'User Don\'t have enough permissions';
 		}
