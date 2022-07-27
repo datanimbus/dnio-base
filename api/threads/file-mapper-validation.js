@@ -122,8 +122,8 @@ async function execute() {
 	logger.trace('=======================================');
 	let duplicateIds = _.map(duplicateDocs, 'duplicateId');
 	let arr = [];
-	arr.push(model.updateMany({ fileId, 'data._id': { $in: duplicateIds } }, { $set: { status: 'Duplicate', conflict: false } }));
-	arr.push(model.updateMany({ fileId, 'data._id': { $nin: duplicateIds } }, { $set: { status: 'Validated' } }));
+	arr.push(model.updateMany({ fileId, 'data._id': { $in: duplicateIds }, status: { $ne: 'Error' } }, { $set: { status: 'Duplicate', conflict: false } }));
+	arr.push(model.updateMany({ fileId, 'data._id': { $nin: duplicateIds }, status: { $ne: 'Error' } }, { $set: { status: 'Validated' } }));
 	await Promise.all(arr);
 	duplicateDocs = null;
 	duplicateIds = null;
@@ -157,7 +157,7 @@ async function execute() {
 	logger.trace('CONFLICT DOCS :: ', conflictDocs);
 	logger.trace('=======================================');
 	let conflictIds = _.map(conflictDocs, '_id');
-	await model.updateMany({ fileId, 'data._id': { $in: conflictIds } }, { $set: { status: 'Duplicate', conflict: true } });
+	await model.updateMany({ fileId, 'data._id': { $in: conflictIds }, status: { $ne: 'Error' } }, { $set: { status: 'Duplicate', conflict: true } });
 	conflictDocs = null;
 	conflictIds = null;
 	endTime = Date.now();
