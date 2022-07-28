@@ -1353,7 +1353,12 @@ function genrateCode(config) {
 					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, { $in: ${variableName} });`);
 					tempCode.push(`\t}`);
 				} else {
-					tempCode.push(`\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, (_.get(req.user, '${item.dynamic}') || 'NO_VALUE'));`);
+					tempCode.push(`\tlet var_${_.camelCase(item.path)} = _.get(req.user, '${item.dynamic}');`);
+					tempCode.push(`\tif (typeof var_${_.camelCase(item.path)} == 'boolean') {`);
+					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, var_${_.camelCase(item.path)});`);
+					tempCode.push(`\t} else {`);
+					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, (var_${_.camelCase(item.path)} || 'NO_VALUE'));`);
+					tempCode.push(`\t}`);
 				}
 			});
 			return tempCode;
