@@ -87,7 +87,7 @@ async function execute() {
 		if (tester && !tester(e)) {
 			logger.debug('Record was rejected because of dynamic filter:', temp.sNo);
 			temp.status = 'Error';
-			temp.message = 'User Don\'t have enough permissions';
+			temp.message = 'You don\'t have access for this operation.';
 		}
 		return temp;
 	});
