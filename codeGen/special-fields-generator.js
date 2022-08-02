@@ -45,7 +45,8 @@ function genrateCode(config) {
 	/**------------------------ UNIQUE ----------------------- */
 	code.push('function mongooseUniquePlugin() {');
 	code.push('\treturn function (schema) {');
-	createIndex(schema);
+	const textPaths = createIndex(schema);
+	createTextSearchIndex(textPaths);
 	code.push('\t}');
 	code.push('}');
 	code.push('');
@@ -544,13 +545,16 @@ function genrateCode(config) {
 		});
 	}
 
+
+
 	function createIndex(schema, parentKey) {
+		let textPaths = [];
 		schema.forEach(def => {
 			let key = def.key;
 			let path = parentKey ? parentKey + '.' + key : key;
 			if (key != '_id' && def.properties) {
 				if (def.type == 'Object' && !def.properties.geoType) {
-					createIndex(def.definition, path);
+					textPaths = textPaths.concat(createIndex(def.definition, path));
 				} else if (def.type == 'Array') {
 					// No index for Array
 				} else {
@@ -563,9 +567,23 @@ function genrateCode(config) {
 					if (def.properties.geoType) {
 						code.push(`\t\tschema.index({ '${path}.geometry': '2dsphere' }, { name: '${path}_geoJson' });`);
 					}
+					if (def.type == 'String') {
+						textPaths.push(path);
+					}
 				}
 			}
 		});
+		return textPaths;
+	}
+
+	function createTextSearchIndex(paths) {
+		const fields = [];
+		if (paths && paths.length > 0) {
+			paths.forEach(path => {
+				fields.push(`"${path}": "text"`);
+			});
+			code.push(`\t\tschema.index({ ${fields.join(', ')} }, { name: 'text_search' });`);
+		}
 	}
 
 	function parseSchemaForUnique(schema, parentKey) {
