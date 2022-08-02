@@ -1308,6 +1308,12 @@ function genrateCode(config) {
 						path: parentKeys,
 						dynamic: rule[key]
 					});
+				} else if (key == '$request') {
+					paths.push({
+						type: 'Request',
+						path: parentKeys,
+						dynamic: rule[key]
+					});
 				} else if (typeof rule[key] == 'object') {
 					parentKeys.push(tempKey);
 					if (Array.isArray(rule[key])) {
@@ -1330,17 +1336,17 @@ function genrateCode(config) {
 		function convertServiceBlock(block) {
 			const field = block['$field'];
 			const filter = block['$filter'];
-			const segments = field.split('.');
-			const dataService = segments[0];
-			const path = segments.slice(1).join('.');
+			const dataService = block['$name'];
+
 			let tempCode = getFilterGenratorCode(filter, true);
 			tempCode.push(`if (_.isEmpty(filterInner)) {`);
 			tempCode.push(`\treturn null;`);
 			tempCode.push(`}`);
 			tempCode.push(`const docs = await commonUtils.getServiceDocsUsingFilter(req, '${dataService}', filterInner, true);`);
-			tempCode.push(`return docs.map(doc => _.get(doc, '${path}'));`);
+			tempCode.push(`return docs.map(doc => _.get(doc, '${field}'));`);
 			return tempCode;
 		}
+
 
 		function getFilterGenratorCode(filter, innerBlock) {
 			const tempCode = [];
@@ -1357,7 +1363,22 @@ function genrateCode(config) {
 			}
 
 			paths.forEach(item => {
-				if (item.type === 'Service') {
+				if (item.type === 'Request') {
+					const id = _.camelCase(uuid());
+					tempCode.push(`\tconst field_${id} = '${item.dynamic['$field']}';`);
+					delete item.dynamic['$field'];
+					tempCode.push(`\tconst var_${id} = await httpClient.httpRequest(${JSON.stringify(item.dynamic)});`);
+					tempCode.push(`\tif (var_${id} && var_${id}.statusCode && var_${id}.statusCode == 200) {`);
+					tempCode.push(`\t\tif (!var_${id}.body || _.isEmpty(var_${id}.body)) {`);
+					tempCode.push(`\t\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, 'NO_VALUE');`);
+					tempCode.push(`\t\t} else {`);
+					tempCode.push(`\t\t\tconst var_${id}Body = _.get(var_${id}.body, field_${id});`);
+					tempCode.push(`\t\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, { $in: var_${id}Body });`);
+					tempCode.push(`\t\t}`);
+					tempCode.push(`\t} else {`);
+					tempCode.push(`\t\tthrow var_${id}.body;`);
+					tempCode.push(`\t}`);
+				} else if (item.type === 'Service') {
 					const id = _.camelCase(uuid());
 					const variableName = 'var_' + id;
 					const functionName = 'function_' + id;
