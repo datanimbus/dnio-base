@@ -10,6 +10,7 @@ function genrateCode(config) {
 	let code = [];
 	code.push('const mongoose = require(\'mongoose\');');
 	code.push('const _ = require(\'lodash\');');
+	code.push('const moment = require(\'moment\');');
 	code.push('');
 	code.push('const config = require(\'../../config\');');
 	code.push('const httpClient = require(\'../../http-client\');');
@@ -327,7 +328,7 @@ function genrateCode(config) {
 	code.push('\t}');
 	code.push('}');
 	code.push('');
-	
+
 	code.push(`function getDateRangeObject(date) {`);
 	code.push(`\tif (date) {`);
 	code.push(`\t\tconst filter = {};`);
