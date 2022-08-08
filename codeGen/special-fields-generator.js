@@ -327,6 +327,19 @@ function genrateCode(config) {
 	code.push('\t}');
 	code.push('}');
 	code.push('');
+	
+	code.push(`function getDateRangeObject(date) {`);
+	code.push(`\tif (date) {`);
+	code.push(`\t\tconst filter = {};`);
+	code.push(`\t\tconst temp = moment.utc(date);`);
+	code.push(`\t\ttemp.startOf('date');`);
+	code.push(`\t\tfilter['$gte'] = temp.utc().format();`);
+	code.push(`\t\ttemp.endOf('date');`);
+	code.push(`\t\tfilter['$lte'] = temp.utc().format();`);
+	code.push(`\t\treturn filter;`);
+	code.push(`\t}`);
+	code.push(`\treturn null;`);
+	code.push(`}`);
 
 
 
@@ -1393,10 +1406,13 @@ function genrateCode(config) {
 					tempCode.push(`\t}`);
 				} else {
 					tempCode.push(`\tlet var_${_.camelCase(item.path)} = _.get(req.user, '${item.dynamic}');`);
-					tempCode.push(`\tif (typeof var_${_.camelCase(item.path)} == 'boolean') {`);
-					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, var_${_.camelCase(item.path)});`);
+
+					tempCode.push(`\tif (var_${_.camelCase(item.path)}.type == 'Boolean') {`);
+					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, var_${_.camelCase(item.path)}.value);`);
+					tempCode.push(`\t} else if(var_${_.camelCase(item.path)}.type == 'Date') {`);
+					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, (getDateRangeObject(var_${_.camelCase(item.path)}.value) || 'NO_VALUE'));`);
 					tempCode.push(`\t} else {`);
-					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, (var_${_.camelCase(item.path)} || 'NO_VALUE'));`);
+					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, (var_${_.camelCase(item.path)}.value || 'NO_VALUE'));`);
 					tempCode.push(`\t}`);
 				}
 			});
@@ -1404,6 +1420,5 @@ function genrateCode(config) {
 		}
 	}
 }
-
 
 module.exports.genrateCode = genrateCode;
