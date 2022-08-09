@@ -333,7 +333,7 @@ function generateDefinition(config) {
 			version: {
 				type: {
 					service: { type: 'Number', default: 0 },
-					release: { type: 'Number', default: 0 }
+					release: { type: 'String', default: 0 }
 				}
 			},
 			filemapper: { type: 'String' },
