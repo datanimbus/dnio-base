@@ -63,21 +63,15 @@ e.streamingConfig = {
 	stanMaxPingOut: process.env.STREAMING_RECONN_TIMEWAIT_MILLI || 500
 };
 e.mongoAuthorOptions = {
-	useUnifiedTopology: true,
-	useNewUrlParser: true,
-	minSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
+	minPoolSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
 	dbName: process.env.MONGO_AUTHOR_DBNAME || 'datastackConfig',
 };
 e.mongoAppCenterOptions = {
-	useUnifiedTopology: true,
-	useNewUrlParser: true,
-	minSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
+	minPoolSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
 	dbName: null
 };
 e.mongoLogsOptions = {
-	useUnifiedTopology: true,
-	useNewUrlParser: true,
-	minSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
+	minPoolSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
 	dbName: process.env.MONGO_LOGS_DBNAME || 'datastackLogs'
 };
 
