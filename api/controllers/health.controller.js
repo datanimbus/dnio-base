@@ -12,7 +12,7 @@ router.get('/live', async (req, res) => {
 	try {
 		logger.trace('Mongo DB State:', mongoose.connection.readyState);
 		logger.trace('NATS State:', client && client.nc ? client.nc.connected : null);
-		if (mongoose.connection.readyState == mongoose.ConnectionStates.connected && client && client.nc && client.nc.connected) {
+		if (mongoose.connection.readyState == 1 && client && client.nc && client.nc.connected) {
 			return res.status(200).json();
 		} else {
 			return res.status(400).json();
@@ -27,7 +27,7 @@ router.get('/live', async (req, res) => {
 
 router.get('/ready', async (req, res) => {
 	try {
-		if (mongoose.connection.readyState != mongoose.ConnectionStates.connected) {
+		if (mongoose.connection.readyState != 1) {
 			return res.status(400).end();
 		}
 		logger.trace('Init State:', runInit);
