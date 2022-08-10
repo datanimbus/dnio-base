@@ -1353,10 +1353,13 @@ function genrateCode(config) {
 			const dataService = block['$name'];
 
 			let tempCode = getFilterGenratorCode(filter, true);
-			tempCode.push(`if (_.isEmpty(filterInner)) {`);
-			tempCode.push(`\treturn null;`);
+			// tempCode.push(`if (_.isEmpty(filterInner)) {`);
+			// tempCode.push(`\treturn null;`);
+			// tempCode.push(`}`);
+			tempCode.push(`if (!filterInner) {`);
+			tempCode.push(`\tfilterInner = {};`);
 			tempCode.push(`}`);
-			tempCode.push(`const docs = await commonUtils.getServiceDocsUsingFilter(req, '${dataService}', filterInner, true);`);
+			tempCode.push(`const docs = await commonUtils.getServiceDocsUsingFilter(req, '${dataService}', filterInner, '${field}', true);`);
 			tempCode.push(`return docs.map(doc => _.get(doc, '${field}'));`);
 			return tempCode;
 		}
@@ -1407,7 +1410,9 @@ function genrateCode(config) {
 					tempCode.push(`\t}`);
 				} else {
 					tempCode.push(`\tlet var_${_.camelCase(item.path)} = _.get(req.user, '${item.dynamic}');`);
-
+					tempCode.push(`\tif (!var_${_.camelCase(item.path)} || _.isEmpty(var_${_.camelCase(item.path)})) {`);
+					tempCode.push(`\t\tvar_${_.camelCase(item.path)} = {};`);
+					tempCode.push(`\t}`);
 					tempCode.push(`\tif (var_${_.camelCase(item.path)}.type == 'Boolean') {`);
 					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, var_${_.camelCase(item.path)}.value);`);
 					tempCode.push(`\t} else if(var_${_.camelCase(item.path)}.type == 'Date') {`);

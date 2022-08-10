@@ -182,7 +182,7 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
  * @param {string} serviceId The Service ID for whose docs needs to be fetched
  * @param {string} documentId The Document ID that needs to be fetched
  */
-async function getServiceDocsUsingFilter(req, serviceName, filter, throwError) {
+async function getServiceDocsUsingFilter(req, serviceName, filter, select, throwError) {
 	const expandLevel = (req.headers['Expand-Level'] || 0) + 1;
 	let service = serviceCache.get(serviceName);
 	try {
@@ -222,6 +222,9 @@ async function getServiceDocsUsingFilter(req, serviceName, filter, throwError) {
 				'Authorization': req ? req.headers.authorization || req.headers.Authorization : '',
 				'Content-Type': 'application/json',
 				'Expand-Level': expandLevel
+			},
+			qs: {
+				select
 			},
 			json: true
 		}).then(res => {
