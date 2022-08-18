@@ -4,9 +4,7 @@ const config = require('../../config');
 const definition = require('../helpers/fileTransfers.definition').definition;
 const mongooseUtils = require('../utils/mongoose.utils');
 
-const schema = new mongoose.Schema(definition, {
-	usePushEach: true
-});
+const schema = mongooseUtils.MakeSchema(definition);
 
 schema.plugin(mongooseUtils.metadataPlugin());
 schema.index({ user: 1, fileName: 1, status: 1 });

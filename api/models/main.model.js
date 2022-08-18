@@ -23,14 +23,9 @@ let serviceId = process.env.SERVICE_ID || 'SRVC2006';
 let schema;
 
 if (serviceData.schemaFree) {
-	schema = new mongoose.Schema({ _id: 'String' }, {
-		strict: false,
-		usePushEach: true
-	});
+	schema = mongooseUtils.MakeSchema(definition, { strict: false });
 } else {
-	schema = new mongoose.Schema(definition, {
-		usePushEach: true
-	});
+	schema = mongooseUtils.MakeSchema(definition);
 
 	schema.plugin(specialFields.mongooseUniquePlugin());
 

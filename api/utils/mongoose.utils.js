@@ -1,3 +1,43 @@
+const mongoose = require('mongoose');
+const _ = require('lodash');
+
+function MakeSchema(definition, options) {
+	if (definition) {
+		const temp = {
+			type: {
+				lastUpdated: {
+					type: 'Date',
+					default: Date.now
+				},
+				createdAt: {
+					type: 'Date',
+					default: Date.now
+				},
+				deleted: {
+					type: 'Boolean',
+					default: false
+				},
+				version: {
+					document: {
+						type: 'Number',
+						default: 0
+					}
+				}
+			}
+		};
+		if (!definition._metadata) {
+			definition._metadata = {};
+		}
+		definition._metadata = _.merge(temp, definition._metadata);
+		definition._expireAt = {
+			type: Date
+		};
+		if (options) {
+			return new mongoose.Schema(definition, options);
+		}
+		return new mongoose.Schema(definition);
+	}
+}
 
 /**
  * 
@@ -5,27 +45,27 @@
  */
 function metadataPlugin() {
 	return function (schema) {
-		schema.add({
-			_expireAt: {
-				type: Date,
-			},
-			_metadata: {
-				deleted: {
-					type: Boolean,
-					default: false
-				},
-				lastUpdated: {
-					type: Date,
-					default: Date.now()
-				},
-				createdAt: {
-					type: Date
-				},
-				version: {
-					type: Object
-				}
-			}
-		});
+		// schema.add({
+		// 	_expireAt: {
+		// 		type: Date,
+		// 	},
+		// 	_metadata: {
+		// 		deleted: {
+		// 			type: Boolean,
+		// 			default: false
+		// 		},
+		// 		lastUpdated: {
+		// 			type: Date,
+		// 			default: Date.now()
+		// 		},
+		// 		createdAt: {
+		// 			type: Date
+		// 		},
+		// 		version: {
+		// 			type: Object
+		// 		}
+		// 	}
+		// });
 		schema.index({ '_expireAt': 1 }, { expireAfterSeconds: 0 });
 		schema.index({
 			'_metadata.lastUpdated': 1
@@ -106,3 +146,4 @@ function rand(_i) {
 
 module.exports.generateId = generateId;
 module.exports.metadataPlugin = metadataPlugin;
+module.exports.MakeSchema = MakeSchema;

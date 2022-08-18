@@ -26,9 +26,7 @@ const statusMap = {
 	Rework: 'rework'
 };
 
-const schema = new mongoose.Schema(definition, {
-	usePushEach: true
-});
+const schema = mongooseUtils.MakeSchema(definition);
 
 // const hookSchema = new mongoose.Schema({}, {
 // 	usePushEach: true,
