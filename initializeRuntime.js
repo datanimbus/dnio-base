@@ -3,7 +3,7 @@ const path = require('path');
 const express = require('express');
 const multer = require('multer');
 const cookieParser = require('cookie-parser');
-const pprof = require('pprof');
+// const pprof = require('pprof');
 
 const dataStackUtils = require('@appveen/data.stack-utils');
 const { AuthCacheMW } = require('@appveen/ds-auth-cache');
@@ -13,10 +13,10 @@ const config = require('./config');
 const queueMgmt = require('./queue');
 
 // The average number of bytes between samples.
-const intervalBytes = 512 * 1024;
+// const intervalBytes = 512 * 1024;
 // The maximum stack depth for samples collected.
-const stackDepth = 64;
-pprof.heap.start(intervalBytes, stackDepth);
+// const stackDepth = 64;
+// pprof.heap.start(intervalBytes, stackDepth);
 
 const logger = global.logger;
 
@@ -89,13 +89,13 @@ module.exports = async (app) => {
 		next();
 	});
 
-	app.get('/' + config.app + config.serviceEndpoint + '/utils/tools/pprof', async (req, res) => {
-		const profile = await pprof.heap.profile();
-		const buf = await pprof.encode(profile);
-		res.setHeader('Content-Disposition', `attachment;filename="pprof_${config.serviceId}.pb.gz"`);
-		res.write(buf);
-		res.status(200).end();
-	});
+	// app.get('/' + config.app + config.serviceEndpoint + '/utils/tools/pprof', async (req, res) => {
+	// 	const profile = await pprof.heap.profile();
+	// 	const buf = await pprof.encode(profile);
+	// 	res.setHeader('Content-Disposition', `attachment;filename="pprof_${config.serviceId}.pb.gz"`);
+	// 	res.write(buf);
+	// 	res.status(200).end();
+	// });
 
 	app.use((err, req, res, next) => {
 		if (err) {
