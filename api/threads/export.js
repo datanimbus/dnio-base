@@ -10,7 +10,7 @@ const uuid = require('uuid/v1');
 const moment = require('moment');
 let dateFields = [];
 
-mongoose.set('useFindAndModify', false);
+// mongoose.set('useFindAndModify', false);
 
 global.baseKey = workerData.baseKey;
 global.baseCert = workerData.baseCert;
