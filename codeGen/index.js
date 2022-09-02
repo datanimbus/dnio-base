@@ -13,7 +13,37 @@ function generateServiceDefinition(serviceDocument) {
 	if (serviceDocument.schemaFree) {
 		logger.info(`Service ${serviceDocument._id}/${serviceDocument.name} has no schema.`);
 		serviceDocument['definitionWithId'] = JSON.parse(JSON.stringify(serviceDocument['definition']));
-		serviceDocument['definition'] = serviceDocument['definition'].filter(attr => attr.key != '_id');
+		serviceDocument['definition'] = [];
+		fs.writeFileSync('./api/helpers/service.definition.js', JSON.stringify({
+			"_id": {
+				"type": "String"
+			},
+			"_expireAt": {
+				"type": "Date"
+			},
+			"_metadata": {
+				"type": {
+					"version": {
+						"type": {
+							"service": {
+								"type": "Number",
+								"default": 0
+							},
+							"release": {
+								"type": "String",
+								"default": "1.0.0"
+							}
+						}
+					},
+					"filemapper": {
+						"type": "String"
+					},
+					"workflow": {
+						"type": "String"
+					}
+				}
+			}
+		}), 'utf-8');
 	} else {
 		logger.info(`Service ${serviceDocument._id}/${serviceDocument.name} is schema validated.`);
 		serviceDocument['definition'] = globalDefHelper(serviceDocument['definition']);
