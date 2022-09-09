@@ -264,6 +264,7 @@ async function execute() {
 		result.status = 'Error';
 	}
 	// mongoose.disconnect();
+	await fileTransfersModel.findOneAndUpdate({ fileId: fileId }, { $set: result });
 	return result;
 }
 

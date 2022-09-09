@@ -230,6 +230,7 @@ async function execute() {
 	if (errorCount > 100 || conflictCount > 100) {
 		result.status = 'Error';
 	}
+	await fileTransfersModel.findOneAndUpdate({ fileId: fileId }, { $set: result });
 	return result;
 }
 

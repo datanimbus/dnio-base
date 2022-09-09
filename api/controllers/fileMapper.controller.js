@@ -141,29 +141,21 @@ router.put('/:fileId/mapping', (req, res) => {
 
 			/**---------- After Response Process ------------*/
 			let result;
+			let threadName = 'file-mapper-validation';
 			if (serviceDetails.schemaFree) {
-				result = await threadUtils.executeThread(txnId, 'schemafree-file-mapper-validation', {
-					req: {
-						headers: req.headers,
-						user: req.user,
-						rawHeaders: req.rawHeaders
-					},
-					fileId,
-					data
-				});
-			} else {
-				result = await threadUtils.executeThread(txnId, 'file-mapper-validation', {
-					req: {
-						headers: req.headers,
-						user: req.user,
-						rawHeaders: req.rawHeaders
-					},
-					fileId,
-					data
-				});
+				threadName = 'schemafree-file-mapper-validation';
 			}
+			result = await threadUtils.executeThread(txnId, threadName, {
+				req: {
+					headers: req.headers,
+					user: req.user,
+					rawHeaders: req.rawHeaders
+				},
+				fileId,
+				data
+			});
 
-			await fileTransfersModel.findOneAndUpdate({ fileId }, { $set: result });
+			// await fileTransfersModel.findOneAndUpdate({ fileId }, { $set: result });
 			endTime = Date.now();
 			let socketData = JSON.parse(JSON.stringify(result));
 			socketData.fileId = fileId;
