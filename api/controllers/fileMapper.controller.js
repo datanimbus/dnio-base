@@ -78,7 +78,7 @@ router.get('/:fileId', (req, res) => {
 router.post('/:fileId/create', (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
 	async function execute() {
-		const data = req.body;
+		const data = JSON.parse(JSON.stringify(req.body));
 		const fileId = data.fileId;
 		const fileName = data.fileName;
 		const startTime = Date.now();
@@ -130,7 +130,7 @@ router.post('/:fileId/create', (req, res) => {
 router.put('/:fileId/mapping', (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
 	async function execute() {
-		const data = req.body;
+		const data = JSON.parse(JSON.stringify(req.body));
 		const fileId = data.fileId;
 		const fileName = data.fileName;
 		const startTime = Date.now();
