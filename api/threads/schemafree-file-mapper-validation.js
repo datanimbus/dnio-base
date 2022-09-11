@@ -5,7 +5,7 @@ const log4js = require('log4js');
 
 const config = require('../../config');
 
-// mongoose.set('useFindAndModify', false);
+mongoose.set('useFindAndModify', false);
 
 let additionalLoggerIdentifier = 'Worker/MapperValidation';
 

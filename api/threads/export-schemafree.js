@@ -12,7 +12,7 @@ require('../../db-factory');
 
 const { parentPort, workerData } = require('worker_threads');
 
-// mongoose.set('useFindAndModify', false);
+mongoose.set('useFindAndModify', false);
 
 global.baseKey = workerData.baseKey;
 global.baseCert = workerData.baseCert;
