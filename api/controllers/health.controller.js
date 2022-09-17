@@ -3,10 +3,9 @@ const mongoose = require('mongoose');
 const log4js = require('log4js');
 
 const client = require('../../queue').client;
-const init = require('../../init');
 
 const logger = log4js.getLogger(global.loggerName);
-let runInit = true;
+
 
 router.get('/live', async (req, res) => {
 	try {
@@ -30,19 +29,11 @@ router.get('/ready', async (req, res) => {
 		if (mongoose.connection.readyState != 1) {
 			return res.status(400).end();
 		}
-		logger.trace('Init State:', runInit);
-		if (!runInit) {
+		logger.trace('Init State:', global.runInit);
+		if (!global.runInit) {
 			return res.status(200).json();
 		}
-		try {
-			await init();
-			runInit = false;
-			logger.trace('Setting Init State:', runInit);
-			return res.status(200).json();
-		} catch (e) {
-			logger.error(e);
-			res.status(400).end();
-		}
+		res.status(400).end();
 	} catch (err) {
 		logger.error(err);
 		res.status(500).json({

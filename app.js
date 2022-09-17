@@ -45,7 +45,10 @@ const app = express();
 	const queueMgmt = require('./queue');
 
 	const dataServiceEndpoint = `/${config.app}${config.serviceEndpoint}`;
+	
 	app.use(dataServiceEndpoint, require('./api/controllers'));
+	app.use('/api/internal/health', require('./api/controllers/health.controller'));
+
 	const server = app.listen(PORT, (err) => {
 		if (!err) {
 			logger.info('Server started on port ' + PORT);

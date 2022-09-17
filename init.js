@@ -15,6 +15,7 @@ const fileFields = serviceDetails.fileFields;
 const logger = log4js.getLogger(global.loggerName);
 
 function init() {
+	global.runInit = true;
 	try {
 		if (!fs.existsSync(path.join(process.cwd(), 'hooks.json'))) {
 			fs.writeFileSync(path.join(process.cwd(), 'hooks.json'), '{"preHooks":[],"experienceHooks":[],"wizard":[],"webHooks":[],"workflowHooks":[]}', 'utf-8');
@@ -22,9 +23,11 @@ function init() {
 	} catch (e) {
 		logger.error(e);
 	}
-	return controller.fixSecureText()
-		.then(() => informSM())
-		.then(() => GetKeys());
+	return informSM().then(() => GetKeys()).then(() => {
+		global.runInit = false;
+	}).catch(err => {
+		global.runInit = false;
+	});
 }
 
 function setDefaultTimezone() {
