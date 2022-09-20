@@ -94,7 +94,11 @@ async function fetchGlobalDefinitions() {
 function initConfigVariables(serviceDoc, reinitLogger) {
 	config.app = serviceDoc.app;
 	config.serviceName = serviceDoc.name;
-	config.servicePort = serviceDoc.port;
+	if (config.isK8sEnv()) {
+		config.servicePort = 80;
+	} else {
+		config.servicePort = serviceDoc.port;
+	}
 	config.serviceVersion = serviceDoc.version;
 	config.serviceDB = `${config.namespace}-${serviceDoc.app}`;
 	config.serviceEndpoint = serviceDoc.api;
