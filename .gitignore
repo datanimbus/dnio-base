@@ -6,3 +6,12 @@ run-local.sh
 .env
 test.js
 test-code.js
+
+api/helpers/service.definition.js
+api/swagger/swagger.yaml
+api/utils/special-fields.utils.js
+hooks.json
+globalDef.json
+uploads/
+.env
+service.json
