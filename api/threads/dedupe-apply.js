@@ -3,7 +3,7 @@ const log4js = require('log4js');
 const mongoose = require('mongoose');
 const _ = require('lodash');
 
-mongoose.set('useFindAndModify', false);
+// mongoose.set('useFindAndModify', false);
 
 const config = require('../../config');
 require('../../queue');

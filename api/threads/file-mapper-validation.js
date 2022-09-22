@@ -4,7 +4,7 @@ const log4js = require('log4js');
 const sift = require('sift');
 const _ = require('lodash');
 
-mongoose.set('useFindAndModify', false);
+// mongoose.set('useFindAndModify', false);
 
 const config = require('../../config');
 

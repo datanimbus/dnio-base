@@ -2,7 +2,7 @@ const { parentPort, workerData } = require('worker_threads');
 const mongoose = require('mongoose');
 const log4js = require('log4js');
 
-mongoose.set('useFindAndModify', false);
+// mongoose.set('useFindAndModify', false);
 
 const config = require('../../config');
 require('../../queue');
