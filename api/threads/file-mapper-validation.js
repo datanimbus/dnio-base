@@ -59,9 +59,9 @@ async function execute() {
 	let startTime = Date.now();
 	const sheetData = await fileMapperUtils.getSheetData(bufferData, isHeaderProvided);
 	let endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('SHEET READ :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: SHEET READ :: ${endTime - startTime} ms`);
+
+
 	let mappedSchemaData;
 	startTime = Date.now();
 	if (Array.isArray(sheetData)) {
@@ -70,9 +70,7 @@ async function execute() {
 		mappedSchemaData = [fileMapperUtils.objectMapping(sheetData, headerMapping)];
 	}
 	endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('OBJECT MAPPING :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: OBJECT MAPPING :: ${endTime - startTime} ms`);
 	await fileTransfersModel.findOneAndUpdate({ fileId: fileId }, { $set: { isHeaderProvided, headerMapping, status: 'Validating' } });
 
 	/**---------- After Response Process ------------*/
@@ -93,9 +91,7 @@ async function execute() {
 	});
 	mappedSchemaData = null;
 	endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('SERIALIZED DATA :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: SERIALIZED DATA :: ${endTime - startTime}ms`);
 	startTime = Date.now();
 	let batch = [serializedData];
 	if (serializedData.length > 5000) {
@@ -105,9 +101,7 @@ async function execute() {
 	batch = null;
 	serializedData = null;
 	endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('INSERT MANY :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: INSERT MANY :: ${endTime - startTime}ms`);
 
 
 	startTime = Date.now();
@@ -118,7 +112,7 @@ async function execute() {
 		{ $project: { 'duplicateId': '$_id', _id: 0 } },
 	]);
 	logger.trace('=======================================');
-	logger.trace('DUPLICATE DOCS :: ', duplicateDocs);
+	logger.trace(`[${fileId}] DUPLICATE DOCS :: `, duplicateDocs);
 	logger.trace('=======================================');
 	let duplicateIds = _.map(duplicateDocs, 'duplicateId');
 	let arr = [];
@@ -129,9 +123,7 @@ async function execute() {
 	duplicateIds = null;
 	arr = null;
 	endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('STATUS UPDATE :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: STATUS UPDATE :: ${endTime - startTime}ms`);
 
 
 
@@ -154,16 +146,15 @@ async function execute() {
 		{ $group: { _id: '$duplicateId', count: { $sum: 1 } } }
 	]);
 	logger.trace('=======================================');
-	logger.trace('CONFLICT DOCS :: ', conflictDocs);
+	logger.trace(`[${fileId}] CONFLICT DOCS :: `, conflictDocs);
 	logger.trace('=======================================');
 	let conflictIds = _.map(conflictDocs, '_id');
 	await model.updateMany({ fileId, 'data._id': { $in: conflictIds }, status: { $ne: 'Error' } }, { $set: { status: 'Duplicate', conflict: true } });
 	conflictDocs = null;
 	conflictIds = null;
 	endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('CONFLICT UPDATE :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: CONFLICT UPDATE :: ${endTime - startTime}ms`);
+
 	startTime = Date.now();
 	let pendingDocs = (await model.find({ fileId, status: { $ne: 'Error' } }));
 	batch = [pendingDocs];
@@ -214,9 +205,7 @@ async function execute() {
 	}, Promise.resolve());
 
 	endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('SIMULATION :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: SIMULATION :: ${endTime - startTime}ms`);
 	startTime = Date.now();
 	let finalData = await model.aggregate([
 		{
@@ -241,9 +230,7 @@ async function execute() {
 		}
 	]);
 	endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('$FACET :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: $FACET :: ${endTime - startTime}ms`);
 	const validCount = (finalData[0].validCount).length > 0 ? finalData[0].validCount[0].count : 0;
 	const errorCount = (finalData[0].errorCount).length > 0 ? finalData[0].errorCount[0].count : 0;
 	const duplicateCount = (finalData[0].duplicateCount).length > 0 ? finalData[0].duplicateCount[0].count : 0;
@@ -257,9 +244,8 @@ async function execute() {
 		'_metadata.lastUpdated': new Date()
 	};
 	finalData = null;
-	logger.debug('=======================================');
-	logger.debug('MEMORY USAGE :: ', JSON.stringify(process.memoryUsage()));
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: MEMORY USAGE :: ${JSON.stringify(process.memoryUsage())}`);
+
 	if (errorCount > 100 || conflictCount > 100) {
 		result.status = 'Error';
 	}

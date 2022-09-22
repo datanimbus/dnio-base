@@ -1,9 +1,9 @@
 swagger: '2.0'
 info:
-  version: '1'
-  title: TestFile API
+  version: '5'
+  title: Clinical Data API
 host: localhost:20868
-basePath: /Jerry/testFile
+basePath: /Jerry/clinicalData
 schemes:
   - http
 consumes:
@@ -16,8 +16,8 @@ paths:
   /:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of 'TestFile'
-      operationId: v1_srvc21957List
+      description: Retrieve a list of 'Clinical Data'
+      operationId: v1_srvc21962List
       parameters:
         - name: page
           in: query
@@ -57,14 +57,14 @@ paths:
         '500':
           description: Internal server error
     post:
-      description: Create a new 'TestFile'
-      operationId: v1_srvc21957Create
+      description: Create a new 'Clinical Data'
+      operationId: v1_srvc21962Create
       parameters:
         - name: data
           in: body
-          description: Payload to create a 'TestFile'
+          description: Payload to create a 'Clinical Data'
           schema:
-            $ref: '#/definitions/testFile_create'
+            $ref: '#/definitions/clinicalData_create'
         - name: authorization
           in: header
           type: string
@@ -91,14 +91,14 @@ paths:
   /utils/simulate:
     x-swagger-router-controller: controller
     post:
-      description: validate 'TestFile'
-      operationId: v1_srvc21957Simulate
+      description: validate 'Clinical Data'
+      operationId: v1_srvc21962Simulate
       parameters:
         - name: data
           in: body
-          description: Payload to validate 'TestFile'
+          description: Payload to validate 'Clinical Data'
           schema:
-            $ref: '#/definitions/testFile_update'
+            $ref: '#/definitions/clinicalData_update'
         - name: authorization
           in: header
           type: string
@@ -133,8 +133,8 @@ paths:
   /utils/bulkShow:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of 'TestFile'
-      operationId: v1_srvc21957BulkShow
+      description: Retrieve a list of 'Clinical Data'
+      operationId: v1_srvc21962BulkShow
       parameters:
         - name: id
           in: query
@@ -162,8 +162,8 @@ paths:
   /utils/securedFields:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of secured fields in 'TestFile'
-      operationId: v1_srvc21957SecuredFields
+      description: Retrieve a list of secured fields in 'Clinical Data'
+      operationId: v1_srvc21962SecuredFields
       responses:
         '200':
           description: List of the entites
@@ -175,7 +175,7 @@ paths:
     x-swagger-router-controller: controller
     post:
       description: triggers the hook with data
-      operationId: v1_srvc21957Hook
+      operationId: v1_srvc21962Hook
       parameters:
         - name: url
           in: query
@@ -197,7 +197,7 @@ paths:
     x-swagger-router-controller: controller
     post:
       description: triggers the hook with data
-      operationId: v1_srvc21957ExperienceHook
+      operationId: v1_srvc21962ExperienceHook
       parameters:
         - name: name
           in: query
@@ -218,8 +218,8 @@ paths:
   /utils/bulkDelete:
     x-swagger-router-controller: controller
     delete:
-      description: Deletes a list of 'testFile'
-      operationId: v1_srvc21957BulkDelete
+      description: Deletes a list of 'clinicalData'
+      operationId: v1_srvc21962BulkDelete
       parameters:
         - name: authorization
           in: header
@@ -245,8 +245,8 @@ paths:
   /utils/count:
     x-swagger-router-controller: controller
     get:
-      description: returns count of 'TestFile'
-      operationId: v1_srvc21957Count
+      description: returns count of 'Clinical Data'
+      operationId: v1_srvc21962Count
       parameters:
         - &ref_0
           name: filter
@@ -274,8 +274,8 @@ paths:
   /{id}:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve an existing 'TestFile'
-      operationId: v1_srvc21957Show
+      description: Retrieve an existing 'Clinical Data'
+      operationId: v1_srvc21962Show
       parameters:
         - name: select
           in: query
@@ -297,7 +297,7 @@ paths:
           default: false
       responses:
         '200':
-          description: TestFile document
+          description: Clinical Data document
         '400':
           description: Bad parameters
         '404':
@@ -305,19 +305,19 @@ paths:
         '500':
           description: Internal server error
     put:
-      description: Update an existing 'TestFile'
-      operationId: v1_srvc21957Update
+      description: Update an existing 'Clinical Data'
+      operationId: v1_srvc21962Update
       parameters:
         - name: data
           in: body
-          description: Payload to update a 'TestFile'
+          description: Payload to update a 'Clinical Data'
           schema:
-            $ref: '#/definitions/testFile_update'
+            $ref: '#/definitions/clinicalData_update'
         - name: id
           in: path
           type: string
           required: true
-          description: Id of the 'TestFile' to be updated
+          description: Id of the 'Clinical Data' to be updated
         - name: authorization
           in: header
           type: string
@@ -344,14 +344,14 @@ paths:
         '500':
           description: Internal server error
     delete:
-      description: Delete an existing 'TestFile'
-      operationId: v1_srvc21957Destroy
+      description: Delete an existing 'Clinical Data'
+      operationId: v1_srvc21962Destroy
       parameters:
         - name: id
           in: path
           type: string
           required: true
-          description: Id of the 'TestFile' to be deleted
+          description: Id of the 'Clinical Data' to be deleted
         - name: authorization
           in: header
           type: string
@@ -368,19 +368,19 @@ paths:
   /{id}/math:
     x-swagger-router-controller: controller
     put:
-      description: Does math operation on a 'TestFile'
-      operationId: v1_srvc21957Math
+      description: Does math operation on a 'Clinical Data'
+      operationId: v1_srvc21962Math
       parameters:
         - name: data
           in: body
-          description: Payload to update a 'TestFile'
+          description: Payload to update a 'Clinical Data'
           schema:
-            $ref: '#/definitions/testFile_math'
+            $ref: '#/definitions/clinicalData_math'
         - name: id
           in: path
           type: string
           required: true
-          description: Id of the 'TestFile' to be updated
+          description: Id of the 'Clinical Data' to be updated
         - name: authorization
           in: header
           type: string
@@ -408,7 +408,7 @@ paths:
           in: query
           type: string
           description: filename of file
-      operationId: v1_srvc21957ExportedFileDownload
+      operationId: v1_srvc21962ExportedFileDownload
       responses:
         '200':
           description: file download
@@ -419,7 +419,7 @@ paths:
   /utils/fileMapper/{fileId}/count:
     x-swagger-router-controller: controller
     get:
-      description: returns count of 'TestFile'
+      description: returns count of 'Clinical Data'
       operationId: fileMapperCount
       parameters:
         - *ref_0
@@ -440,8 +440,8 @@ paths:
   /utils/export:
     x-swagger-router-controller: controller
     post:
-      description: Retrieve a list of 'TestFile'
-      operationId: v1_srvc21957Export
+      description: Retrieve a list of 'Clinical Data'
+      operationId: v1_srvc21962Export
       parameters:
         - name: filter
           in: body
@@ -483,7 +483,7 @@ paths:
     x-swagger-router-controller: controller
     get:
       description: Retrieve list of bulk actions'
-      operationId: v1_srvc21957ExportDetails
+      operationId: v1_srvc21962ExportDetails
       parameters:
         - name: page
           in: query
@@ -520,7 +520,7 @@ paths:
     x-swagger-router-controller: controller
     get:
       description: count of bulk actions'
-      operationId: v1_srvc21957ExportDetailsCount
+      operationId: v1_srvc21962ExportDetailsCount
       parameters:
         - name: page
           in: query
@@ -557,7 +557,7 @@ paths:
     x-swagger-router-controller: controller
     delete:
       description: Deletes a file with file id
-      operationId: v1_srvc21957ExportDetailsDelete
+      operationId: v1_srvc21962ExportDetailsDelete
       parameters:
         - name: id
           in: path
@@ -629,105 +629,153 @@ paths:
         '500':
           description: Internal server error
 definitions:
-  testFile_create:
+  clinicalData_create:
     properties:
-      name:
+      studyId:
         type:
           - string
           - 'null'
-      attachment:
-        properties:
-          _id:
-            type:
-              - string
-              - 'null'
-          filename:
-            type:
-              - string
-              - 'null'
-          contentType:
-            type:
-              - string
-              - 'null'
-          length:
-            type:
-              - number
-              - 'null'
-          chunkSize:
-            type:
-              - number
-              - 'null'
-          uploadDate:
-            type:
-              - string
-              - 'null'
-          md5:
-            type:
-              - string
-              - 'null'
-          metadata:
-            properties:
-              filename:
-                type:
-                  - string
-                  - 'null'
-  testFile_update:
-    properties:
-      name:
+      siteId:
         type:
           - string
           - 'null'
-      attachment:
+      subjectId:
+        type:
+          - string
+          - 'null'
+      visitId:
+        type:
+          - string
+          - 'null'
+      visitDate:
         properties:
-          _id:
+          rawData:
             type:
               - string
               - 'null'
-          filename:
+          tzData:
             type:
               - string
               - 'null'
-          contentType:
+          tzInfo:
             type:
               - string
               - 'null'
-          length:
+          utc:
+            type:
+              - string
+              - 'null'
+          unix:
             type:
               - number
               - 'null'
-          chunkSize:
+      visitRepeatKey:
+        type:
+          - string
+          - 'null'
+      formId:
+        type:
+          - string
+          - 'null'
+      formRepeatKey:
+        type:
+          - string
+          - 'null'
+      itemGroupId:
+        type:
+          - string
+          - 'null'
+      itemGroupRowId:
+        type:
+          - string
+          - 'null'
+      itemId:
+        type:
+          - string
+          - 'null'
+      itemValue:
+        type:
+          - string
+          - 'null'
+  clinicalData_update:
+    properties:
+      studyId:
+        type:
+          - string
+          - 'null'
+      siteId:
+        type:
+          - string
+          - 'null'
+      subjectId:
+        type:
+          - string
+          - 'null'
+      visitId:
+        type:
+          - string
+          - 'null'
+      visitDate:
+        properties:
+          rawData:
+            type:
+              - string
+              - 'null'
+          tzData:
+            type:
+              - string
+              - 'null'
+          tzInfo:
+            type:
+              - string
+              - 'null'
+          utc:
+            type:
+              - string
+              - 'null'
+          unix:
             type:
               - number
               - 'null'
-          uploadDate:
-            type:
-              - string
-              - 'null'
-          md5:
-            type:
-              - string
-              - 'null'
-          metadata:
-            properties:
-              filename:
-                type:
-                  - string
-                  - 'null'
-  testFile_math:
+      visitRepeatKey:
+        type:
+          - string
+          - 'null'
+      formId:
+        type:
+          - string
+          - 'null'
+      formRepeatKey:
+        type:
+          - string
+          - 'null'
+      itemGroupId:
+        type:
+          - string
+          - 'null'
+      itemGroupRowId:
+        type:
+          - string
+          - 'null'
+      itemId:
+        type:
+          - string
+          - 'null'
+      itemValue:
+        type:
+          - string
+          - 'null'
+  clinicalData_math:
     properties:
       $inc:
         type: object
         properties:
-          attachment.length:
-            type: number
-          attachment.chunkSize:
+          visitDate.unix:
             type: number
       $mul:
         type: object
         properties:
-          attachment.length:
-            type: number
-          attachment.chunkSize:
+          visitDate.unix:
             type: number
   mapping:
     properties:

@@ -9,6 +9,7 @@ const logger = log4js.getLogger(global.loggerName);
 function readDataFromGridFS(fileId) {
 	return new Promise((resolve, reject) => {
 		const gfsBucketImport = global.gfsBucketImport;
+		logger.debug(`File mapper : readDataFromGridFS : ${fileId}`);
 		gfsBucketImport.find({ filename: fileId }).toArray(function (err, file) {
 			if (err) {
 				logger.error(err);

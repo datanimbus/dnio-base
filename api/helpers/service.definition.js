@@ -1,37 +1,56 @@
 const _ = require('lodash');
  var definition = {
-    "name": {
+    "studyId": {
         "type": "String"
     },
-    "attachment": {
+    "siteId": {
+        "type": "String"
+    },
+    "subjectId": {
+        "type": "String"
+    },
+    "visitId": {
+        "type": "String"
+    },
+    "visitDate": {
         "type": {
-            "_id": {
+            "rawData": {
                 "type": "String"
             },
-            "filename": {
-                "type": "String"
-            },
-            "contentType": {
-                "type": "String"
-            },
-            "length": {
-                "type": "Number"
-            },
-            "chunkSize": {
-                "type": "Number"
-            },
-            "uploadDate": {
+            "tzData": {
                 "type": "Date"
             },
-            "md5": {
+            "tzInfo": {
                 "type": "String"
             },
-            "metadata": {
-                "filename": {
-                    "type": "String"
-                }
+            "utc": {
+                "type": "Date"
+            },
+            "unix": {
+                "type": "Number"
             }
         }
+    },
+    "visitRepeatKey": {
+        "type": "String"
+    },
+    "formId": {
+        "type": "String"
+    },
+    "formRepeatKey": {
+        "type": "String"
+    },
+    "itemGroupId": {
+        "type": "String"
+    },
+    "itemGroupRowId": {
+        "type": "String"
+    },
+    "itemId": {
+        "type": "String"
+    },
+    "itemValue": {
+        "type": "String"
     },
     "_id": {
         "type": "String"

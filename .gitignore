@@ -3,6 +3,7 @@ node_modules
 build.sh
 send.sh
 run-local.sh
+run.sh
 .env
 test.js
 test-code.js
