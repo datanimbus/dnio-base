@@ -1,1 +1,1 @@
-{"preHooks":[],"experienceHooks":[],"wizard":[],"webHooks":[],"workflowHooks":{"postHooks":{"submit":[],"rework":[],"discard":[],"approve":[],"reject":[]}}}
+{"preHooks":[],"experienceHooks":[],"wizard":[],"webHooks":[],"workflowHooks":{"postHooks":{"submit":[],"discard":[],"approve":[],"rework":[],"reject":[]}}}

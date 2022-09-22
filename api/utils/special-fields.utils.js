@@ -1,127 +1,337 @@
-const createOnlyFields = [];
+const mongoose = require('mongoose');
+const _ = require('lodash');
+const moment = require('moment');
+
+const config = require('../../config');
+const httpClient = require('../../http-client');
+const commonUtils = require('./common.utils');
+
+const logger = global.logger;
+const createOnlyFields = ''.split(',');
 const precisionFields = [];
-const secureFields = [];
+const secureFields = ''.split(',');
 const uniqueFields = [];
-const relationUniqueFields = [];
-const relationRequiredFields = [];
-
+const relationUniqueFields = ''.split(',');
+const dateFields = []
 /**
- * 
- * @param {*} newData The Current Data that needs to be updated
- * @param {*} oldData The Old Data existing in the DB
- * @returns {object} 
+ * @param {*} req The Incomming Request Object
+ * @param {*} newData The New Document Object
+ * @param {*} oldData The Old Document Object
+ * @param {boolean} [forceRemove] Will remove all createOnly field
+ * @returns {object | null} Returns null if no validation error, else and error object with invalid paths
  */
-function validateCreateOnly(newData, oldData) {
-	const errorPath = {};
-	if (newData && oldData) {
-		if (newData.someCreateOnly !== oldData.someCreateOnly) {
-			errorPath.someCreateOnly = true;
-		}
+function validateCreateOnly(req, newData, oldData, forceRemove) {
+	const errors = {};
+	if (oldData) {
 	}
-	return Object.keys(errorPath).length > 0 ? errorPath : null;
-}
-
-/**
- * 
- * @param {*} newData The Current Data that needs to be updated
- * @param {*} oldData The Old Data existing in the DB
- * @returns {Promise<object>}
- */
-function validateRelation(newData, oldData) {
-	const errorPath = {};
-	if (newData && oldData) {
-		if (newData.someCreateOnly !== oldData.someCreateOnly) {
-			errorPath.someCreateOnly = true;
-		}
-	}
-	return Object.keys(errorPath).length > 0 ? errorPath : null;
-}
-
-/**
- * 
- * @param {*} newData The Current Data that needs to be updated
- * @param {*} oldData The Old Data existing in the DB
- * @returns {Promise<object>}
- */
-function validateUnique(newData, oldData) {
-	const errorPath = {};
-	if (newData && oldData) {
-		if (newData.someCreateOnly !== oldData.someCreateOnly) {
-			errorPath.someCreateOnly = true;
-		}
-	}
-	return Object.keys(errorPath).length > 0 ? errorPath : null;
-}
-
-
-function patchRelationInFilter() {
-
-}
-
-function patchRelationInWorkflowFilter() {
-
-}
-
-function expandDocument() {
-
-}
-
-function encryptSecureFields() {
-
-}
-
-function decryptSecureFields() {
-
+	return Object.keys(errors).length > 0 ? errors : null;
 }
 
 function mongooseUniquePlugin() {
-
+	return function (schema) {
+		schema.index({ "name": "text" }, { name: 'text_search' });
+	}
 }
 
-function fixBoolean() {
-
+/**
+ * @param {*} req The Incomming Request Object
+ * @param {*} newData The New Document Object
+ * @param {*} oldData The Old Document Object
+ * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths
+ */
+async function validateUnique(req, newData, oldData) {
+	const model = mongoose.model(config.serviceId);
+	const errors = {};
+	let val;
+	return Object.keys(errors).length > 0 ? errors : null;
 }
 
-function enrichGeojson() {
-
+/**
+ * @param {*} req The Incomming Request Object
+ * @param {*} newData The New Document Object
+ * @param {*} oldData The Old Document Object
+ * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths
+ */
+async function validateRelation(req, newData, oldData) {
+	const errors = {};
+	return Object.keys(errors).length > 0 ? errors : null;
 }
 
-function validateDateFields() {
-
+/**
+ * @param {*} req The Incomming Request Object
+ * @param {*} newData The New Document Object
+ * @param {*} oldData The Old Document Object
+ * @param {boolean} expandForSelect Expand only for select
+ * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths
+ */
+async function expandDocument(req, newData, oldData, expandForSelect) {
+	const errors = {};
+	return newData;
 }
 
-function hasPermissionForPOST(permissions) {
-	return true;
+/**
+ * @param {*} req The Incomming Request Object
+ * @param {*} newData The New Document Object
+ * @param {*} oldData The Old Document Object
+ * @param {boolean} expandForSelect Expand only for select
+ * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths
+ */
+async function cascadeRelation(req, newData, oldData) {
+	const errors = {};
+	if (!req.query.cascade || req.query.cascade != 'true') {
+		return null;
+	}
+	return null;
+}
+
+/**
+ * @param {*} req The Incomming Request Object
+ * @param {*} filter The Filter Object
+ * @param {*} errors The errors while fetching RefIds
+ * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths
+ */
+async function patchRelationInFilter(req, filter, errors) {
+	if (!errors) {
+		errors = {};
+	}
+	try {
+		if (typeof filter !== 'object') {
+			return filter;
+		}
+		let flag = 0;
+		const tempFilter = {};
+		let promises = Object.keys(filter).map(async (key) => {
+			if (!flag) {
+				if (typeof filter[key] == 'object' && filter[key]) {
+					if (Array.isArray(filter[key])) {
+						const promiseArr = filter[key].map(async (item, i) => {
+							return await patchRelationInFilter(req, item, errors);
+						});
+						tempFilter[key] = (await Promise.all(promiseArr)).filter(e => e ? Object.keys(e).length : 0);
+					} else {
+						tempFilter[key] = await patchRelationInFilter(req, filter[key], errors);
+					}
+				} else {
+					tempFilter[key] = filter[key]
+				}
+			}
+		});
+		promises = await Promise.all(promises);
+		promises = null;
+		return tempFilter;
+	} catch (e) {
+		throw e;
+	}
+}
+
+/**
+ * @param {*} req The Incomming Request Object
+ * @param {*} filter The Filter Object
+ * @param {*} errors The errors while fetching RefIds
+ * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths
+ */
+async function patchRelationInWorkflowFilter(req, filter, errors) {
+	if (!errors) {
+		errors = {};
+	}
+	try {
+		if (typeof filter !== 'object') {
+			return filter;
+		}
+		let flag = 0;
+		const tempFilter = {};
+		let promises = Object.keys(filter).map(async (key) => {
+			if (!flag) {
+				if (typeof filter[key] == 'object' && filter[key]) {
+					if (Array.isArray(filter[key])) {
+						const promiseArr = filter[key].map(async (item, i) => {
+							return await patchRelationInWorkflowFilter(req, item, errors);
+						});
+						tempFilter[key] = (await Promise.all(promiseArr)).filter(e => e ? Object.keys(e).length : 0);
+					} else {
+						tempFilter[key] = await patchRelationInWorkflowFilter(req, filter[key], errors);
+					}
+				} else {
+					tempFilter[key] = filter[key]
+				}
+			}
+		});
+		promises = await Promise.all(promises);
+		promises = null;
+		return tempFilter;
+	} catch (e) {
+		throw e;
+	}
+}
+
+/**
+ * @param {*} req The Incomming Request Object
+ * @param {*} newData The New Document Object
+ * @param {*} oldData The Old Document Object
+ * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths
+ */
+async function encryptSecureFields(req, newData, oldData) {
+	const errors = {};
+	return Object.keys(errors).length > 0 ? errors : null;
+}
+
+/**
+ * @param {*} req The Incomming Request Object
+ * @param {*} newData The New Document Object
+ * @param {*} oldData The Old Document Object
+ * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths
+ */
+async function decryptSecureFields(req, newData, oldData) {
+	const errors = {};
+	return Object.keys(errors).length > 0 ? errors : null;
+}
+
+/**
+ * @param {*} req The Incoming Request Object
+ * @param {*} newData The New Document Object
+ * @param {*} oldData The Old Document Object
+ * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths
+ */
+function fixBoolean(req, newData, oldData) {
+	const errors = {};
+	const trueBooleanValues = global.trueBooleanValues;
+	const falseBooleanValues = global.falseBooleanValues;
+	return Object.keys(errors).length > 0 ? errors : null;
+}
+
+/**
+ * @param {*} req The Incomming Request Object
+ * @param {*} newData The New Document Object
+ * @param {*} oldData The Old Document Object
+ * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths
+ */
+async function enrichGeojson(req, newData, oldData) {
+	const errors = {};
+	return Object.keys(errors).length > 0 ? errors : null;
+}
+
+/**
+ * @param {*} req The Incomming Request Object
+ * @param {*} newData The New Document Object
+ * @param {*} oldData The Old Document Object
+ * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths
+ */
+async function validateDateFields(req, newData, oldData) {
+	let txnId = req.headers['txnid'];
+	const errors = {};
+	return Object.keys(errors).length > 0 ? errors : null;
+}
+
+function hasPermissionForPOST(req, permissions) {
+	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
+		return true;
+	}
+	if (_.intersection(['ADMIN_SRVC21957'], permissions).length > 0) {
+		return true;
+	}
+	if (_.intersection(["P2588382942"], permissions).length > 0) {
+		return true;
+	}
+	return false;
 }
 module.exports.hasPermissionForPOST = hasPermissionForPOST;
-function hasPermissionForPUT(permissions) {
-	return true;
+function hasPermissionForPUT(req, permissions) {
+	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
+		return true;
+	}
+	if (_.intersection(['ADMIN_SRVC21957'], permissions).length > 0) {
+		return true;
+	}
+	if (_.intersection(["P2588382942"], permissions).length > 0) {
+		return true;
+	}
+	return false;
 }
 module.exports.hasPermissionForPUT = hasPermissionForPUT;
-function hasPermissionForDELETE(permissions) {
-	return true;
+function hasPermissionForDELETE(req, permissions) {
+	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
+		return true;
+	}
+	if (_.intersection(['ADMIN_SRVC21957'], permissions).length > 0) {
+		return true;
+	}
+	if (_.intersection(["P2588382942"], permissions).length > 0) {
+		return true;
+	}
+	return false;
 }
 module.exports.hasPermissionForDELETE = hasPermissionForDELETE;
-function hasPermissionForGET(permissions) {
-	return true;
+function hasPermissionForGET(req, permissions) {
+	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
+		return true;
+	}
+	if (_.intersection(['ADMIN_SRVC21957'], permissions).length > 0) {
+		return true;
+	}
+	if (_.intersection(["P2588382942","P5702476868"], permissions).length > 0) {
+		return true;
+	}
+	return false;
 }
 module.exports.hasPermissionForGET = hasPermissionForGET;
 
-function filterByPermission(permissions, data) {
+function filterByPermission(req, permissions, data) {
+	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
+		return data;
+	}
+	if (_.intersection(['ADMIN_SRVC21957'], permissions).length > 0) {
+		return data;
+	}
+	if (_.intersection([], permissions).length > 0) {
+		return data;
+	}
+	if (_.intersection(["P2588382942","P5702476868"], permissions).length == 0) {
+		_.unset(data, '_id');
+	}
+	if (_.intersection(["P2588382942","P5702476868"], permissions).length == 0) {
+		_.unset(data, 'name');
+	}
+	if (_.intersection(["P2588382942","P5702476868"], permissions).length == 0) {
+		_.unset(data, 'attachment');
+	}
+		return data;
 }
 
-function getNextWFStep(req, currStep) {
 
+async function getDynamicFilter(req, data) {
+	let filter;
+	let allFilters = [];
+	if (_.intersection(['ADMIN_SRVC21957'], req.user.appPermissions).length > 0) {
+		return null;
+	}
+	if (allFilters && allFilters.length > 0) {
+		logger.debug('Dynamic Filter Applied', JSON.stringify(allFilters));
+		return { $and: allFilters };
+	} else {
+		logger.debug('Dynamic Filter Not Applied.');
+		return null;
+	}
 }
 
-const hasWFPermissionFor = {};
-
+function getDateRangeObject(date) {
+	if (date) {
+		const filter = {};
+		const temp = moment.utc(date);
+		temp.startOf('date');
+		filter['$gte'] = temp.utc().format();
+		temp.endOf('date');
+		filter['$lte'] = temp.utc().format();
+		return filter;
+	}
+	return null;
+}
 module.exports.createOnlyFields = createOnlyFields;
 module.exports.precisionFields = precisionFields;
 module.exports.secureFields = secureFields;
 module.exports.uniqueFields = uniqueFields;
 module.exports.relationUniqueFields = relationUniqueFields;
-module.exports.relationRequiredFields = relationRequiredFields;
+module.exports.dateFields = dateFields;
+module.exports.mongooseUniquePlugin = mongooseUniquePlugin;
 module.exports.validateCreateOnly = validateCreateOnly;
 module.exports.validateRelation = validateRelation;
 module.exports.validateUnique = validateUnique;
@@ -133,7 +343,6 @@ module.exports.patchRelationInWorkflowFilter = patchRelationInWorkflowFilter;
 module.exports.fixBoolean = fixBoolean;
 module.exports.enrichGeojson = enrichGeojson;
 module.exports.validateDateFields = validateDateFields;
-module.exports.mongooseUniquePlugin = mongooseUniquePlugin;
+module.exports.cascadeRelation = cascadeRelation;
 module.exports.filterByPermission = filterByPermission;
-module.exports.getNextWFStep = getNextWFStep;
-module.exports.hasWFPermissionFor = hasWFPermissionFor
+module.exports.getDynamicFilter = getDynamicFilter;
