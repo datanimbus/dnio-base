@@ -49,6 +49,7 @@ const app = express();
 	app.use(dataServiceEndpoint, require('./api/controllers'));
 	app.use('/api/internal/health', require('./api/controllers/health.controller'));
 
+	// eslint-disable-next-line no-unused-vars
 	app.use((err, req, res, next) => {
 		logger.error(`[${req.get(global.txnIdHeader)}] ${err.message}`);
 		logger.error(`[${req.get(global.txnIdHeader)}] Headers sent - ${res.headersSent}`);
