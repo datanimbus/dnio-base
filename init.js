@@ -24,7 +24,7 @@ function init() {
 		logger.error(e);
 	}
 	return informSM().then(() => GetKeys()).then(() => {
-		global.runInit = false;
+		// global.runInit = false;
 	}).catch(err => {
 		global.runInit = false;
 	});

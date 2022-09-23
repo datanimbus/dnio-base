@@ -31,9 +31,9 @@ router.get('/ready', async (req, res) => {
 		}
 		logger.trace('Init State:', global.runInit);
 		if (!global.runInit) {
-			return res.status(200).json();
+			require('../../init')();
 		}
-		res.status(400).end();
+		return res.status(200).json();
 	} catch (err) {
 		logger.error(err);
 		res.status(500).json({

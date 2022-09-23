@@ -41,20 +41,20 @@ const app = express();
 	const config = require('./config');
 	const PORT = config.servicePort;
 	require('./initializeRuntime')(app);
-
-	const queueMgmt = require('./queue');
+	require('./queue');
+	// const queueMgmt = require('./queue');
 
 	const dataServiceEndpoint = `/${config.app}${config.serviceEndpoint}`;
-	
+
 	app.use(dataServiceEndpoint, require('./api/controllers'));
 	app.use('/api/internal/health', require('./api/controllers/health.controller'));
 
 	const server = app.listen(PORT, (err) => {
 		if (!err) {
 			logger.info('Server started on port ' + PORT);
-			queueMgmt.client.on('connect', function () {
-				require('./init')();
-			});
+			// queueMgmt.client.on('connect', function () {
+			// 	require('./init')();
+			// });
 		} else {
 			logger.error(err);
 			process.exit(0);
