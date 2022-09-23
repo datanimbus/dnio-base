@@ -96,15 +96,4 @@ module.exports = async (app) => {
 	// 	res.write(buf);
 	// 	res.status(200).end();
 	// });
-
-	app.use((err, req, res, next) => {
-		if (err) {
-			logger.error(`[${req.get(global.txnIdHeader)}] ${err.message}`);
-			if (!res.headersSent) {
-				logger.error(`[${req.get(global.txnIdHeader)}] Headers sent - ${res.headersSent}`);
-				return res.status(500).json({ message: err.message });
-			}
-		}
-		next();
-	});
 };
