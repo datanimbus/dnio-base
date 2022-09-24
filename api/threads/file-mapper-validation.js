@@ -44,14 +44,19 @@ async function execute() {
 	const fileId = data.fileId;
 
 	const dynamicFilter = await specialUtils.getDynamicFilter(req);
-	logger.debug('Dynamic Filter in File Mapper:', dynamicFilter);
+	logger.debug(`[${fileId}] Dynamic Filter in File Mapper:`, dynamicFilter);
 	let tester;
 	if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
 		tester = sift(dynamicFilter);
 	}
 
-	let txnId = workerData.req.headers[global.txnIdHeader];
+	let txnId = workerData.req.headers.txnid;
 	logger.debug(`[${txnId}] Worker :: ${fileId}`);
+
+	let fileTransferDocumentId = await fileTransfersModel.collection.findOne({ fileId: fileId });
+	fileTransferDocumentId = fileTransferDocumentId._id;
+	logger.debug(`[${fileId}] File mapper record ID :: ${fileTransferDocumentId}`);
+
 	const isHeaderProvided = Boolean.valueOf(data.headers);
 	const headerMapping = data.headerMapping;
 	const fileName = data.fileName;
@@ -71,7 +76,7 @@ async function execute() {
 	}
 	endTime = Date.now();
 	logger.debug(`[${fileId}] File mapper validation :: OBJECT MAPPING :: ${endTime - startTime} ms`);
-	await fileTransfersModel.findOneAndUpdate({ fileId: fileId }, { $set: { isHeaderProvided, headerMapping, status: 'Validating' } });
+	await fileTransfersModel.findOneAndUpdate({ _id: fileTransferDocumentId }, { $set: { isHeaderProvided, headerMapping, status: 'Validating' } });
 
 	/**---------- After Response Process ------------*/
 	startTime = Date.now();
@@ -250,7 +255,8 @@ async function execute() {
 		result.status = 'Error';
 	}
 	// mongoose.disconnect();
-	await fileTransfersModel.findOneAndUpdate({ fileId: fileId }, { $set: result });
+	await fileTransfersModel.findOneAndUpdate({ _id: fileTransferDocumentId }, { $set: result });
+
 	return result;
 }
 

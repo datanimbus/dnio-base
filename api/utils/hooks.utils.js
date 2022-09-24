@@ -41,7 +41,7 @@ client.on('reconnect', () => {
  * @returns {Promise<object>}
  */
 function callAllPreHooks(req, data, options) {
-	let txnId = req.headers[global.txnIdHeader] || req.headers['TxnId'];
+	let txnId = req.headers[global.txnIdHeader] || req.headers['TxnId'] || req.headers.txnid;
 	options['type'] = 'PreHook';
 	logger.debug(`[${txnId}] PreHook :: ${data._id} :: Options :: ${JSON.stringify(options)}`);
 	logger.trace(`[${txnId}] PreHook :: ${data._id} :: ${JSON.stringify(data)}`);

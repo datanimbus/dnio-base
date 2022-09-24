@@ -136,7 +136,8 @@ router.put('/:fileId/mapping', (req, res) => {
 		const startTime = Date.now();
 		let endTime;
 		try {
-			logger.info(`[${txnId}] File mapper :: Validation process :: Started`);
+			logger.info(`[${txnId}] [${fileId}] File mapper :: Validation process :: Started`);
+			logger.debug(`[${txnId}] [${fileId}] File mapper :: File name :: ${fileName}`);
 			res.status(202).json({ message: 'Validation Process Started...' });
 
 			/**---------- After Response Process ------------*/

@@ -11,7 +11,8 @@ const logger = log4js.getLogger(global.loggerName);
  * @param {object} data The data to send in thread
  */
 function executeThread(_txnId, file, data) {
-	logger.debug(`[${_txnId}] Exec. thread :: ${file}`);
+	logger.debug(`[${_txnId}] [${data.fileId}] Exec. thread :: ${file}`);
+	logger.debug(`[${_txnId}] [${data.fileId}] Exec. thread :: Filename :: ${data.data.fileName}`);
 	return new Promise((resolve, reject) => {
 		let responseSent = false;
 		const filePath = path.join(process.cwd(), 'api/threads', `${file}.js`);
