@@ -135,6 +135,12 @@ router.put('/:fileId/mapping', (req, res) => {
 		const fileName = data.fileName;
 		const startTime = Date.now();
 		let endTime;
+
+		let headerMapping = data.headerMapping;
+		let atleastOneMappingPresent = Object.keys(headerMapping).filter(key => headerMapping[key] != null).length > 0;
+		logger.debug(`[${txnId}] [${fileId}] File mapper ::  At least one mapping present :: ${atleastOneMappingPresent}`);
+		if (!atleastOneMappingPresent) throw Error('At least one field must be mapped');
+
 		try {
 			logger.info(`[${txnId}] [${fileId}] File mapper :: Validation process :: Started`);
 			logger.debug(`[${txnId}] [${fileId}] File mapper :: File name :: ${fileName}`);
