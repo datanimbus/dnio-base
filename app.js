@@ -49,6 +49,16 @@ const app = express();
 	app.use(dataServiceEndpoint, require('./api/controllers'));
 	app.use('/api/internal/health', require('./api/controllers/health.controller'));
 
+	// eslint-disable-next-line no-unused-vars
+	app.use((err, req, res, next) => {
+		logger.error(`[${req.get(global.txnIdHeader)}] ${err.message}`);
+		logger.error(`[${req.get(global.txnIdHeader)}] Headers sent - ${res.headersSent}`);
+		if (!res.headersSent) {
+			if (err.message == 'File not supported') return res.status(400).json({ message: err.message });
+			res.status(500).json({ message: err.message });
+		}
+	});
+
 	const server = app.listen(PORT, (err) => {
 		if (!err) {
 			logger.info('Server started on port ' + PORT);

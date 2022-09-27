@@ -455,10 +455,12 @@ async function execute() {
 		logger.debug(`[${txnId}] : Txt file is ready. Creating CSV...`);
 		let headers = getHeadersAsPerSelectParam(headersObj, select);
 		let fileHeaders = replaceHeaders(headerMapper(mapping, headers), headers.join());
-		logger.debug(`[${txnId}] : headers::: `, headers);
-		logger.debug(`[${txnId}] :fileHeaders::: `, fileHeaders);
-		var readStream = fs.createReadStream(outputDir + fileName + '.txt');
-		var csvWriteStream = fs.createWriteStream(outputDir + fileName + '.csv');
+		logger.debug(`[${txnId}] : Headers :: ${JSON.stringify(headers)}`);
+		logger.debug(`[${txnId}] : File Headers :: ${fileHeaders}`);
+		let txtFilename = `${outputDir}${fileName}.txt`;
+		var readStream = fs.createReadStream(txtFilename);
+		let csvFilename = `${outputDir}${fileName}.csv`;
+		var csvWriteStream = fs.createWriteStream(csvFilename);
 		csvWriteStream.write(fileHeaders + '\n');
 
 		/******** Praparing CSV file from TXT file *******/
@@ -467,7 +469,8 @@ async function execute() {
 				csvWriteStream.write(getCSVRow(headers, line) + '\n');
 				if (last) {
 					csvWriteStream.end();
-					logger.debug(`[${txnId}] : CSV file is ready. Creating zip...`);
+					logger.debug(`[${txnId}] : CSV file is ready :: ${csvFilename}`);
+					logger.debug(`[${txnId}] : Creating zip file`);
 					resolve();
 				}
 			});
@@ -480,14 +483,15 @@ async function execute() {
 			});
 			let zipWriteStream = fs.createWriteStream(outputDir + downloadFile);
 			zipWriteStream.on('close', function () {
-				logger.debug(`[${txnId}] : Zip file has been created. Uploading to mongo...`);
+				logger.debug(`[${txnId}] : Zip created :: ${outputDir + downloadFile}`);
+				logger.debug(`[${txnId}] : Uploading zip file to db`);
 				resolve();
 			});
 			archive.pipe(zipWriteStream);
 			archive.file(outputDir + fileName + '.csv', { name: fileName + '.csv' });
 			archive.finalize();
 			archive.on('error', (err) => {
-				logger.error(`[${txnId}] : Error in creating zip file: `, err);
+				logger.error(`[${txnId}] : Error in creating zip file ${downloadFile} : `, err);
 				reject(err);
 			});
 		});
