@@ -1416,7 +1416,7 @@ function genrateCode(config) {
 					tempCode.push(`\tif (var_${_.camelCase(item.path)}.type == 'Boolean') {`);
 					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, var_${_.camelCase(item.path)}.value);`);
 					tempCode.push(`\t} else if(var_${_.camelCase(item.path)}.type == 'Date') {`);
-					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify([].concat(item.path, ['utc']))}, (getDateRangeObject(var_${_.camelCase(item.path)}.value) || 'NO_VALUE'));`);
+					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, (getDateRangeObject(var_${_.camelCase(item.path)}.value) || 'NO_VALUE'));`);
 					tempCode.push(`\t} else {`);
 					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, (var_${_.camelCase(item.path)}.value || 'NO_VALUE'));`);
 					tempCode.push(`\t}`);
