@@ -42,7 +42,7 @@ const app = express();
 	const PORT = config.servicePort;
 	require('./initializeRuntime')(app);
 	require('./queue');
-	// const queueMgmt = require('./queue');
+	const queueMgmt = require('./queue');
 
 	const dataServiceEndpoint = `/${config.app}${config.serviceEndpoint}`;
 
@@ -62,9 +62,11 @@ const app = express();
 	const server = app.listen(PORT, (err) => {
 		if (!err) {
 			logger.info('Server started on port ' + PORT);
-			// queueMgmt.client.on('connect', function () {
-			// 	require('./init')();
-			// });
+			if (!config.isK8sEnv()) {
+				queueMgmt.client.on('connect', function () {
+					require('./init')();
+				});
+			}
 		} else {
 			logger.error(err);
 			process.exit(0);
