@@ -81,12 +81,20 @@ async function execute() {
 	/**---------- After Response Process ------------*/
 	startTime = Date.now();
 	await model.deleteMany({ fileId });
+	console.log(mappedSchemaData);
 	let serializedData = mappedSchemaData.map((e, i) => {
 		const temp = {};
 		temp.fileId = fileId;
 		temp.fileName = fileName;
-		temp.data = JSON.parse(JSON.stringify(e));
 		temp.sNo = isHeaderProvided ? (i + 1) : i;
+		if (!e) {
+			logger.debug('Record rejected as it is undefined');
+			temp.data = {};
+			temp.status = 'Error';
+			temp.message = 'Unable to map the data. Missing mapping.';
+			return temp;
+		}
+		temp.data = JSON.parse(JSON.stringify(e));
 		if (tester && !tester(e)) {
 			logger.debug('Record was rejected because of dynamic filter:', temp.sNo);
 			temp.status = 'Error';
