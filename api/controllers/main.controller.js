@@ -108,7 +108,7 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 		});
 	}
 
-	if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
+	if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions) && !specialFields.hasPermissionForPOST(req, req.user.appPermissions)) {
 		return res.status(403).json({
 			message: 'You don\'t have permission to update records',
 		});
@@ -142,22 +142,23 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 			'_metadata.deleted': false,
 		};
 		let promises = allDocs.map(async (data) => {
-			const tempFilter = _.fromPairs(keys.map(key => {
+			const keyValPairs = keys.map(key => {
 				const val = _.get(data, key);
 				if (val) {
 					return { [key]: val };
 				}
 				return null;
-			}));
+			}).filter(e => e);
+			const tempFilter = _.fromPairs(keyValPairs);
 			if (_.isEmpty(tempFilter)) {
-				await insertOperation(data);
+				return await insertOperation(data);
 			} else {
 				_.merge(tempFilter, filter);
 				const dbDoc = await model.findOne(tempFilter);
 				if (dbDoc && !_.isEmpty(dbDoc)) {
-					await updateOperation(data, dbDoc)
+					return await updateOperation(data, dbDoc)
 				} else {
-					await insertOperation(data);
+					return await insertOperation(data);
 				}
 			}
 		});
@@ -187,9 +188,9 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 				message: 'Workflow has been created',
 			};
 		} else {
-			return await new Promise((resolve) => {
+			return (await new Promise((resolve) => {
 				doc.save().then(resolve).catch(resolve);
-			});
+			})).toObject();
 		}
 	}
 
@@ -205,14 +206,18 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 			wfDoc._req = req;
 			let status = await wfDoc.save();
 			dbDoc._metadata.workflow = status._id;
-			return await model.findByIdAndUpdate(dbDoc._id, {
+			await model.findByIdAndUpdate(dbDoc._id, {
 				'_metadata.workflow': status._id,
 			});
+			return {
+				_workflow: status._id,
+				message: 'Workflow has been created',
+			};
 		} else {
 			_.mergeWith(dbDoc, data, mergeCustomizer);
-			return new Promise((resolve) => {
+			return (await new Promise((resolve) => {
 				dbDoc.save().then(resolve).catch(resolve);
-			});
+			})).toObject();
 		}
 	}
 
