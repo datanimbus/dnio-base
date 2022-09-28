@@ -52,7 +52,9 @@ module.exports = async (app) => {
 		}
 	});
 
-	app.use(AuthCacheMW({ secret: config.RBAC_JWT_KEY, decodeOnly: true, app: config.app }));
+	if (process.env.SKIP_AUTH != 'true' && process.env.SKIP_AUTH != 'TRUE') {
+		app.use(AuthCacheMW({ secret: config.RBAC_JWT_KEY, decodeOnly: true, app: config.app }));
+	}
 
 	app.use(async function (req, res, next) {
 		let allowedExt = config.allowedExt || [];

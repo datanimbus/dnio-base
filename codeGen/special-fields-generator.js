@@ -281,6 +281,11 @@ function genrateCode(config) {
 	// code.push('\t\treturn data;');
 	// code.push('\t}');
 
+	//By Pass using ENV Variable Code
+	code.push('\tif (process.env.SKIP_AUTH == \'true\' || process.env.SKIP_AUTH == \'TRUE\') {');
+	code.push('\t\treturn data;');
+	code.push('\t}');
+
 	//App Admin Code
 	code.push('\tif (req.user.apps && req.user.apps.indexOf(config.app) > -1) {');
 	code.push('\t\treturn data;');
@@ -1205,6 +1210,11 @@ function genrateCode(config) {
 			// code.push('\t\treturn true;');
 			// code.push('\t}');
 
+			//By Pass using ENV Variable Code
+			code.push('\tif (process.env.SKIP_AUTH == \'true\' || process.env.SKIP_AUTH == \'TRUE\') {');
+			code.push('\t\treturn true;');
+			code.push('\t}');
+
 			//App Admin Code
 			code.push('\tif (req.user.apps && req.user.apps.indexOf(config.app) > -1) {');
 			code.push('\t\treturn true;');
@@ -1257,6 +1267,11 @@ function genrateCode(config) {
 			// code.push('\t\treturn true;');
 			// code.push('\t}');
 
+			//By Pass using ENV Variable Code
+			code.push('\tif (process.env.SKIP_AUTH == \'true\' || process.env.SKIP_AUTH == \'TRUE\') {');
+			code.push('\t\treturn true;');
+			code.push('\t}');
+
 			//Data Service Admin Code
 			code.push(`\tif (_.intersection(['ADMIN_${config._id}'], permissions).length > 0) {`);
 			code.push('\t\treturn true;');
@@ -1286,7 +1301,13 @@ function genrateCode(config) {
 	}
 
 	function parseRoleForDynamicFilters(roles) {
+		//SKIP if ADMIN
 		code.push(`\tif (_.intersection(['ADMIN_${config._id}'], req.user.appPermissions).length > 0) {`);
+		code.push('\t\treturn null;');
+		code.push('\t}');
+
+		//By Pass using ENV Variable Code
+		code.push('\tif (process.env.SKIP_AUTH == \'true\' || process.env.SKIP_AUTH == \'TRUE\') {');
 		code.push('\t\treturn null;');
 		code.push('\t}');
 		roles.forEach(role => {
