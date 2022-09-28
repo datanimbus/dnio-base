@@ -24,6 +24,7 @@ module.exports = async (app) => {
 	const upload = multer({ dest: path.join(process.cwd(), 'uploads') });
 	const fileValidator = utils.fileValidator;
 
+	logger.debug(`SKIP_AUTH : ${process.env.SKIP_AUTH}`);
 	logger.debug(`MAX_JSON_SIZE : ${config.MaxJSONSize}`);
 	logger.info(`STORAGE_ENGINE : ${config.fileStorage.storage}`);
 
