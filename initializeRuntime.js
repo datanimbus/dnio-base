@@ -54,6 +54,19 @@ module.exports = async (app) => {
 
 	if (process.env.SKIP_AUTH != 'true' && process.env.SKIP_AUTH != 'TRUE') {
 		app.use(AuthCacheMW({ secret: config.RBAC_JWT_KEY, decodeOnly: true, app: config.app }));
+	} else {
+		app.use((req, res, next) => {
+			req.user = {
+				username: 'INTERNAL',
+				basicDetails: {
+					name: 'Data Stack'
+				},
+				attributes: {},
+				appPermissions: [],
+				allPermissions: []
+			};
+			next();
+		});
 	}
 
 	app.use(async function (req, res, next) {
