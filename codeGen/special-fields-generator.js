@@ -287,7 +287,7 @@ function genrateCode(config) {
 	code.push('\t}');
 
 	//App Admin Code
-	code.push('\tif (req.user.apps && req.user.apps.indexOf(config.app) > -1) {');
+	code.push('\tif (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {');
 	code.push('\t\treturn data;');
 	code.push('\t}');
 
@@ -1216,7 +1216,7 @@ function genrateCode(config) {
 			code.push('\t}');
 
 			//App Admin Code
-			code.push('\tif (req.user.apps && req.user.apps.indexOf(config.app) > -1) {');
+			code.push('\tif (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {');
 			code.push('\t\treturn true;');
 			code.push('\t}');
 			//Data Service Admin Code
