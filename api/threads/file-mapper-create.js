@@ -59,7 +59,7 @@ async function execute() {
 		return prev.then(() => {
 			let temp = docs.map(async (doc) => {
 				try {
-					const hasSkipReview = await workflowUtils.hasAdminAccess(req, req.user.appPermissions);
+					const hasSkipReview = await workflowUtils.hasAdminAccess(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []));
 					if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
 						const wfItem = workflowUtils.getWorkflowItem(req, 'POST', doc.data._id, 'Pending', doc.data, null);
 						const wfDoc = new workflowModel(wfItem);
@@ -100,7 +100,7 @@ async function execute() {
 			let temp = docs.map(async (doc) => {
 				try {
 					let temp = await serviceModel.findById(doc.data._id);
-					const hasSkipReview = await workflowUtils.hasAdminAccess(req, req.user.appPermissions);
+					const hasSkipReview = await workflowUtils.hasAdminAccess(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []));
 					if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
 						const wfItem = workflowUtils.getWorkflowItem(req, 'PUT', doc.data._id, 'Pending', doc.data, temp.toObject());
 						const wfDoc = new workflowModel(wfItem);

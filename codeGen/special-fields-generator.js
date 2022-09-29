@@ -1302,7 +1302,7 @@ function genrateCode(config) {
 
 	function parseRoleForDynamicFilters(roles) {
 		//SKIP if ADMIN
-		code.push(`\tif (_.intersection(['ADMIN_${config._id}'], req.user.appPermissions).length > 0) {`);
+		code.push(`\tif (_.intersection(['ADMIN_${config._id}'], (req.user && req.user.appPermissions ? req.user.appPermissions : [])).length > 0) {`);
 		code.push('\t\treturn null;');
 		code.push('\t}');
 
@@ -1312,7 +1312,7 @@ function genrateCode(config) {
 		code.push('\t}');
 		roles.forEach(role => {
 			if (role.enableFilter && role.rule && role.rule.length > 0) {
-				code.push(`\tif (_.intersection(['${role.id}'], req.user.appPermissions).length > 0) {`)
+				code.push(`\tif (_.intersection(['${role.id}'], (req.user && req.user.appPermissions ? req.user.appPermissions : [])).length > 0) {`)
 				role.rule.forEach(rule => {
 					if (!_.isEmpty(rule.filter)) {
 						code = code.concat(getFilterGenratorCode(rule.filter));

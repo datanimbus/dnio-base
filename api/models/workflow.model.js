@@ -166,14 +166,14 @@ schema.pre('save', function (next) {
 	if (this.operation === 'DELETE') return next();
 	if ( serviceData.stateModel && serviceData.stateModel.enabled && !oldDoc && 
 		!serviceData.stateModel.initialStates.includes( _.get(newDoc, serviceData.stateModel.attribute) ) &&
-		!workflowUtils.hasAdminAccess(req, req.user.appPermissions) ) {
+		!workflowUtils.hasAdminAccess(req, (req.user && req.user.appPermissions ? req.user.appPermissions : [])) ) {
 		return next(new Error('Record is not in initial state.'));
 	}
 
 	if (serviceData.stateModel && serviceData.stateModel.enabled && oldDoc 
 		&& !serviceData.stateModel.states[_.get(oldDoc, serviceData.stateModel.attribute)].includes(_.get(newDoc, serviceData.stateModel.attribute)) 
 		&& _.get(oldDoc, serviceData.stateModel.attribute) !== _.get(newDoc, serviceData.stateModel.attribute) &&
-		!workflowUtils.hasAdminAccess(req, req.user.appPermissions)) {
+		!workflowUtils.hasAdminAccess(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
 		return next(new Error('State transition is not allowed'));
 	}
 	next();
