@@ -2,7 +2,7 @@ const uuid = require('uuid/v1');
 const _ = require('lodash');
 
 function genrateCode(config) {
-	let schema = config.definition;
+	let schema = config.definition || [];
 	// global.logger.info('schema :: defoiniton  ::', JSON.stringify(schema));
 	if (typeof schema === 'string') {
 		schema = JSON.parse(schema);

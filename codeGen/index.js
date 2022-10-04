@@ -75,10 +75,10 @@ module.exports.init = (serviceDocument) => {
 
 		generateSwaggerYAML(serviceDocument);
 
-		if (!serviceDocument.schemaFree) {
+		// if (!serviceDocument.schemaFree) {
 			fs.writeFileSync('./api/utils/special-fields.utils.js', specialFieldsGenrator.genrateCode(serviceDocument), 'utf-8');
 			logger.debug('Generated special-fields.utils.js');
-		}
+		// }
 
 		fs.writeFileSync('./.env', dotEnvFile(serviceDocument), 'utf-8');
 		logger.debug('Generated .env');
