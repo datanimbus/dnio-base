@@ -139,7 +139,7 @@ router.put('/:fileId/mapping', (req, res) => {
 		let headerMapping = data.headerMapping;
 		let atleastOneMappingPresent = Object.keys(headerMapping).filter(key => headerMapping[key] != null).length > 0;
 		logger.debug(`[${txnId}] [${fileId}] File mapper ::  At least one mapping present :: ${atleastOneMappingPresent}`);
-		if (!atleastOneMappingPresent) throw Error('At least one field must be mapped');
+		if (!atleastOneMappingPresent && !serviceDetails.schemaFree) throw Error('At least one field must be mapped');
 
 		try {
 			logger.info(`[${txnId}] [${fileId}] File mapper :: Validation process :: Started`);
