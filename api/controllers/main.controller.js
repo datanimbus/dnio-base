@@ -112,7 +112,7 @@ router.put('/utils/bulkUpdate', (req, res) => {
 		} catch (err) {
 			return res.status(400).json({ message: err.message });
 		}
-		
+
 		let txnId = req.get(global.txnIdHeader);
 		const workflowModel = mongoose.model('workflow');
 		try {
@@ -175,6 +175,18 @@ router.put('/utils/bulkUpdate', (req, res) => {
 
 router.post('/utils/bulkUpsert', async (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
+	let update = req.query.update || 'true';
+	let insert = req.query.insert || 'true';
+	if (typeof update == 'string' && _.lowerCase(update) == 'false') {
+		update = false;
+	} else {
+		update = true;
+	}
+	if (typeof insert == 'string' && _.lowerCase(insert) == 'false') {
+		insert = false;
+	} else {
+		insert = true;
+	}
 	let keys = req.body.keys;
 	const allDocs = req.body.docs;
 	if (!keys || !Array.isArray(keys) || keys.length == 0) {
@@ -199,14 +211,14 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 	const dynamicFilter = await specialFields.getDynamicFilter(req);
 	if (!_.isEmpty(dynamicFilter)) {
 		const tester = sift(dynamicFilter);
-		if (Array.isArray(docs)) {
-			const testedPayload = docs.filter(tester);
-			if (testedPayload.length != docs.length) {
+		if (Array.isArray(allDocs)) {
+			const testedPayload = allDocs.filter(tester);
+			if (testedPayload.length != allDocs.length) {
 				logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
 				return res.status(400).json({ message: 'You don\'t have access for this operation.' });
 			}
 		} else {
-			if (!tester(docs)) {
+			if (!tester(allDocs)) {
 				logger.warn(`[${txnId}] Dynamic Filter, Forbidden Payload`);
 				return res.status(400).json({ message: 'You don\'t have access for this operation.' });
 			}
@@ -233,14 +245,32 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 			}).filter(e => e);
 			const tempFilter = _.fromPairs(keyValPairs);
 			if (_.isEmpty(tempFilter)) {
-				return await insertOperation(data);
+				if (!insert) {
+					return {
+						message: 'Insert flag was set to false',
+					};
+				} else {
+					return await insertOperation(data);
+				}
 			} else {
 				_.merge(tempFilter, filter);
 				const dbDoc = await model.findOne(tempFilter);
 				if (dbDoc && !_.isEmpty(dbDoc)) {
-					return await updateOperation(data, dbDoc)
+					if (!update) {
+						return {
+							message: 'Update flag was set to false',
+						};
+					} else {
+						return await updateOperation(data, dbDoc);
+					}
 				} else {
-					return await insertOperation(data);
+					if (!insert) {
+						return {
+							message: 'Insert flag was set to false',
+						};
+					} else {
+						return await insertOperation(data);
+					}
 				}
 			}
 		});
@@ -817,6 +847,7 @@ router.put('/:id', async (req, res) => {
 	let id = req.params.id;
 	let useFilter = req.params.useFilter;
 	let filter = { _id: id };
+	let errors = {};
 	if (req.query.filter && (useFilter == 'true' || useFilter == true)) {
 		filter = JSON.parse(req.query.filter);
 		let tempFilter;
