@@ -91,6 +91,15 @@ async function fetchGlobalDefinitions() {
 	}
 }
 
+function parseSchemaToFindFileAttachmentAttributes(path, definition) {
+	let attributes = [];
+	definition.forEach(def => {
+		if (def.type == 'File') attributes.push(path.concat(def.key).join('.'));
+	});
+	// TODO: Add missing code for parsing definition recursively
+	return attributes;
+}
+
 function initConfigVariables(serviceDoc, reinitLogger) {
 	config.app = serviceDoc.app;
 	config.serviceName = serviceDoc.name;
@@ -130,6 +139,10 @@ function initConfigVariables(serviceDoc, reinitLogger) {
 	logger.info(`Disable data history : ${config.disableAudits} `);
 	logger.info(`Disable insights : ${config.disableInsights} `);
 	logger.info(`Disable soft delete : ${config.permanentDelete} `);
+
+	config.fileAttachmentAttributes = parseSchemaToFindFileAttachmentAttributes([], serviceDoc.definition);
+	logger.debug(`File attachment attributes : ${config.fileAttachmentAttributes}`);
+	logger.debug(`ML_FILE_PARSER : ${config.ML_FILE_PARSER}`);
 }
 
 async function init() {

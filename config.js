@@ -102,6 +102,7 @@ e.serviceVersion = null;
 e.serviceDB = null;
 e.serviceEndpoint = null;
 e.serviceCollection = null;
+e.fileAttachmentAttributes = null;
 e.permanentDelete = null;
 e.disableInsights = null;
 e.disableAudits = null;
@@ -111,6 +112,9 @@ e.ID_PREFIX = null;
 e.ID_SUFFIX = null;
 e.ID_COUNTER = null;
 e.allowedExt = null;
+
+// EXPERIMENTAL FEATURES
+e.ML_FILE_PARSER = e.parseBoolean(process.env.ML_FILE_PARSER);
 
 e.MaxJSONSize = process.env.MAX_JSON_SIZE || '1mb';
 e.dataStackDefaultTimezone = process.env.TZ_DEFAULT || 'Zulu';

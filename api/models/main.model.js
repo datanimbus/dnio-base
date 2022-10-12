@@ -7,6 +7,7 @@ const config = require('../../config');
 const definition = require('../helpers/service.definition').definition;
 const mongooseUtils = require('../utils/mongoose.utils');
 const hooksUtils = require('../utils/hooks.utils');
+const mlFileParserUtil = require('../utils/ml.fileparser.utils');
 const specialFields = require('../utils/special-fields.utils');
 const { removeNullForUniqueAttribute } = require('../utils/common.utils');
 const serviceData = require('../../service.json');
@@ -257,6 +258,19 @@ schema.post('save', function (error, doc, next) {
 	} else {
 		next();
 	}
+});
+
+schema.post('save', function (doc, next) {
+	const req = doc._req;
+	const txnId = req.headers[global.txnIdHeader] || req.headers['txnid'] || req.headers['TxnId'];
+	if (config.ML_FILE_PARSER) {
+		let data = doc.toObject();
+		logger.debug(`[${txnId}] Adding item to file parser queue.`);
+		mlFileParserUtil.addFileParserQueueItem(txnId, data);
+	} else {
+		logger.debug(`[${txnId}] Skipping file parser.`);
+	}
+	next();
 });
 
 schema.post('save', function (doc, next) {
