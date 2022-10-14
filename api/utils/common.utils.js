@@ -803,7 +803,6 @@ e.decryptArrData = function (data, nestedKey, forFile) {
 };
 
 function getFormattedDate(txnId, dateObj, defaultTimeZone, supportedTimeZones) {
-	if (typeof dateObj === 'string') dateObj = { rawData: dateObj };
 	if (_.isEmpty(dateObj)) return;
 	if (dateObj.rawData) {
 		if (dateObj.tzInfo && dateObj.tzInfo !== defaultTimeZone && supportedTimeZones.length && !supportedTimeZones.includes(dateObj.tzInfo))
