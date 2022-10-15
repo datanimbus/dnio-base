@@ -8,6 +8,7 @@ let e = {};
 
 e.addFileParserQueueItem = async (txnID, data) => {
 	config.fileAttachmentAttributes.forEach(attribute => {
+		if (!data[attribute]) return;
 		let payload = {
 			app: config.app,
 			db: config.serviceDB,
