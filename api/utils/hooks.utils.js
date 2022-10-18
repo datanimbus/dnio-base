@@ -301,7 +301,7 @@ function constructPayload(req, preHook, data, options) {
 		name: config.serviceName
 	};
 	payload.name = preHook.name;
-	payload.app = config.appNamespace;
+	payload.app = config.app;
 	return payload;
 }
 
