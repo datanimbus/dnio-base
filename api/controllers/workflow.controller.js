@@ -24,10 +24,20 @@ const workflowModel = mongoose.model('workflow');
 router.get('/count', async (req, res) => {
 	try {
 		let filter = {};
+		let errors = {};
 		try {
 			if (req.query.filter) {
 				filter = JSON.parse(req.query.filter);
-				filter = crudderUtils.parseFilter(filter);
+				const tempFilter = await specialFields.patchRelationInWorkflowFilter(
+					req,
+					filter,
+					errors
+				);
+				if (Array.isArray(tempFilter) && tempFilter.length > 0) {
+					filter = tempFilter[0];
+				} else if (tempFilter) {
+					filter = tempFilter;
+				}
 				filter = modifySecureFieldsFilter(filter, specialFields.secureFields, false, true);
 			}
 		} catch (err) {
@@ -35,6 +45,12 @@ router.get('/count', async (req, res) => {
 			return res.status(400).json({
 				message: err
 			});
+		}
+		if (filter) {
+			filter = crudderUtils.parseFilter(filter);
+		}
+		if (errors && Object.keys(errors).length > 0) {
+			logger.warn('Error while fetching relation: ', JSON.stringify(errors));
 		}
 		const count = await workflowModel.countDocuments(filter);
 		res.status(200).json(count);
@@ -112,10 +128,20 @@ router.get('/serviceList', async (req, res) => {
 router.get('/', async (req, res) => {
 	try {
 		let filter = {};
+		let errors = {};
 		try {
 			if (req.query.filter) {
 				filter = JSON.parse(req.query.filter);
-				filter = crudderUtils.parseFilter(filter);
+				const tempFilter = await specialFields.patchRelationInWorkflowFilter(
+					req,
+					filter,
+					errors
+				);
+				if (Array.isArray(tempFilter) && tempFilter.length > 0) {
+					filter = tempFilter[0];
+				} else if (tempFilter) {
+					filter = tempFilter;
+				}
 				filter = modifySecureFieldsFilter(filter, specialFields.secureFields, false, true);
 			}
 		} catch (err) {
@@ -123,6 +149,12 @@ router.get('/', async (req, res) => {
 			return res.status(400).json({
 				message: err
 			});
+		}
+		if (filter) {
+			filter = crudderUtils.parseFilter(filter);
+		}
+		if (errors && Object.keys(errors).length > 0) {
+			logger.warn('Error while fetching relation: ', JSON.stringify(errors));
 		}
 		if (req.query.countOnly) {
 			const count = await workflowModel.countDocuments(filter);
@@ -273,7 +305,7 @@ router.put('/doc/:id', async (req, res) => {
 		doc.audit.push(auditData);
 		doc._req = req;
 		const savedData = await doc.save();
-		logger.debug(JSON.stringify({ savedData }));
+		logger.trace(JSON.stringify({ savedData }));
 		return res.status(200).json({ message: 'Edit Successful.' });
 	} catch (err) {
 		logger.error(err);

@@ -347,7 +347,6 @@ router.get('/', (req, res) => {
 	async function execute() {
 		try {
 			let txnId = req.get('txnId');
-			logger.info(`[${txnId}] Get request received.`);
 
 			let filter = {};
 			let errors = {};
@@ -358,12 +357,12 @@ router.get('/', (req, res) => {
 				});
 			}
 			try {
-				logger.info(`[${txnId}] Schema free ? ${serviceData.schemaFree}`);
-				logger.debug(`[${txnId}] Filter ${req.query.filter}`);
-				logger.debug(`[${txnId}] Sort ${req.query.sort}`);
-				logger.debug(`[${txnId}] Select ${req.query.select}`);
-				logger.debug(`[${txnId}] Skip ${req.query.skip}`);
-				logger.debug(`[${txnId}] Limit ${req.query.limit}`);
+				logger.trace(`[${txnId}] Schema free ? ${serviceData.schemaFree}`);
+				logger.trace(`[${txnId}] Filter ${req.query.filter}`);
+				logger.trace(`[${txnId}] Sort ${req.query.sort}`);
+				logger.trace(`[${txnId}] Select ${req.query.select}`);
+				logger.trace(`[${txnId}] Skip ${req.query.skip}`);
+				logger.trace(`[${txnId}] Limit ${req.query.limit}`);
 
 				if (req.query.filter) {
 					filter = JSON.parse(req.query.filter);
@@ -408,24 +407,20 @@ router.get('/', (req, res) => {
 				return res.status(200).json(count);
 			}
 			let skip = 0;
-			let count = serviceData.schemaFree ? 0 : 30;
+			let count = 30;
 			let select = '';
 			let sort = '';
-			if (req.query.limit && +req.query.limit > 0) {
-				count = +req.query.limit;
-			} else if (req.query.count && +req.query.count > 0) {
+			if (req.query.count && +req.query.count > 0) {
 				count = +req.query.count;
 			}
 
-			if (req.query.skip && +req.query.skip > 0) {
-				skip = +req.query.skip;
-			} else if (req.query.page && +req.query.page > 0) {
+			if (req.query.page && +req.query.page > 0) {
 				skip = count * (+req.query.page - 1);
 			}
 
 			if (req.query.select && req.query.select.trim()) {
 				try {
-					querySelect = JSON.parse(req.query.select);
+					let querySelect = JSON.parse(req.query.select);
 					Object.keys(querySelect).forEach(key => {
 						if (parseInt(querySelect[key]) == 1) {
 							select += `${key} `;
@@ -454,7 +449,7 @@ router.get('/', (req, res) => {
 						} else if (parseInt(querySort[key]) == -1) {
 							sort += `-${key} `;
 						} else {
-							logger.error(`Invalid value for key :: ${key} :: ${querySort[key]}`)
+							logger.error(`Invalid value for key :: ${key} :: ${querySort[key]}`);
 							throw new Error(`Invalid value for key :: ${key} :: ${querySort[key]}`);
 						}
 					});
@@ -526,7 +521,7 @@ router.get('/:id', (req, res) => {
 		try {
 			let txnId = req.get('txnId');
 			let id = req.params.id;
-			logger.info(`[${txnId}] Get request received for ${id}`);
+			logger.debug(`[${txnId}] Get request received for ${id}`);
 
 			if (!specialFields.hasPermissionForGET(req, req.user.appPermissions)) {
 				logger.error(`[${txnId}] User does not have permission to fetch records ${req.user.appPermissions}`);
@@ -577,10 +572,10 @@ router.post('/', (req, res) => {
 	async function execute() {
 		let txnId = req.get(global.txnIdHeader);
 		let id = req.params.id;
-		logger.info(`[${txnId}] Create request received.`);
+		logger.debug(`[${txnId}] Create request received.`);
 
 		if (req.query.txn == true) {
-			logger.info(`[${txnId}] Create request is a part of a transaction ${id}`)
+			logger.debug(`[${txnId}] Create request is a part of a transaction ${id}`);
 			return transactionUtils.transferToTransaction(req, res);
 		}
 		try {
@@ -603,8 +598,8 @@ router.post('/', (req, res) => {
 			let promises;
 			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
 
-			logger.info(`[${txnId}] Is workflow enabled? ${workflowUtils.isWorkflowEnabled()}`);
-			logger.info(`[${txnId}] has Skip Review permission? ${hasSkipReview}`);
+			if (workflowUtils.isWorkflowEnabled()) logger.debug(`[${txnId}] Is workflow enabled? ${workflowUtils.isWorkflowEnabled()}`);
+			if (hasSkipReview) logger.debug(`[${txnId}] has Skip Review permission? ${hasSkipReview}`);
 			logger.trace(`[${txnId}] Payload ${JSON.stringify(payload)}`);
 
 
@@ -670,7 +665,9 @@ router.post('/', (req, res) => {
 							}
 						}
 
+						logger.debug('Creating model');
 						const doc = new model(data);
+						logger.debug('Creating model - DONE');
 						doc._req = req;
 						try {
 							return (await doc.save()).toObject();
@@ -713,11 +710,11 @@ router.put('/:id', (req, res) => {
 	async function execute() {
 		let txnId = req.get(global.txnIdHeader);
 		let id = req.params.id;
-		logger.info(`[${txnId}] Update request received for record ${id}`);
-		logger.info(`[${txnId}] Schema Free ? ${serviceData.schemaFree}`);
+		logger.debug(`[${txnId}] Update request received for record ${id}`);
+		logger.debug(`[${txnId}] Schema Free ? ${serviceData.schemaFree}`);
 
 		if (req.query.txn == true) {
-			logger.info(`[${txnId}] Update request is a part of a transaction ${id}`)
+			logger.debug(`[${txnId}] Update request is a part of a transaction ${id}`);
 			return transactionUtils.transferToTransaction(req, res);
 		}
 
@@ -744,11 +741,11 @@ router.put('/:id', (req, res) => {
 
 			logger.trace(`[${txnId}] Document from DB - ${JSON.stringify(doc)}`);
 			logger.trace(`[${txnId}] Payload from request - ${JSON.stringify(payload)}`);
-			logger.info(`[${txnId}] Upsert allowed ? ${upsert}`);
+			logger.debug(`[${txnId}] Upsert allowed ? ${upsert}`);
 
 			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
-			logger.info(`[${txnId}] has Skip Review permissions? ${hasSkipReview}`);
-			logger.info(`[${txnId}] Is workflow enabled ? ${workflowUtils.isWorkflowEnabled()}`);
+			logger.debug(`[${txnId}] has Skip Review permissions? ${hasSkipReview}`);
+			logger.debug(`[${txnId}] Is workflow enabled ? ${workflowUtils.isWorkflowEnabled()}`);
 
 			if (!doc && !upsert) {
 				return res.status(404).json({
@@ -757,7 +754,7 @@ router.put('/:id', (req, res) => {
 			}
 
 			if (!doc && upsert) {
-				logger.info(`[${txnId}] Document not found, creating a new doc`);
+				logger.info(`[${txnId}] Document not found, creating a new doc : ${id}`);
 				isNewDoc = true;
 				payload._id = req.params.id;
 				delete payload._metadata;
@@ -829,16 +826,16 @@ router.put('/:id', (req, res) => {
 				} else {
 					Object.keys(doc.toObject()).forEach(key => {
 						if (key !== '__v' && key !== '_id' && key !== '_metadata' && key !== '_workflow') {
-							if (payload[key] == undefined) {
+							if (payload[key] === undefined) {
 								doc.set(key, undefined);
 							}
-						}	
-					})
+						}
+					});
 					Object.keys(payload).forEach(key => {
-						if (doc.get(key) != payload[key])
+						if (doc.get(key) !== payload[key])
 							doc.set(key, payload[key]);
 					});
-					
+
 				}
 				status = await doc.save();
 				logger.debug(`[${txnId}] Update status - ${status}`);
@@ -860,10 +857,10 @@ router.delete('/:id', (req, res) => {
 	async function execute() {
 		let txnId = req.get(global.txnIdHeader);
 		let id = req.params.id;
-		logger.info(`[${txnId}] Delete request received for record ${id}`);
+		logger.debug(`[${txnId}] Delete request received for record ${id}`);
 
 		if (req.query.txn == true) {
-			logger.info(`[${txnId}] Delete request is a part of a transaction ${id}`)
+			logger.debug(`[${txnId}] Delete request is a part of a transaction ${id}`);
 			return transactionUtils.transferToTransaction(req, res);
 		}
 		if (!specialFields.hasPermissionForDELETE(req, req.user.appPermissions)) {
@@ -1423,8 +1420,6 @@ async function doRoundMathAPI(req, res, oldNewData) {
 		throw err;
 	}
 }
-
-
 
 function handleError(err, txnId) {
 	let message;

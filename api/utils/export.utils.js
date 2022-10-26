@@ -169,7 +169,7 @@ function getUserDocuments(req, select, filter) {
 				if (res.statusCode === 200) {
 					resolve(body);
 				} else {
-					logger.debug(JSON.stringify(body));
+					logger.trace(JSON.stringify(body));
 					reject(new Error('User API failed'));
 				}
 			}
