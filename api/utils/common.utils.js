@@ -115,8 +115,9 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 	let document = documentCache.get(key);
 	try {
 		if (!service) {
+			logger.debug('Fetching Data Service :: ', serviceId);
 			service = httpClient.httpRequest({
-				url: `${config.baseUrlSM}/${config.appNamespace}/service/${serviceId}/?app=${config.app}`,
+				url: `${config.baseUrlSM}/${config.app}/service/${serviceId}/?app=${config.app}`,
 				method: 'GET',
 				headers: {
 					'TxnId': req ? req.headers[global.txnIdHeader] : '',
@@ -132,6 +133,9 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 			serviceCache.set(serviceId, service);
 		}
 		service = await service;
+		if (!service) {
+			throw new Error('Data Service not found');
+		}
 		const dataServiceUrl = '/api/c/' + service.app + service.api + '/' + documentId;
 		let api = config.baseUrlGW + dataServiceUrl + '?expand=true';
 		// if (expandLevel < 2) {
@@ -187,8 +191,9 @@ async function getServiceDocsUsingFilter(req, serviceName, filter, select, throw
 	let service = serviceCache.get(serviceName);
 	try {
 		if (!service) {
+			logger.debug('Fetching Data Service :: ', serviceName);
 			service = httpClient.httpRequest({
-				url: `${config.baseUrlSM}/${config.appNamespace}/service/?app=${config.app}&filter={"name":"${serviceName}"}&count=1`,
+				url: `${config.baseUrlSM}/${config.app}/service/?app=${config.app}&filter={"name":"${serviceName}"}&count=1`,
 				method: 'GET',
 				headers: {
 					'TxnId': req ? req.headers[global.txnIdHeader] : '',
@@ -209,6 +214,9 @@ async function getServiceDocsUsingFilter(req, serviceName, filter, select, throw
 			serviceCache.set(serviceName, service);
 		}
 		service = await service;
+		if (!service) {
+			throw new Error('Data Service not found');
+		}
 		const dataServiceUrl = '/api/c/' + service.app + service.api + '/?filter=' + JSON.stringify(filter);
 		let api = config.baseUrlGW + dataServiceUrl + '&expand=false';
 		// if (expandLevel < 2) {
@@ -508,7 +516,7 @@ e.getStoredServiceDetail = function (serviceId, serviceDetailsObj, req) {
 		return Promise.resolve();
 	} else {
 		var options = {
-			url: `${config.baseUrlSM}/${config.appNamespace}/service/${serviceId}?select=port,api,relatedSchemas,app,preHooks,definition&app=${config.app}`,
+			url: `${config.baseUrlSM}/${config.app}/service/${serviceId}?select=port,api,relatedSchemas,app,preHooks,definition&app=${config.app}`,
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',

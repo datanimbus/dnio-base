@@ -84,7 +84,10 @@ router.post('/:fileId/create', (req, res) => {
 		const startTime = Date.now();
 		let endTime;
 		try {
-			await fileTransfersModel.findOneAndUpdate({ fileId }, { $set: { status: 'Importing' } });
+			let fileTransferDocumentId = await fileTransfersModel.collection.findOne({ fileId: fileId });
+			fileTransferDocumentId = fileTransferDocumentId._id;
+
+			await fileTransfersModel.findOneAndUpdate({ _id: fileTransferDocumentId }, { $set: { status: 'Importing' } });
 			logger.info(`[${txnId}] File mapper :: Creation process :: Started`);
 			res.status(202).json({ message: 'Creation Process started...' });
 
@@ -98,7 +101,7 @@ router.post('/:fileId/create', (req, res) => {
 				fileId,
 				data
 			});
-			await fileTransfersModel.findOneAndUpdate({ fileId }, { $set: result });
+			await fileTransfersModel.findOneAndUpdate({ _id: fileTransferDocumentId }, { $set: result });
 			endTime = Date.now();
 			let socketData = JSON.parse(JSON.stringify(result));
 			socketData.fileId = fileId;
@@ -162,7 +165,6 @@ router.put('/:fileId/mapping', (req, res) => {
 				data
 			});
 
-			// await fileTransfersModel.findOneAndUpdate({ fileId }, { $set: result });
 			endTime = Date.now();
 			let socketData = JSON.parse(JSON.stringify(result));
 			socketData.fileId = fileId;
