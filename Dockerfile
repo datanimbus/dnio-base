@@ -1,7 +1,7 @@
 FROM node:18.9.1-alpine3.16
 # FROM node:16.17.0-alpine3.16
 
-WORKDIR /tmp/tmp/app
+WORKDIR /tmp/app
 
 RUN apk update
 RUN apk upgrade
