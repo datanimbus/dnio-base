@@ -1,12 +1,12 @@
 FROM node:18.9.1-alpine3.16
 # FROM node:16.17.0-alpine3.16
 
-WORKDIR /app
+WORKDIR /tmp/tmp/app
 
 RUN apk update
 RUN apk upgrade
 
-COPY package.json /app
+COPY package.json /tmp/app
 
 RUN set -ex; apk add --no-cache --virtual .fetch-deps curl tar ;
 
@@ -15,25 +15,25 @@ RUN npm install --production --no-audit
 # RUN npm audit fix --production
 RUN rm -rf /usr/local/lib/node_modules/npm/node_modules/node-gyp/test
 
-COPY app.js /app
+COPY app.js /tmp/app
 
-COPY config.js /app
+COPY config.js /tmp/app
 
-COPY db-factory.js /app
+COPY db-factory.js /tmp/app
 
-COPY http-client.js /app
+COPY http-client.js /tmp/app
 
-COPY init.js /app
+COPY init.js /tmp/app
 
-COPY initializeRuntime.js /app
+COPY initializeRuntime.js /tmp/app
 
-COPY queue.js /app
+COPY queue.js /tmp/app
 
-COPY api /app/api
+COPY api /tmp/app/api
 
-COPY views /app/views
+COPY views /tmp/app/views
 
-COPY codeGen /app/codeGen
+COPY codeGen /tmp/app/codeGen
 
 ENV IMAGE_TAG=__image_tag__
 
