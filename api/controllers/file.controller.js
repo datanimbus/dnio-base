@@ -43,7 +43,7 @@ router.get('/:id/view', (req, res) => {
 					return res.end();
 				});
 				readstream.pipe(res);
-			} else if (storage === 'AZURE') {
+			} else if (storage === 'AZBLOB') {
 				return await downloadFileFromAzure(id, storage, txnId, res);
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
@@ -150,7 +150,7 @@ router.get('/download/:id', (req, res) => {
 
 					readstream.pipe(res);
 				}
-			} else if (storage === 'AZURE') {
+			} else if (storage === 'AZBLOB') {
 				return await downloadFileFromAzure(id, storage, txnId, res, encryptionKey);
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
@@ -234,7 +234,7 @@ router.post('/upload', (req, res) => {
 						return res.status(200).json(file);
 					});
 
-			} else if (storage === 'AZURE') {
+			} else if (storage === 'AZBLOB') {
 				try {
 					let file = await createFileObject(req.file, encryptionKey);
 
@@ -242,11 +242,12 @@ router.post('/upload', (req, res) => {
 
 					let pathFile = JSON.parse(JSON.stringify(file));
 					pathFile.path = filePath;
+					pathFile.filename = pathFile.blobName;
 
 					let data = {};
 					data.file = pathFile;
-					data.connectionString = config.fileStorage[storage].connectionString;
-					data.containerName = config.fileStorage[storage].container;
+					data.connectionString = config.fileStorage.AZURE.connectionString;
+					data.containerName = config.fileStorage.AZURE.container;
 					data.appName = config.app;
 					data.serviceName = config.serviceName;
 
@@ -309,12 +310,13 @@ async function downloadFileFromAzure(id, storage, txnId, res, encryptionKey) {
 		logger.debug(`[${txnId}] File Found, generating download link.`);
 		logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
 
+		file.filename = `${config.app}/${config.serviceId}_${config.serviceName}/${id}`;
 		let data = {};
 		data.file = file;
-		data.connectionString = config.fileStorage[storage].connectionString;
-		data.containerName = config.fileStorage[storage].container;
-		data.sharedKey = config.fileStorage[storage].sharedKey;
-		data.timeout = config.fileStorage[storage].timeout;
+		data.connectionString = config.fileStorage.AZURE.connectionString;
+		data.containerName = config.fileStorage.AZURE.container;
+		data.sharedKey = config.fileStorage.AZURE.sharedKey;
+		data.timeout = config.fileStorage.AZURE.timeout;
 		data.fileName = id;
 
 		if (encryptionKey) {
@@ -366,7 +368,8 @@ async function createFileObject(file, encryptionKey) {
 	let fileObj = {};
 	fileObj.length = file.size;
 	fileObj.uploadDate = moment().format('YYYY-MM-DDTHH:mm:ss');
-	fileObj.filename = file.filename + '.' + file.originalname.split('.').pop();
+	fileObj.blobName = `${config.app}/${config.serviceId}_${config.serviceName}/${file.filename}.${file.originalname.split('.').pop()}`;
+	fileObj.filename = `${file.filename}.${file.originalname.split('.').pop()}`;
 	fileObj.contentType = file.mimetype;
 	fileObj.metadata = {
 		filename: file.originalname,

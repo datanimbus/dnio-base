@@ -91,6 +91,16 @@ async function fetchGlobalDefinitions() {
 	}
 }
 
+async function fetchConnectorDetails(connID) {
+	try {
+		logger.info(`Fetching connector details : ${connID}`);
+		return await global.authorDB.collection('config.connectors').findOne({ _id: connID });
+	} catch (e) {
+		logger.error(`Unable to fetch connector details :: ${connID}`);
+		logger.error(e.message);
+	}
+}
+
 function parseSchemaToFindFileAttachmentAttributes(path, definition) {
 	let attributes = [];
 	definition.forEach(def => {
@@ -150,6 +160,11 @@ async function init() {
 		await establishAuthorAndLogsDBConnections();
 		let serviceDoc = await fetchServiceDetails(config.serviceId);
 		logger.trace(`Service document : ${JSON.stringify(serviceDoc)}`);
+
+		if (serviceDoc?.fileStorage?.type === 'AZBLOB') {
+			let connectorDetails = await fetchConnectorDetails(serviceDoc.fileStorage.connectorId);
+			serviceDoc.fileStorage.AZURE = connectorDetails.values;
+		}
 		// INIT CONFIG based on the service doc
 		initConfigVariables(serviceDoc, true);
 		// FETCH GLOABL DEF

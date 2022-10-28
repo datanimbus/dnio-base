@@ -23,11 +23,11 @@ DATA_STACK_APP_NS="appveen-${config.app}"
 DATA_STACK_NAMESPACE="appveen"
 DATA_STACK_APP="${config.app}"
 DATA_STACK_ALLOWED_FILE_TYPE="${config.allowedFileTypes}"
-STORAGE_ENGINE="${process.env.STORAGE_ENGINE}"
-STORAGE_AZURE_CONNECTION_STRING="${process.env.STORAGE_AZURE_CONNECTION_STRING}"
-STORAGE_AZURE_CONTAINER="${process.env.STORAGE_AZURE_CONTAINER}"
-STORAGE_AZURE_SHARED_KEY="${process.env.STORAGE_AZURE_SHARED_KEY}"
-STORAGE_AZURE_TIMEOUT="${process.env.STORAGE_AZURE_TIMEOUT}"
+STORAGE_ENGINE="${config?.fileStorage?.type || "GRIDFS"}"
+STORAGE_AZURE_CONNECTION_STRING="${config.fileStorage?.AZURE?.connectionString}"
+STORAGE_AZURE_CONTAINER="${config.fileStorage?.AZURE?.container}"
+STORAGE_AZURE_SHARED_KEY="${config.fileStorage?.AZURE?.sharedKey}"
+STORAGE_AZURE_TIMEOUT="${config.fileStorage?.AZURE?.timeout}"
 `;
 }
 
