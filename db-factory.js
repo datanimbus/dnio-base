@@ -153,6 +153,14 @@ function initConfigVariables(serviceDoc, reinitLogger) {
 	config.fileAttachmentAttributes = parseSchemaToFindFileAttachmentAttributes([], serviceDoc.definition);
 	logger.debug(`File attachment attributes : ${config.fileAttachmentAttributes}`);
 	logger.debug(`ML_FILE_PARSER : ${config.ML_FILE_PARSER}`);
+
+	config.fileStorage = {};
+	config.fileStorage.storage = serviceDoc?.fileStorage?.type || 'GRIDFS';
+	if (config?.fileStorage?.storage === 'AZBLOB') {
+		config.fileStorage.AZURE = serviceDoc.fileStorage.AZURE;
+	}
+
+	logger.debug(`STORAGE ENGINE : ${config.fileStorage.storage}`);
 }
 
 async function init() {
@@ -163,6 +171,8 @@ async function init() {
 
 		if (serviceDoc?.fileStorage?.type === 'AZBLOB') {
 			let connectorDetails = await fetchConnectorDetails(serviceDoc.fileStorage.connectorId);
+			logger.trace(`Connector document : ${JSON.stringify(connectorDetails)}`);
+
 			serviceDoc.fileStorage.AZURE = connectorDetails.values;
 		}
 		// INIT CONFIG based on the service doc
