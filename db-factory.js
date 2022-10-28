@@ -158,6 +158,8 @@ function initConfigVariables(serviceDoc, reinitLogger) {
 	config.fileStorage.storage = serviceDoc?.fileStorage?.type || 'GRIDFS';
 	if (config?.fileStorage?.storage === 'AZBLOB') {
 		config.fileStorage.AZURE = serviceDoc.fileStorage.AZURE;
+	} else if (config?.fileStorage?.storage === 'S3') {
+		config.fileStorage.S3 = serviceDoc.fileStorage.S3;
 	}
 
 	logger.debug(`STORAGE ENGINE : ${config.fileStorage.storage}`);
@@ -174,6 +176,12 @@ async function init() {
 			logger.trace(`Connector document : ${JSON.stringify(connectorDetails)}`);
 
 			serviceDoc.fileStorage.AZURE = connectorDetails.values;
+
+		} else if (serviceDoc?.fileStorage?.type === 'S3') {
+			let connectorDetails = await fetchConnectorDetails(serviceDoc.fileStorage.connectorId);
+			logger.trace(`Connector document : ${JSON.stringify(connectorDetails)}`);
+
+			serviceDoc.fileStorage.S3 = connectorDetails.values;
 		}
 		// INIT CONFIG based on the service doc
 		initConfigVariables(serviceDoc, true);

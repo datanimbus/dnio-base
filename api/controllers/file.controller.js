@@ -44,7 +44,9 @@ router.get('/:id/view', (req, res) => {
 				});
 				readstream.pipe(res);
 			} else if (storage === 'AZBLOB') {
-				return await downloadFileFromAzure(id, storage, txnId, res);
+				return await downloadFileFromAzure(id, txnId, res);
+			} else if (storage === 'S3') {
+				return await downloadFileFromS3(id, txnId, res);
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
 				throw new Error(`External Storage ${storage} not allowed`);
@@ -151,7 +153,9 @@ router.get('/download/:id', (req, res) => {
 					readstream.pipe(res);
 				}
 			} else if (storage === 'AZBLOB') {
-				return await downloadFileFromAzure(id, storage, txnId, res, encryptionKey);
+				return await downloadFileFromAzure(id, txnId, res, encryptionKey);
+			} else if (storage === 'S3') {
+				return await downloadFileFromS3(id, txnId, res, encryptionKey);
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
 				throw new Error(`External Storage ${storage} not allowed`);
@@ -267,6 +271,76 @@ router.post('/upload', (req, res) => {
 						message: `Error uploading file - ${error.message}`
 					});
 				}
+			} else if (storage === 'S3') {
+				try {
+					let file = await createFileObject(req.file, encryptionKey);
+
+					logger.trace(`[${txnId}] S3 file object details - ${JSON.stringify(file)}`);
+
+					let pathFile = JSON.parse(JSON.stringify(file));
+					pathFile.path = filePath;
+					pathFile.filename = pathFile.blobName;
+
+					let data = {};
+					data.file = pathFile;
+					data.connectionString = config.fileStorage.AZURE.connectionString;
+					data.containerName = config.fileStorage.AZURE.container;
+					data.appName = config.app;
+					data.serviceId = config.serviceId;
+					data.serviceName = config.serviceName;
+
+					await storageEngine.S3.uploadFile(data);
+
+					let resp = await mongoose.model('files').create(file);
+
+					file._id = resp._id;
+
+					logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
+
+					return res.status(200).json(file);
+				} catch (error) {
+					logger.error(`[${txnId}] Error while upploading file - ${error}`);
+
+					return res.status(500).json({
+						message: `Error uploading file - ${error.message}`
+					});
+				}
+			} else if (storage === 'S3') {
+				try {
+					let file = await createFileObject(req.file, encryptionKey);
+
+					logger.trace(`[${txnId}] S3 file object details - ${JSON.stringify(file)}`);
+
+					let pathFile = JSON.parse(JSON.stringify(file));
+					pathFile.path = filePath;
+					pathFile.filename = pathFile.blobName;
+
+					let data = {};
+					data.file = pathFile;
+					data.accessKeyId = config.fileStorage.S3.accessKeyId;
+					data.secretAccessKey = config.fileStorage.S3.secretAccessKey;
+					data.region = config.fileStorage.S3.region;
+					data.bucket = config.fileStorage.S3.bucket;
+					data.appName = config.app;
+					data.serviceId = config.serviceId;
+					data.serviceName = config.serviceName;
+
+					await storageEngine.S3.uploadFile(data);
+
+					let resp = await mongoose.model('files').create(file);
+
+					file._id = resp._id;
+
+					logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
+
+					return res.status(200).json(file);
+				} catch (error) {
+					logger.error(`[${txnId}] Error while upploading file - ${error}`);
+
+					return res.status(500).json({
+						message: `Error uploading file - ${error.message}`
+					});
+				}
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
 				throw new Error(`External Storage ${storage} not allowed`);
@@ -298,7 +372,7 @@ router.post('/upload', (req, res) => {
 	});
 });
 
-async function downloadFileFromAzure(id, storage, txnId, res, encryptionKey) {
+async function downloadFileFromAzure(id, txnId, res, encryptionKey) {
 	try {
 		let file = await mongoose.model('files').findOne({ filename: id });
 
@@ -357,6 +431,63 @@ async function downloadFileFromAzure(id, storage, txnId, res, encryptionKey) {
 
 			return res.redirect(downloadUrl);
 		}
+	} catch (err) {
+		logger.error(`[${txnId}] Error downloading file - ${err.message}`);
+		throw err;
+	}
+}
+
+
+async function downloadFileFromS3(id, txnId, res, encryptionKey) {
+	try {
+		let file = await mongoose.model('files').findOne({ filename: id });
+
+		if (!file) {
+			logger.error(`[${txnId}] File not found`);
+			throw new Error('File Not Found');
+		}
+
+		logger.debug(`[${txnId}] File Found, download from S3.`);
+		logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
+
+		let data = {};
+		data.accessKeyId = config.fileStorage.S3.accessKeyId;
+		data.secretAccessKey = config.fileStorage.S3.secretAccessKey;
+		data.region = config.fileStorage.S3.region;
+		data.bucket = config.fileStorage.S3.bucket;
+		data.fileName = `${config.app}/${config.serviceId}_${config.serviceName}/${id}`;
+
+		let bufferData = await storageEngine.S3.downloadFileBuffer(data);
+
+		let tmpFilePath = path.join(process.cwd(), 'tmp', id);
+
+		fs.writeFileSync(tmpFilePath, bufferData);
+
+		let downloadFilePath = tmpFilePath;
+
+		if (encryptionKey) {
+			try {
+				await commonUtils.decryptFile({ path: tmpFilePath }, encryptionKey);
+				downloadFilePath += '.dec';
+			} catch (err) {
+				logger.error(err);
+				if (err.code == 'ERR_OSSL_EVP_BAD_DECRYPT') {
+					return renderError(res, 400, "Bad Decryption Key", { fqdn: config.fqdn });
+				} else {
+					return renderError(res, 500, err.message, { fqdn: config.fqdn });
+				}
+			}
+		}
+		res.set('Content-Type', file.contentType);
+		res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
+
+		let tmpReadStream = fs.createReadStream(downloadFilePath);
+		tmpReadStream.pipe(res);
+
+		tmpReadStream.on('error', function (err) {
+			logger.error(`[${txnId}] Error streaming file - ${err}`);
+			renderError(res, 500, err.message || 'Error on reading file');
+		});
 	} catch (err) {
 		logger.error(`[${txnId}] Error downloading file - ${err.message}`);
 		throw err;

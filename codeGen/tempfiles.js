@@ -24,10 +24,18 @@ DATA_STACK_NAMESPACE="appveen"
 DATA_STACK_APP="${config.app}"
 DATA_STACK_ALLOWED_FILE_TYPE="${config.allowedFileTypes}"
 STORAGE_ENGINE="${config?.fileStorage?.type || "GRIDFS"}"
-STORAGE_AZURE_CONNECTION_STRING="${config.fileStorage?.AZURE?.connectionString}"
+${ config.fileStorage.type === 'AZBLOB' ?
+`STORAGE_AZURE_CONNECTION_STRING="${config.fileStorage?.AZURE?.connectionString}"
 STORAGE_AZURE_CONTAINER="${config.fileStorage?.AZURE?.container}"
 STORAGE_AZURE_SHARED_KEY="${config.fileStorage?.AZURE?.sharedKey}"
-STORAGE_AZURE_TIMEOUT="${config.fileStorage?.AZURE?.timeout}"
+STORAGE_AZURE_TIMEOUT="${config.fileStorage?.AZURE?.timeout}"` : ``
+}
+${ config.fileStorage.type === 'S3' ?
+`STORAGE_S3_ACCESS_KEY_ID="${config.fileStorage?.S3?.accessKeyId}"
+STORAGE_S3_SECRET_ACCESS_KEY="${config.fileStorage?.S3?.secretAccessKey}"
+STORAGE_S3_REGION="${config.fileStorage?.S3?.region}"
+STORAGE_S3_BUCKET="${config.fileStorage?.S3?.bucket}"` : ``
+}
 `;
 }
 
