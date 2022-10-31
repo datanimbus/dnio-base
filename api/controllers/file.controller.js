@@ -265,51 +265,17 @@ router.post('/upload', (req, res) => {
 
 					return res.status(200).json(file);
 				} catch (error) {
-					logger.error(`[${txnId}] Error while upploading file - ${error}`);
+					logger.error(`[${txnId}] Error while upploading file to Azure Blob :: ${error}`);
 
 					return res.status(500).json({
-						message: `Error uploading file - ${error.message}`
+						message: `Error uploading file :: ${error.message}`
 					});
 				}
 			} else if (storage === 'S3') {
 				try {
 					let file = await createFileObject(req.file, encryptionKey);
 
-					logger.trace(`[${txnId}] S3 file object details - ${JSON.stringify(file)}`);
-
-					let pathFile = JSON.parse(JSON.stringify(file));
-					pathFile.path = filePath;
-					pathFile.filename = pathFile.blobName;
-
-					let data = {};
-					data.file = pathFile;
-					data.connectionString = config.fileStorage.AZURE.connectionString;
-					data.containerName = config.fileStorage.AZURE.container;
-					data.appName = config.app;
-					data.serviceId = config.serviceId;
-					data.serviceName = config.serviceName;
-
-					await storageEngine.S3.uploadFile(data);
-
-					let resp = await mongoose.model('files').create(file);
-
-					file._id = resp._id;
-
-					logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
-
-					return res.status(200).json(file);
-				} catch (error) {
-					logger.error(`[${txnId}] Error while upploading file - ${error}`);
-
-					return res.status(500).json({
-						message: `Error uploading file - ${error.message}`
-					});
-				}
-			} else if (storage === 'S3') {
-				try {
-					let file = await createFileObject(req.file, encryptionKey);
-
-					logger.trace(`[${txnId}] S3 file object details - ${JSON.stringify(file)}`);
+					logger.trace(`[${txnId}] S3 file object details :: ${JSON.stringify(file)}`);
 
 					let pathFile = JSON.parse(JSON.stringify(file));
 					pathFile.path = filePath;
@@ -335,10 +301,10 @@ router.post('/upload', (req, res) => {
 
 					return res.status(200).json(file);
 				} catch (error) {
-					logger.error(`[${txnId}] Error while upploading file - ${error}`);
+					logger.error(`[${txnId}] Error while uploading file to S3 :: ${error}`);
 
 					return res.status(500).json({
-						message: `Error uploading file - ${error.message}`
+						message: `Error uploading file :: ${error.message}`
 					});
 				}
 			} else {

@@ -144,6 +144,28 @@ async function clearUnusedFiles() {
 						})
 						.catch(err => logger.error(`Error deleting file ${_f} from Azure Blob ${err}`));
 				});
+			} else if (storage === 'S3') {
+				promise = filesToBeDeleted.map(_f => {
+					logger.trace(`Deleting file from S3 - ${_f}`);
+					let data = {};
+					data.filename = `${config.app}/${config.serviceId}_${config.serviceName}/${_f}`;
+					data.accessKeyId = config.fileStorage.S3.accessKeyId;
+					data.secretAccessKey = config.fileStorage.S3.secretAccessKey;
+					data.region = config.fileStorage.S3.region;
+					data.bucket = config.fileStorage.S3.bucket;
+
+					return new Promise((resolve, reject) => {
+						try {
+							resolve(storageEngine.S3.deleteFile(data));
+						} catch (err) {
+							reject(err);
+						}
+					})
+						.then(() => {
+							mongoose.connection.db.collection(`${config.serviceCollection}.files`).deleteOne({ filename: _f });
+						})
+						.catch(err => logger.error(`Error deleting file ${_f} from S3 :: ${err}`));
+				});
 			} else {
 				logger.error('External Storage type is not allowed');
 				throw new Error(`External Storage ${storage} not allowed`);
