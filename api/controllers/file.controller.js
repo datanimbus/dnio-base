@@ -6,6 +6,7 @@ const moment = require('moment');
 const commonUtils = require('../utils/common.utils');
 const storageEngine = require('@appveen/data.stack-utils').storageEngine;
 const Mustache = require('mustache');
+const specialFields = require('../utils/special-fields.utils');
 
 const fs = require('fs');
 const path = require('path');
@@ -25,7 +26,13 @@ router.get('/:id/view', (req, res) => {
 			logger.debug(`[${txnId}] File view request received for id ${id}`);
 			logger.debug(`[${txnId}] Storage Enigne - ${storage}`);
 
-			if (storage === 'GRIDFS') {
+			// if (!specialFields.hasPermissionForGET(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+			// 	return res.status(403).json({
+			// 		message: 'You don\'t have permission to fetch file',
+			// 	});
+			// }
+
+			if (storage === 'MongoDB') {
 				let file;
 				try {
 					file = (await global.gfsBucket.find({ filename: id }).toArray())[0];
@@ -43,9 +50,9 @@ router.get('/:id/view', (req, res) => {
 					return res.end();
 				});
 				readstream.pipe(res);
-			} else if (storage === 'AZBLOB') {
+			} else if (storage === 'Azure Blob Storage') {
 				return await downloadFileFromAzure(id, txnId, res);
-			} else if (storage === 'S3') {
+			} else if (storage === 'Amazon S3') {
 				return await downloadFileFromS3(id, txnId, res);
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
@@ -68,6 +75,12 @@ router.get('/:id/view', (req, res) => {
 
 router.get('/download/:id', (req, res) => {
 	async function execute() {
+		// if (!specialFields.hasPermissionForGET(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+		// 	return res.status(403).json({
+		// 		message: 'You don\'t have permission to fetch file',
+		// 	});
+		// }
+
 		let tmpDirPath, id;
 		try {
 			id = req.params.id;
@@ -84,7 +97,7 @@ router.get('/download/:id', (req, res) => {
 				fs.mkdirSync(tmpDirPath);
 			}
 
-			if (storage === 'GRIDFS') {
+			if (storage === 'MongoDB') {
 				let file;
 				try {
 					file = (await global.gfsBucket.find({ filename: id }).toArray())[0];
@@ -152,9 +165,9 @@ router.get('/download/:id', (req, res) => {
 
 					readstream.pipe(res);
 				}
-			} else if (storage === 'AZBLOB') {
+			} else if (storage === 'Azure Blob Storage') {
 				return await downloadFileFromAzure(id, txnId, res, encryptionKey);
-			} else if (storage === 'S3') {
+			} else if (storage === 'Amazon S3') {
 				return await downloadFileFromS3(id, txnId, res, encryptionKey);
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
@@ -207,6 +220,13 @@ router.post('/upload', (req, res) => {
 			logger.debug(`[${txnId}] Storage Enigne - ${config.fileStorage.storage}`);
 			logger.debug(`[${txnId}] Encryption Key - ${encryptionKey}`);
 
+			if (!specialFields.hasPermissionForPOST(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+				logger.error(`[${txnId}] User does not have permission to create records ${(req.user && req.user.appPermissions ? req.user.appPermissions : [])}`);
+				return res.status(403).json({
+					message: 'You don\'t have permission to upload files',
+				});
+			}
+
 			filePath = sampleFile.path;
 			if (encryptionKey) {
 				try {
@@ -218,7 +238,7 @@ router.post('/upload', (req, res) => {
 				}
 			}
 
-			if (storage === 'GRIDFS') {
+			if (storage === 'MongoDB') {
 				fs.createReadStream(filePath).
 					pipe(global.gfsBucket.openUploadStream(crypto.createHash('md5').update(uuid() + global.serverStartTime).digest('hex'), {
 						contentType: sampleFile.mimetype,
@@ -238,7 +258,7 @@ router.post('/upload', (req, res) => {
 						return res.status(200).json(file);
 					});
 
-			} else if (storage === 'AZBLOB') {
+			} else if (storage === 'Azure Blob Storage') {
 				try {
 					let file = await createFileObject(req.file, encryptionKey);
 
@@ -271,7 +291,7 @@ router.post('/upload', (req, res) => {
 						message: `Error uploading file :: ${error.message}`
 					});
 				}
-			} else if (storage === 'S3') {
+			} else if (storage === 'Amazon S3') {
 				try {
 					let file = await createFileObject(req.file, encryptionKey);
 
@@ -302,6 +322,44 @@ router.post('/upload', (req, res) => {
 					return res.status(200).json(file);
 				} catch (error) {
 					logger.error(`[${txnId}] Error while uploading file to S3 :: ${error}`);
+
+					return res.status(500).json({
+						message: `Error uploading file :: ${error.message}`
+					});
+				}
+			} else if (storage === 'Google Cloud Storage') {
+				try {
+					let file = await createFileObject(req.file, encryptionKey);
+
+					logger.trace(`[${txnId}] GCS file object details :: ${JSON.stringify(file)}`);
+
+					let pathFile = JSON.parse(JSON.stringify(file));
+					pathFile.path = filePath;
+					pathFile.fileName = pathFile.blobName;
+
+					let gcsConfigFilePath = path.join(process.cwd(), 'gcs.json');
+
+					let data = {};
+					data.file = pathFile;
+					data.appName = config.app;
+					data.serviceId = config.serviceId;
+					data.serviceName = config.serviceName;
+					data.gcsConfigFilePath = gcsConfigFilePath;
+					data.bucket = config.fileStorage.GCS.bucket;
+					data.projectId =  config.fileStorage.GCS.projectId;
+
+
+					await storageEngine.GCS.uploadFile(data);
+
+					let resp = await mongoose.model('files').create(file);
+
+					file._id = resp._id;
+
+					logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
+
+					return res.status(200).json(file);
+				} catch (error) {
+					logger.error(`[${txnId}] Error while uploading file to GCS :: ${error}`);
 
 					return res.status(500).json({
 						message: `Error uploading file :: ${error.message}`

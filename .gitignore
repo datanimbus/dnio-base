@@ -16,3 +16,4 @@ globalDef.json
 uploads/
 .env
 service.json
+gcs.json
