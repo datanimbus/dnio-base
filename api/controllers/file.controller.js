@@ -20,7 +20,7 @@ router.get('/:id/view', (req, res) => {
 	async function execute() {
 		try {
 			const id = req.params.id;
-			const storage = config.fileStorage.storage;
+			const storage = config.fileStorage.type;
 			let txnId = req.get('txnid');
 
 			logger.debug(`[${txnId}] File view request received for id ${id}`);
@@ -32,7 +32,7 @@ router.get('/:id/view', (req, res) => {
 			// 	});
 			// }
 
-			if (storage === 'MongoDB') {
+			if (storage === 'GridFS') {
 				let file;
 				try {
 					file = (await global.gfsBucket.find({ filename: id }).toArray())[0];
@@ -84,7 +84,7 @@ router.get('/download/:id', (req, res) => {
 		let tmpDirPath, id;
 		try {
 			id = req.params.id;
-			const storage = config.fileStorage.storage;
+			const storage = config.fileStorage.type;
 			const encryptionKey = req.query.encryptionKey;
 			let txnId = req.get('txnid');
 
@@ -97,7 +97,7 @@ router.get('/download/:id', (req, res) => {
 				fs.mkdirSync(tmpDirPath);
 			}
 
-			if (storage === 'MongoDB') {
+			if (storage === 'GridFS') {
 				let file;
 				try {
 					file = (await global.gfsBucket.find({ filename: id }).toArray())[0];
@@ -210,7 +210,7 @@ router.post('/upload', (req, res) => {
 	async function execute() {
 		let filePath;
 		try {
-			const storage = config.fileStorage.storage;
+			const storage = config.fileStorage.type;
 			let txnId = req.get('txnid');
 			const sampleFile = req.file;
 			const filename = sampleFile.originalname;
@@ -238,7 +238,7 @@ router.post('/upload', (req, res) => {
 				}
 			}
 
-			if (storage === 'MongoDB') {
+			if (storage === 'GridFS') {
 				fs.createReadStream(filePath).
 					pipe(global.gfsBucket.openUploadStream(crypto.createHash('md5').update(uuid() + global.serverStartTime).digest('hex'), {
 						contentType: sampleFile.mimetype,

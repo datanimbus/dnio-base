@@ -86,9 +86,9 @@ startCronJob();
 
 async function clearUnusedFiles() {
 	const batch = 1000;
-	const storage = config.fileStorage.storage;
+	const storage = config.fileStorage.type;
 	logger.debug('Cron triggered to clear unused file attachment');
-	logger.debug(`Storage Enigne - ${config.fileStorage.storage}`);
+	logger.debug(`Storage Enigne - ${storage}`);
 	const datefilter = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
 	const count = await mongoose.connection.db.collection(`${config.serviceCollection}.files`).count({ 'uploadDate': { '$lte': datefilter } }, { filename: 1 });
 	let arr = [];
@@ -122,9 +122,9 @@ async function clearUnusedFiles() {
 			logger.info('Files to be deleted - ', JSON.stringify({ filesToBeDeleted }));
 
 			let promise;
-			if (storage === 'GRIDFS') {
+			if (storage === 'GridFS') {
 				promise = filesToBeDeleted.map(_f => deleteFileFromDB(_f));
-			} else if (storage === 'AZBLOB') {
+			} else if (storage === 'Azure Blob Storage') {
 				promise = filesToBeDeleted.map(_f => {
 					logger.trace(`Deleting file - ${_f}`);
 					let data = {};
@@ -144,7 +144,7 @@ async function clearUnusedFiles() {
 						})
 						.catch(err => logger.error(`Error deleting file ${_f} from Azure Blob ${err}`));
 				});
-			} else if (storage === 'S3') {
+			} else if (storage === 'Amazon S3') {
 				promise = filesToBeDeleted.map(_f => {
 					logger.trace(`Deleting file from S3 - ${_f}`);
 					let data = {};
