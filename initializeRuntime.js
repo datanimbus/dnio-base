@@ -24,9 +24,10 @@ module.exports = async (app) => {
 	const upload = multer({ dest: path.join(process.cwd(), 'uploads') });
 	const fileValidator = utils.fileValidator;
 
-	logger.info(`SKIP_AUTH : ${process.env.SKIP_AUTH}`);
-	logger.info(`MAX_JSON_SIZE : ${config.MaxJSONSize}`);
-	logger.info(`STORAGE_ENGINE : ${config.fileStorage.storage}`);
+	logger.info(`SKIP_AUTH :: ${process.env.SKIP_AUTH}`);
+	logger.info(`MAX_JSON_SIZE :: ${config.MaxJSONSize}`);
+	logger.info(`FILE STORAGE_ENGINE :: ${config.connectors.file.type}`);
+	logger.info(`DATA STORAGE_ENGINE :: ${config.connectors.data.type}`);
 
 	app.use(express.json({ limit: config.MaxJSONSize }));
 	app.use(express.urlencoded({ extended: true }));

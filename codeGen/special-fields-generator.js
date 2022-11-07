@@ -25,6 +25,7 @@ function genrateCode(config) {
 	code.push(`const uniqueFields = ${JSON.stringify(config.uniqueFields)};`);
 	code.push(`const relationUniqueFields = '${config.relationUniqueFields}'.split(',');`);
 	code.push(`const dateFields = ${JSON.stringify((config.dateFields || []))}`);
+	code.push(`const fileFields = ${JSON.stringify((config.fileFields || []))}`);
 	// code.push(`const relationRequiredFields = '${config.relationRequiredFields}'.split(',');`);
 
 	/**------------------------ CREATE ONLY ----------------------- */

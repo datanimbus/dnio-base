@@ -3,7 +3,7 @@ const fs = require('fs');
 const { generateDefinition } = require('./createDefinition');
 const { generateYaml } = require('./generateYaml');
 const { generateYamlSchemaFree } = require('./generateYamlSchemaFree');
-const { dotEnvFile } = require('./tempfiles');
+const { dotEnvFile, gcsFile } = require('./tempfiles');
 const specialFieldsGenrator = require('./special-fields-generator');
 const globalDefHelper = require('./globalDefinitionHelper');
 
@@ -75,12 +75,13 @@ module.exports.init = (serviceDocument) => {
 
 		generateSwaggerYAML(serviceDocument);
 
-		// if (!serviceDocument.schemaFree) {
-			fs.writeFileSync('./api/utils/special-fields.utils.js', specialFieldsGenrator.genrateCode(serviceDocument), 'utf-8');
-			logger.debug('Generated special-fields.utils.js');
-		// }
-
+		fs.writeFileSync('./api/utils/special-fields.utils.js', specialFieldsGenrator.genrateCode(serviceDocument), 'utf-8');
+		logger.debug('Generated special-fields.utils.js');
+		
 		fs.writeFileSync('./.env', dotEnvFile(serviceDocument), 'utf-8');
+		if (serviceDocument.connectors?.file?.type === 'GCS') {
+			fs.writeFileSync('./gcs.json', JSON.stringify(gcsFile(serviceDocument.connectors.file.GCS)), 'utf-8');
+		}
 		logger.debug('Generated .env');
 
 		logger.info(`All files generated for ${serviceDocument._id}/${serviceDocument.name}`);

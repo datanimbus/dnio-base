@@ -18,6 +18,9 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 		if (attribute['properties'] && (attribute['properties']['password'] && !attribute['properties']['fileType'])) {
 			specialFields['secureFields'].push(nestedKey);
 		}
+		if (attribute['properties'] && (attribute['properties']['fileType'])) {
+			specialFields['fileFields'].push(nestedKey);
+		}
 		if (attribute['type'] === 'Object') {
 			processSchema(attribute['definition'], mongoSchema, nestedKey, specialFields);
 		}
@@ -255,6 +258,9 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 				if (attribute['properties'] && attribute['properties']['password'] && !attribute['properties']['fileType']) {
 					specialFields['secureFields'].push(newNestedKey);
 				}
+				if (attribute['properties'] && attribute['properties']['fileType']) {
+					specialFields['fileFields'].push(newNestedKey);
+				}
 				if (attribute['properties'] && attribute['properties']['unique'] && !attribute['properties']['password']) {
 					let locale = attribute['properties'].locale || 'en';
 					specialFields['uniqueFields'].push({ key: newNestedKey, locale });
@@ -303,6 +309,7 @@ function generateDefinition(config) {
 		precisionFields: [],
 		secureFields: [],
 		uniqueFields: [],
+		fileFields: [],
 		relationUniqueFields: [],
 		dateFields: [],
 		// relationRequiredFields: []
@@ -317,6 +324,7 @@ function generateDefinition(config) {
 	config.createOnlyFields = specialFields.createOnlyFields;
 	config.precisionFields = specialFields.precisionFields;
 	config.secureFields = specialFields.secureFields;
+	config.fileFields = specialFields.fileFields;
 	config.uniqueFields = specialFields.uniqueFields;
 	config.dateFields = specialFields.dateFields;
 	config.relationUniqueFields = specialFields.relationUniqueFields;

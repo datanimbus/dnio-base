@@ -6,6 +6,7 @@ const moment = require('moment');
 const commonUtils = require('../utils/common.utils');
 const storageEngine = require('@appveen/data.stack-utils').storageEngine;
 const Mustache = require('mustache');
+const specialFields = require('../utils/special-fields.utils');
 
 const fs = require('fs');
 const path = require('path');
@@ -19,11 +20,17 @@ router.get('/:id/view', (req, res) => {
 	async function execute() {
 		try {
 			const id = req.params.id;
-			const storage = config.fileStorage.storage;
+			const storage = config.fileStorage.type;
 			let txnId = req.get('txnid');
 
 			logger.debug(`[${txnId}] File view request received for id ${id}`);
 			logger.debug(`[${txnId}] Storage Enigne - ${storage}`);
+
+			// if (!specialFields.hasPermissionForGET(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+			// 	return res.status(403).json({
+			// 		message: 'You don\'t have permission to fetch file',
+			// 	});
+			// }
 
 			if (storage === 'GRIDFS') {
 				let file;
@@ -68,10 +75,16 @@ router.get('/:id/view', (req, res) => {
 
 router.get('/download/:id', (req, res) => {
 	async function execute() {
+		// if (!specialFields.hasPermissionForGET(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+		// 	return res.status(403).json({
+		// 		message: 'You don\'t have permission to fetch file',
+		// 	});
+		// }
+
 		let tmpDirPath, id;
 		try {
 			id = req.params.id;
-			const storage = config.fileStorage.storage;
+			const storage = config.fileStorage.type;
 			const encryptionKey = req.query.encryptionKey;
 			let txnId = req.get('txnid');
 
@@ -197,15 +210,22 @@ router.post('/upload', (req, res) => {
 	async function execute() {
 		let filePath;
 		try {
-			const storage = config.fileStorage.storage;
+			const storage = config.connectors.file.type;
 			let txnId = req.get('txnid');
 			const sampleFile = req.file;
 			const filename = sampleFile.originalname;
 			const encryptionKey = req.query.encryptionKey;
 
 			logger.debug(`[${txnId}] File upload request received - ${filename}`);
-			logger.debug(`[${txnId}] Storage Enigne - ${config.fileStorage.storage}`);
+			logger.debug(`[${txnId}] Storage Enigne - ${storage}`);
 			logger.debug(`[${txnId}] Encryption Key - ${encryptionKey}`);
+
+			if (!specialFields.hasPermissionForPOST(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+				logger.error(`[${txnId}] User does not have permission to create records ${(req.user && req.user.appPermissions ? req.user.appPermissions : [])}`);
+				return res.status(403).json({
+					message: 'You don\'t have permission to upload files',
+				});
+			}
 
 			filePath = sampleFile.path;
 			if (encryptionKey) {
@@ -250,8 +270,8 @@ router.post('/upload', (req, res) => {
 
 					let data = {};
 					data.file = pathFile;
-					data.connectionString = config.fileStorage.AZURE.connectionString;
-					data.containerName = config.fileStorage.AZURE.container;
+					data.connectionString = config.connectors.file.AZURE.connectionString;
+					data.containerName = config.connectors.file.AZURE.container;
 					data.appName = config.app;
 					data.serviceName = config.serviceName;
 
@@ -283,10 +303,10 @@ router.post('/upload', (req, res) => {
 
 					let data = {};
 					data.file = pathFile;
-					data.accessKeyId = config.fileStorage.S3.accessKeyId;
-					data.secretAccessKey = config.fileStorage.S3.secretAccessKey;
-					data.region = config.fileStorage.S3.region;
-					data.bucket = config.fileStorage.S3.bucket;
+					data.accessKeyId = config.connectors.file.S3.accessKeyId;
+					data.secretAccessKey = config.connectors.file.S3.secretAccessKey;
+					data.region = config.connectors.file.S3.region;
+					data.bucket = config.connectors.file.S3.bucket;
 					data.appName = config.app;
 					data.serviceId = config.serviceId;
 					data.serviceName = config.serviceName;
@@ -302,6 +322,44 @@ router.post('/upload', (req, res) => {
 					return res.status(200).json(file);
 				} catch (error) {
 					logger.error(`[${txnId}] Error while uploading file to S3 :: ${error}`);
+
+					return res.status(500).json({
+						message: `Error uploading file :: ${error.message}`
+					});
+				}
+			} else if (storage === 'GCS') {
+				try {
+					let file = await createFileObject(req.file, encryptionKey);
+
+					logger.trace(`[${txnId}] GCS file object details :: ${JSON.stringify(file)}`);
+
+					let pathFile = JSON.parse(JSON.stringify(file));
+					pathFile.path = filePath;
+					pathFile.fileName = pathFile.blobName;
+
+					let gcsConfigFilePath = path.join(process.cwd(), 'gcs.json');
+
+					let data = {};
+					data.file = pathFile;
+					data.appName = config.app;
+					data.serviceId = config.serviceId;
+					data.serviceName = config.serviceName;
+					data.gcsConfigFilePath = gcsConfigFilePath;
+					data.bucket = config.connectors.file.GCS.bucket;
+					data.projectId =  config.connectors.file.GCS.projectId;
+
+
+					await storageEngine.GCS.uploadFile(data);
+
+					let resp = await mongoose.model('files').create(file);
+
+					file._id = resp._id;
+
+					logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
+
+					return res.status(200).json(file);
+				} catch (error) {
+					logger.error(`[${txnId}] Error while uploading file to GCS :: ${error}`);
 
 					return res.status(500).json({
 						message: `Error uploading file :: ${error.message}`
@@ -353,10 +411,10 @@ async function downloadFileFromAzure(id, txnId, res, encryptionKey) {
 		file.filename = `${config.app}/${config.serviceId}_${config.serviceName}/${id}`;
 		let data = {};
 		data.file = file;
-		data.connectionString = config.fileStorage.AZURE.connectionString;
-		data.containerName = config.fileStorage.AZURE.container;
-		data.sharedKey = config.fileStorage.AZURE.sharedKey;
-		data.timeout = config.fileStorage.AZURE.timeout;
+		data.connectionString = config.connectors.file.AZURE.connectionString;
+		data.containerName = config.connectors.file.AZURE.container;
+		data.sharedKey = config.connectors.file.AZURE.sharedKey;
+		data.timeout = config.connectors.file.AZURE.timeout;
 		data.fileName = id;
 
 		if (encryptionKey) {
@@ -417,10 +475,10 @@ async function downloadFileFromS3(id, txnId, res, encryptionKey) {
 		logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
 
 		let data = {};
-		data.accessKeyId = config.fileStorage.S3.accessKeyId;
-		data.secretAccessKey = config.fileStorage.S3.secretAccessKey;
-		data.region = config.fileStorage.S3.region;
-		data.bucket = config.fileStorage.S3.bucket;
+		data.accessKeyId = config.connectors.file.S3.accessKeyId;
+		data.secretAccessKey = config.connectors.file.S3.secretAccessKey;
+		data.region = config.connectors.file.S3.region;
+		data.bucket = config.connectors.file.S3.bucket;
 		data.fileName = `${config.app}/${config.serviceId}_${config.serviceName}/${id}`;
 
 		let bufferData = await storageEngine.S3.downloadFileBuffer(data);
