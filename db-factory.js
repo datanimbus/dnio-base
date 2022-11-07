@@ -24,7 +24,7 @@ async function setIsTransactionAllowed() {
 
 async function establishingAppCenterDBConnections() {
 	try {
-		if (config.dataStorage.type === 'MongoDB') {
+		if (config.connectors.data.type === 'MONGODB') {
 			logger.info(`Appcenter DB : ${config.mongoAppCenterOptions.dbName}`);
 			await mongoose.connect(config.mongoUrl, config.mongoAppCenterOptions);
 			logger.info(`Connected to appcenter db : ${config.serviceDB}`);
@@ -34,7 +34,7 @@ async function establishingAppCenterDBConnections() {
 			mongoose.connection.on('connected', () => { logger.info(`Connected to ${config.serviceDB} DB`); });
 			mongoose.connection.on('reconnectFailed', () => { logger.error(` *** ${config.serviceDB} FAILED TO RECONNECT *** `); });
 
-			if (config.fileStorage.type === 'GridFS') {
+			if (config.connectors.file.type === 'GRIDFS') {
 				global.gfsBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}` });
 				global.gfsBucketExport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.exportedFile` });
 				global.gfsBucketImport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.fileImport` });
@@ -158,29 +158,32 @@ function initConfigVariables(serviceDoc, reinitLogger) {
 	logger.debug(`File attachment attributes : ${config.fileAttachmentAttributes}`);
 	logger.debug(`ML_FILE_PARSER : ${config.ML_FILE_PARSER}`);
 
-	config.dataStorage = {};
-	config.dataStorage.type = serviceDoc?.dataStorage?.type || 'MongoDB';
-	if (config?.dataStorage?.type === 'MongoDB') {
-		config.dataStorage.Mongo = serviceDoc?.dataStorage?.Mongo;	
+	config.connectors = {
+		data: {},
+		file: {}
+	};
+	
+	config.connectors.data.type = serviceDoc?.connectors?.data?.type || 'MONGODB';
+	if (config?.connectors?.data?.type === 'MONGODB') {
+		config.connectors.data.Mongo = serviceDoc?.connectors?.data?.Mongo || { connectionString: config.mongoUrl };	
 	}
 
+	config.connectors.file.type = serviceDoc?.connectors?.file?.type || 'GRIDFS';
+	if (config?.connectors?.file?.type === 'GRIDFS') {
+		config.connectors.file.Mongo = serviceDoc.connectors?.file?.Mongo;	
 
-	config.fileStorage = {};
-	config.fileStorage.type = serviceDoc?.fileStorage?.type || 'GridFS';
-	if (config?.fileStorage?.type === 'GridFS') {
-		config.fileStorage.Mongo = serviceDoc.fileStorage.Mongo;	
+	} else if (config?.connectors?.file?.type === 'AZBLOB') {
+		config.connectors.file.AZURE = serviceDoc.connectors?.file?.AZURE;
 
-	} else if (config?.fileStorage?.type === 'Azure Blob Storage') {
-		config.fileStorage.AZURE = serviceDoc.fileStorage.AZURE;
+	} else if (config?.connectors?.file?.type === 'S3') {
+		config.connectors.file.S3 = serviceDoc.connectors?.file?.S3;
 
-	} else if (config?.fileStorage?.type === 'Amazon S3') {
-		config.fileStorage.S3 = serviceDoc.fileStorage.S3;
-
-	} else if (config?.fileStorage?.type === 'Google Cloud Storage') {
-		config.fileStorage.GCS = serviceDoc.fileStorage.GCS;
+	} else if (config?.connectors?.file?.type === 'GCS') {
+		config.connectors.file.GCS = serviceDoc.connectors.file.GCS;
 	}
 
-	logger.debug(`STORAGE ENGINE :: ${config.fileStorage.type}`);
+	logger.debug(`DATA STORAGE ENGINE :: ${config.connectors.data.type}`);
+	logger.debug(`FILE STORAGE ENGINE :: ${config.connectors.file.type}`);
 }
 
 async function init() {
@@ -189,29 +192,34 @@ async function init() {
 		let serviceDoc = await fetchServiceDetails(config.serviceId);
 		logger.trace(`Service document :: ${JSON.stringify(serviceDoc)}`);
 
-		let fileStorageConnectorDetails = await fetchConnectorDetails(serviceDoc?.fileStorage?.connectorId);
+		let fileStorageConnectorDetails = await fetchConnectorDetails(serviceDoc?.connectors?.file?._id);
 		logger.trace(`File Storage Connector document :: ${JSON.stringify(fileStorageConnectorDetails)}`);
 
-		let dataStorageConnectorDetails = await fetchConnectorDetails(serviceDoc?.dataStorage?.connectorId);
+		let dataStorageConnectorDetails = await fetchConnectorDetails(serviceDoc?.connectors?.data?._id);
 		logger.trace(`Data Storage Connector document :: ${JSON.stringify(dataStorageConnectorDetails)}`);
 
 
-		if (serviceDoc?.dataStorage?.type === 'MongoDB') {
-			serviceDoc.dataStorage.Mongo = dataStorageConnectorDetails.values;
+		if (dataStorageConnectorDetails?.type === 'MONGODB') {
+			serviceDoc.connectors.data.type = 'MONGODB';
+			serviceDoc.connectors.data.Mongo = dataStorageConnectorDetails.values;
 		}
 
 
-		if (serviceDoc?.fileStorage?.type === 'GridFS') {
-			serviceDoc.fileStorage.Mongo = fileStorageConnectorDetails.values;
+		if (fileStorageConnectorDetails?.type === 'GRIDFS') {
+			serviceDoc.connectors.file.type = 'GRIDFS';
+			serviceDoc.connectors.file.Mongo = fileStorageConnectorDetails.values;
 
-		} else if (serviceDoc?.fileStorage?.type === 'Azure Blob Storage') {
-			serviceDoc.fileStorage.AZURE = fileStorageConnectorDetails.values;
+		} else if (fileStorageConnectorDetails?.type === 'AZBLOB') {
+			serviceDoc.connectors.file.type = 'AZBLOB';
+			serviceDoc.connectors.file.AZURE = fileStorageConnectorDetails.values;
 
-		} else if (serviceDoc?.fileStorage?.type === 'Amazon S3') {
-			serviceDoc.fileStorage.S3 = fileStorageConnectorDetails.values;
+		} else if (fileStorageConnectorDetails?.type === 'S3') {
+			serviceDoc.connectors.file.type = 'S3';
+			serviceDoc.connectors.file.S3 = fileStorageConnectorDetails.values;
 
-		} else if (serviceDoc?.fileStorage?.type === 'Google Cloud Storage') {
-			serviceDoc.fileStorage.GCS = fileStorageConnectorDetails.values;
+		} else if (fileStorageConnectorDetails?.type === 'GCS') {
+			serviceDoc.connectors.file.type = 'GCS';
+			serviceDoc.connectors.file.GCS = fileStorageConnectorDetails.values;
 		}
 
 

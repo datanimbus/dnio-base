@@ -86,7 +86,7 @@ startCronJob();
 
 async function clearUnusedFiles() {
 	const batch = 1000;
-	const storage = config.fileStorage.type;
+	const storage = config.connectors.file.type;
 	logger.debug('Cron triggered to clear unused file attachment');
 	logger.debug(`Storage Enigne - ${storage}`);
 	const datefilter = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
@@ -129,8 +129,8 @@ async function clearUnusedFiles() {
 					logger.trace(`Deleting file - ${_f}`);
 					let data = {};
 					data.filename = `${config.app}/${config.serviceId}_${config.serviceName}/${_f}`;
-					data.connectionString = config.fileStorage.AZURE.connectionString;
-					data.containerName = config.fileStorage.AZURE.container;
+					data.connectionString = config.connectors.file.AZURE.connectionString;
+					data.containerName = config.connectors.file.AZURE.container;
 
 					return new Promise((resolve, reject) => {
 						try {
@@ -149,10 +149,10 @@ async function clearUnusedFiles() {
 					logger.trace(`Deleting file from S3 - ${_f}`);
 					let data = {};
 					data.filename = `${config.app}/${config.serviceId}_${config.serviceName}/${_f}`;
-					data.accessKeyId = config.fileStorage.S3.accessKeyId;
-					data.secretAccessKey = config.fileStorage.S3.secretAccessKey;
-					data.region = config.fileStorage.S3.region;
-					data.bucket = config.fileStorage.S3.bucket;
+					data.accessKeyId = config.connectors.file.S3.accessKeyId;
+					data.secretAccessKey = config.connectors.file.S3.secretAccessKey;
+					data.region = config.connectors.file.S3.region;
+					data.bucket = config.connectors.file.S3.bucket;
 
 					return new Promise((resolve, reject) => {
 						try {

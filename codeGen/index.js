@@ -79,8 +79,8 @@ module.exports.init = (serviceDocument) => {
 		logger.debug('Generated special-fields.utils.js');
 		
 		fs.writeFileSync('./.env', dotEnvFile(serviceDocument), 'utf-8');
-		if (serviceDocument.fileStorage.type === 'Google Cloud Storage') {
-			fs.writeFileSync('./gcs.json', JSON.stringify(gcsFile(serviceDocument.fileStorage.GCS)), 'utf-8');
+		if (serviceDocument.connectors?.file?.type === 'GCS') {
+			fs.writeFileSync('./gcs.json', JSON.stringify(gcsFile(serviceDocument.connectors.file.GCS)), 'utf-8');
 		}
 		logger.debug('Generated .env');
 

@@ -32,7 +32,7 @@ router.get('/:id/view', (req, res) => {
 			// 	});
 			// }
 
-			if (storage === 'GridFS') {
+			if (storage === 'GRIDFS') {
 				let file;
 				try {
 					file = (await global.gfsBucket.find({ filename: id }).toArray())[0];
@@ -50,9 +50,9 @@ router.get('/:id/view', (req, res) => {
 					return res.end();
 				});
 				readstream.pipe(res);
-			} else if (storage === 'Azure Blob Storage') {
+			} else if (storage === 'AZBLOB') {
 				return await downloadFileFromAzure(id, txnId, res);
-			} else if (storage === 'Amazon S3') {
+			} else if (storage === 'S3') {
 				return await downloadFileFromS3(id, txnId, res);
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
@@ -97,7 +97,7 @@ router.get('/download/:id', (req, res) => {
 				fs.mkdirSync(tmpDirPath);
 			}
 
-			if (storage === 'GridFS') {
+			if (storage === 'GRIDFS') {
 				let file;
 				try {
 					file = (await global.gfsBucket.find({ filename: id }).toArray())[0];
@@ -165,9 +165,9 @@ router.get('/download/:id', (req, res) => {
 
 					readstream.pipe(res);
 				}
-			} else if (storage === 'Azure Blob Storage') {
+			} else if (storage === 'AZBLOB') {
 				return await downloadFileFromAzure(id, txnId, res, encryptionKey);
-			} else if (storage === 'Amazon S3') {
+			} else if (storage === 'S3') {
 				return await downloadFileFromS3(id, txnId, res, encryptionKey);
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
@@ -210,14 +210,14 @@ router.post('/upload', (req, res) => {
 	async function execute() {
 		let filePath;
 		try {
-			const storage = config.fileStorage.type;
+			const storage = config.connectors.file.type;
 			let txnId = req.get('txnid');
 			const sampleFile = req.file;
 			const filename = sampleFile.originalname;
 			const encryptionKey = req.query.encryptionKey;
 
 			logger.debug(`[${txnId}] File upload request received - ${filename}`);
-			logger.debug(`[${txnId}] Storage Enigne - ${config.fileStorage.storage}`);
+			logger.debug(`[${txnId}] Storage Enigne - ${storage}`);
 			logger.debug(`[${txnId}] Encryption Key - ${encryptionKey}`);
 
 			if (!specialFields.hasPermissionForPOST(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
@@ -238,7 +238,7 @@ router.post('/upload', (req, res) => {
 				}
 			}
 
-			if (storage === 'GridFS') {
+			if (storage === 'GRIDFS') {
 				fs.createReadStream(filePath).
 					pipe(global.gfsBucket.openUploadStream(crypto.createHash('md5').update(uuid() + global.serverStartTime).digest('hex'), {
 						contentType: sampleFile.mimetype,
@@ -258,7 +258,7 @@ router.post('/upload', (req, res) => {
 						return res.status(200).json(file);
 					});
 
-			} else if (storage === 'Azure Blob Storage') {
+			} else if (storage === 'AZBLOB') {
 				try {
 					let file = await createFileObject(req.file, encryptionKey);
 
@@ -270,8 +270,8 @@ router.post('/upload', (req, res) => {
 
 					let data = {};
 					data.file = pathFile;
-					data.connectionString = config.fileStorage.AZURE.connectionString;
-					data.containerName = config.fileStorage.AZURE.container;
+					data.connectionString = config.connectors.file.AZURE.connectionString;
+					data.containerName = config.connectors.file.AZURE.container;
 					data.appName = config.app;
 					data.serviceName = config.serviceName;
 
@@ -291,7 +291,7 @@ router.post('/upload', (req, res) => {
 						message: `Error uploading file :: ${error.message}`
 					});
 				}
-			} else if (storage === 'Amazon S3') {
+			} else if (storage === 'S3') {
 				try {
 					let file = await createFileObject(req.file, encryptionKey);
 
@@ -303,10 +303,10 @@ router.post('/upload', (req, res) => {
 
 					let data = {};
 					data.file = pathFile;
-					data.accessKeyId = config.fileStorage.S3.accessKeyId;
-					data.secretAccessKey = config.fileStorage.S3.secretAccessKey;
-					data.region = config.fileStorage.S3.region;
-					data.bucket = config.fileStorage.S3.bucket;
+					data.accessKeyId = config.connectors.file.S3.accessKeyId;
+					data.secretAccessKey = config.connectors.file.S3.secretAccessKey;
+					data.region = config.connectors.file.S3.region;
+					data.bucket = config.connectors.file.S3.bucket;
 					data.appName = config.app;
 					data.serviceId = config.serviceId;
 					data.serviceName = config.serviceName;
@@ -327,7 +327,7 @@ router.post('/upload', (req, res) => {
 						message: `Error uploading file :: ${error.message}`
 					});
 				}
-			} else if (storage === 'Google Cloud Storage') {
+			} else if (storage === 'GCS') {
 				try {
 					let file = await createFileObject(req.file, encryptionKey);
 
@@ -345,8 +345,8 @@ router.post('/upload', (req, res) => {
 					data.serviceId = config.serviceId;
 					data.serviceName = config.serviceName;
 					data.gcsConfigFilePath = gcsConfigFilePath;
-					data.bucket = config.fileStorage.GCS.bucket;
-					data.projectId =  config.fileStorage.GCS.projectId;
+					data.bucket = config.connectors.file.GCS.bucket;
+					data.projectId =  config.connectors.file.GCS.projectId;
 
 
 					await storageEngine.GCS.uploadFile(data);
@@ -411,10 +411,10 @@ async function downloadFileFromAzure(id, txnId, res, encryptionKey) {
 		file.filename = `${config.app}/${config.serviceId}_${config.serviceName}/${id}`;
 		let data = {};
 		data.file = file;
-		data.connectionString = config.fileStorage.AZURE.connectionString;
-		data.containerName = config.fileStorage.AZURE.container;
-		data.sharedKey = config.fileStorage.AZURE.sharedKey;
-		data.timeout = config.fileStorage.AZURE.timeout;
+		data.connectionString = config.connectors.file.AZURE.connectionString;
+		data.containerName = config.connectors.file.AZURE.container;
+		data.sharedKey = config.connectors.file.AZURE.sharedKey;
+		data.timeout = config.connectors.file.AZURE.timeout;
 		data.fileName = id;
 
 		if (encryptionKey) {
@@ -475,10 +475,10 @@ async function downloadFileFromS3(id, txnId, res, encryptionKey) {
 		logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
 
 		let data = {};
-		data.accessKeyId = config.fileStorage.S3.accessKeyId;
-		data.secretAccessKey = config.fileStorage.S3.secretAccessKey;
-		data.region = config.fileStorage.S3.region;
-		data.bucket = config.fileStorage.S3.bucket;
+		data.accessKeyId = config.connectors.file.S3.accessKeyId;
+		data.secretAccessKey = config.connectors.file.S3.secretAccessKey;
+		data.region = config.connectors.file.S3.region;
+		data.bucket = config.connectors.file.S3.bucket;
 		data.fileName = `${config.app}/${config.serviceId}_${config.serviceName}/${id}`;
 
 		let bufferData = await storageEngine.S3.downloadFileBuffer(data);
