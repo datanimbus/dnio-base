@@ -329,7 +329,7 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 			_.mergeWith(dbDoc, data, mergeCustomizer);
 			return (await new Promise((resolve) => {
 				dbDoc.save().then(resolve).catch(resolve);
-			})).toObject();
+			}));
 		}
 	}
 
