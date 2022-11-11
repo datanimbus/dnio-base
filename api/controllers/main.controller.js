@@ -300,9 +300,10 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 				message: 'Workflow has been created',
 			};
 		} else {
-			return (await new Promise((resolve) => {
-				doc.save().then(resolve).catch(resolve);
-			})).toObject();
+			return await doc.save();
+			// return (await new Promise((resolve) => {
+			// 	doc.save().then(resolve).catch(resolve);
+			// })).toObject();
 		}
 	}
 
@@ -326,8 +327,8 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 				message: 'Workflow has been created',
 			};
 		} else {
-			_.mergeWith(dbDoc, data, mergeCustomizer);
-			return dbDoc.save();
+			dbDoc = _.mergeWith(dbDoc, data, mergeCustomizer);
+			return await dbDoc.save();
 			// return (await new Promise((resolve) => {
 			// 	dbDoc.save().then(resolve).catch(resolve);
 			// }));
