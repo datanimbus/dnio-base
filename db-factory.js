@@ -2,7 +2,7 @@ const fs = require('fs');
 const log4js = require('log4js');
 const mongoose = require('mongoose');
 
-const config = require('./config');
+let config = require('./config');
 
 let logger = global.logger;
 
@@ -114,8 +114,9 @@ function parseSchemaToFindFileAttachmentAttributes(path, definition) {
 	return attributes;
 }
 
-function initConfigVariables(serviceDoc, reinitLogger) {
+async function initConfigVariables(serviceDoc, reinitLogger) {
 	config.app = serviceDoc.app;
+	config.appNamespace = (config.namespace + '-' + serviceDoc.app).toLowerCase();
 	config.serviceName = serviceDoc.name;
 	if (config.isK8sEnv()) {
 		config.servicePort = 80;
@@ -162,15 +163,15 @@ function initConfigVariables(serviceDoc, reinitLogger) {
 		data: {},
 		file: {}
 	};
-	
+
 	config.connectors.data.type = serviceDoc?.connectors?.data?.type || 'MONGODB';
 	if (config?.connectors?.data?.type === 'MONGODB') {
-		config.connectors.data.Mongo = serviceDoc?.connectors?.data?.Mongo || { connectionString: config.mongoUrl };	
+		config.connectors.data.Mongo = serviceDoc?.connectors?.data?.Mongo || { connectionString: config.mongoUrl };
 	}
 
 	config.connectors.file.type = serviceDoc?.connectors?.file?.type || 'GRIDFS';
 	if (config?.connectors?.file?.type === 'GRIDFS') {
-		config.connectors.file.Mongo = serviceDoc.connectors?.file?.Mongo;	
+		config.connectors.file.Mongo = serviceDoc.connectors?.file?.Mongo;
 
 	} else if (config?.connectors?.file?.type === 'AZBLOB') {
 		config.connectors.file.AZURE = serviceDoc.connectors?.file?.AZURE;
@@ -224,7 +225,7 @@ async function init() {
 
 
 		// INIT CONFIG based on the service doc
-		initConfigVariables(serviceDoc, true);
+		await initConfigVariables(serviceDoc, true);
 		// FETCH GLOABL DEF
 		let globalDef = await fetchGlobalDefinitions();
 		fs.writeFileSync('./globalDef.json', JSON.stringify(globalDef), 'utf-8');
@@ -265,5 +266,7 @@ async function initForWorker(additionalLoggerIdentifier) {
 	}
 }
 
-module.exports.init = init;
-module.exports.initForWorker = initForWorker;
+module.exports = {
+	init,
+	initForWorker
+};

@@ -11,32 +11,37 @@ const mongoose = require('mongoose');
 
 // mongoose.set('useFindAndModify', false);
 
-const config = require('./config');
-
-let LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceId}]` : `[${config.serviceId}]`;
-global.loggerName = LOGGER_NAME;
-const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
-global.LOG_LEVEL = LOG_LEVEL;
-
-log4js.configure({
-	appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
-	categories: { default: { appenders: ['out'], level: LOG_LEVEL } }
-});
-
-const logger = log4js.getLogger(LOGGER_NAME);
-global.logger = logger;
-logger.info(`Service ID : ${config.serviceId}`);
-logger.info(`Base image version : ${process.env.IMAGE_TAG}`);
-
-let timeOut = process.env.API_REQUEST_TIMEOUT || 120;
-logger.debug(`API_REQUEST_TIMEOUT : ${timeOut}`);
+const initEnv = require('./init.env');
 
 const app = express();
 
 (async () => {
+
+	let LOGGER_NAME = initEnv.LOGGER_NAME;
+	global.loggerName = LOGGER_NAME;
+	const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
+	global.LOG_LEVEL = LOG_LEVEL;
+
+	log4js.configure({
+		appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
+		categories: { default: { appenders: ['out'], level: LOG_LEVEL } }
+	});
+
+	let logger = log4js.getLogger(LOGGER_NAME);
+	global.logger = logger;
+
+	await initEnv.init();
+
+	logger.info(`Service ID : ${initEnv.serviceId}`);
+	logger.info(`Base image version : ${process.env.IMAGE_TAG}`);
+
+	let timeOut = process.env.API_REQUEST_TIMEOUT || 120;
+	logger.debug(`API_REQUEST_TIMEOUT : ${timeOut}`);
+
 	await require('./db-factory').init();
+
 	// REASSING LOGGER AS THE LOGGER NAME WAS UPDATED INSIDE DB-FACTORY
-	const logger = global.logger;
+	logger = global.logger;
 	// Get the updated configs
 	const config = require('./config');
 	const PORT = config.servicePort;

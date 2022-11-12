@@ -19,6 +19,8 @@ COPY app.js /tmp/app
 
 COPY config.js /tmp/app
 
+COPY init.env.js /tmp/app
+
 COPY db-factory.js /tmp/app
 
 COPY http-client.js /tmp/app
