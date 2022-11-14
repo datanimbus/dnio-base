@@ -122,9 +122,9 @@ async function clearUnusedFiles() {
 			logger.info('Files to be deleted - ', JSON.stringify({ filesToBeDeleted }));
 
 			let promise;
-			if (storage === 'GridFS') {
+			if (storage === 'GRIDFS') {
 				promise = filesToBeDeleted.map(_f => deleteFileFromDB(_f));
-			} else if (storage === 'Azure Blob Storage') {
+			} else if (storage === 'AZBLOB') {
 				promise = filesToBeDeleted.map(_f => {
 					logger.trace(`Deleting file - ${_f}`);
 					let data = {};
@@ -144,7 +144,7 @@ async function clearUnusedFiles() {
 						})
 						.catch(err => logger.error(`Error deleting file ${_f} from Azure Blob ${err}`));
 				});
-			} else if (storage === 'Amazon S3') {
+			} else if (storage === 'S3') {
 				promise = filesToBeDeleted.map(_f => {
 					logger.trace(`Deleting file from S3 - ${_f}`);
 					let data = {};
