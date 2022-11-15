@@ -37,6 +37,8 @@ COPY views /tmp/app/views
 
 COPY codeGen /tmp/app/codeGen
 
+RUN mkdir /tmp/app/output
+
 ENV IMAGE_TAG=__image_tag__
 
 ENV NODE_ENV=production

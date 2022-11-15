@@ -30,10 +30,11 @@ const app = express();
 	let logger = log4js.getLogger(LOGGER_NAME);
 	global.logger = logger;
 
-	await initEnv.init();
-
 	logger.info(`Service ID : ${initEnv.serviceId}`);
 	logger.info(`Base image version : ${process.env.IMAGE_TAG}`);
+
+	await initEnv.init();
+	initEnv.loadEnvVars();
 
 	let timeOut = process.env.API_REQUEST_TIMEOUT || 120;
 	logger.debug(`API_REQUEST_TIMEOUT : ${timeOut}`);

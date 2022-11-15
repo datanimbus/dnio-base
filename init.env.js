@@ -1,3 +1,4 @@
+const fs = require('fs');
 const httpClient = require('./http-client');
 
 const namespace = process.env.DATA_STACK_NAMESPACE || 'appveen';
@@ -29,9 +30,13 @@ e.init = async () => {
 	let envFromSM = await httpClient.httpRequest(options);
 	envFromSM = envFromSM.body;
 
-	Object.keys(envFromSM).forEach(env => {
-		process.env[env] = process.env[env] ? process.env[env] : envFromSM[env];
-		logger.trace(`INIT :: ${env} :: ${process.env[env]}`);
+	fs.writeFileSync('envVars.json', JSON.stringify(envFromSM));
+};
+
+e.loadEnvVars = () => {
+	let envFromFile = require('./envVars.json');
+	Object.keys(envFromFile).forEach(env => {
+		process.env[env] = process.env[env] ? process.env[env] : envFromFile[env];
 	});
 };
 

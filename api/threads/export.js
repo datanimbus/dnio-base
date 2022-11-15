@@ -20,6 +20,8 @@ const config = require('../../config');
 
 let additionalLoggerIdentifier = 'Worker/Export';
 
+config.appNamespace = process.env.DATA_STACK_APP_NS;
+
 let LOGGER_NAME = config.isK8sEnv() ? `[${config.appNamespace}] [${config.hostname}] [${config.serviceId}] [${additionalLoggerIdentifier}]` : `[${config.serviceId}][${additionalLoggerIdentifier}]`;
 global.loggerName = LOGGER_NAME;
 

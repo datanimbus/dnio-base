@@ -18,7 +18,7 @@ async function setIsTransactionAllowed() {
 		}
 		logger.info(`Appcenter db supports transactions? ${global.isTransactionAllowed}`);
 	} catch (e) {
-		logger.error('Error in setIsTransactionAllowed :: ', e);
+		logger.error('Error in setIsTransactionAllowed :: ', e.message);
 	}
 }
 
