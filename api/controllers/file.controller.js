@@ -84,7 +84,7 @@ router.get('/download/:id', (req, res) => {
 		let tmpDirPath, id;
 		try {
 			id = req.params.id;
-			const storage = config.fileStorage.type;
+			const storage = config.connectors.file.type;
 			const encryptionKey = req.query.encryptionKey;
 			let txnId = req.get('txnid');
 
