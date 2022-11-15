@@ -27,13 +27,11 @@ e.init = async () => {
 		json: true
 	};
 	let envFromSM = await httpClient.httpRequest(options);
-	logger.info(envFromSM.body);
 	envFromSM = envFromSM.body;
 
 	Object.keys(envFromSM).forEach(env => {
-		logger.info(`INIT :: ${env} :: ${process.env[env]}`);
 		process.env[env] = process.env[env] ? process.env[env] : envFromSM[env];
-		logger.info(`INIT :: ${env} :: ${process.env[env]}`);
+		logger.trace(`INIT :: ${env} :: ${process.env[env]}`);
 	});
 };
 
