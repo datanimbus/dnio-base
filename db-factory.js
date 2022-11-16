@@ -203,6 +203,8 @@ async function init() {
 		if (dataStorageConnectorDetails?.type === 'MONGODB') {
 			serviceDoc.connectors.data.type = 'MONGODB';
 			serviceDoc.connectors.data.Mongo = dataStorageConnectorDetails.values;
+		} else {
+			serviceDoc.connectors.data.values = dataStorageConnectorDetails.values;
 		}
 
 

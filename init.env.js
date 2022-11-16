@@ -10,27 +10,32 @@ const isK8sEnv = function () {
 };
 
 let baseUrlSM = 'http://localhost:10003';
-if (isK8sEnv) baseUrlSM = `http://sm.${namespace}`;
+if (isK8sEnv()) baseUrlSM = `http://sm.${namespace}`;
 
 const e = { namespace, appNamespace, serviceId };
 
 e.LOGGER_NAME = isK8sEnv() ? `[${process.env.HOSTNAME}] [${serviceId}]` : `[${serviceId}]`;
 
 e.init = async () => {
-	let logger = global.logger;
-	logger.info('INIT :: Fetch env variables');
-	const options = {
-		url: `${baseUrlSM}/sm/internal/ds/env`,
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		json: true
-	};
-	let envFromSM = await httpClient.httpRequest(options);
-	envFromSM = envFromSM.body;
+	try {
+		let logger = global.logger;
+		logger.info('INIT :: Fetch env variables');
+		const options = {
+			url: `${baseUrlSM}/sm/internal/ds/env`,
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			json: true
+		};
+		let envFromSM = await httpClient.httpRequest(options);
+		envFromSM = envFromSM.body;
 
-	fs.writeFileSync('envVars.json', JSON.stringify(envFromSM));
+		fs.writeFileSync('envVars.json', JSON.stringify(envFromSM));
+	} catch (err) {
+		console.log(err);
+		process.exit(0);
+	}
 };
 
 e.loadEnvVars = () => {
