@@ -299,7 +299,7 @@ router.post('/upload', (req, res) => {
 
 					let pathFile = JSON.parse(JSON.stringify(file));
 					pathFile.path = filePath;
-					pathFile.filename = pathFile.blobName;
+					pathFile.fileName = pathFile.blobName;
 
 					let data = {};
 					data.file = pathFile;
