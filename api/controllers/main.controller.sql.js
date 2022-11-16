@@ -16,9 +16,10 @@ let table;
 
 (async () => {
 	crud = new mssql({ connectionString: serviceData.connectors.data.values.connectionString });
-	crud.connect();
 	const jsonSchema = schemaUtils.convertToJSONSchema(serviceData.definition);
-	table = crud.table(serviceData.connectors.data.options.tableName, jsonSchema);
+	await crud.connect();
+	// table = crud.table((serviceData.connectors.data.options.tableName || _.snakeCase(serviceData.name)), jsonSchema);
+	table = crud.table('drug_repo', jsonSchema);
 })();
 
 
@@ -71,6 +72,7 @@ router.get('/utils/count', async (req, res) => {
 				filter = { $and: [filter, dynamicFilter] };
 			}
 		}
+		await crud.connect();
 		const count = await table.count(filter);
 		res.status(200).json(count);
 	} catch (e) {
@@ -97,7 +99,7 @@ router.get('/', async (req, res) => {
 			const count = await count(filter);
 			return res.status(200).json(count);
 		}
-
+		await crud.connect();
 		const docs = await table.list(req.query);
 		res.status(200).json(docs);
 	} catch (e) {
@@ -117,7 +119,7 @@ router.get('/:id', async (req, res) => {
 				message: 'You don\'t have permission to fetch a record',
 			});
 		}
-
+		await crud.connect();
 		const doc = await table.show(id, req.query);
 		res.status(200).json(doc);
 	} catch (e) {
@@ -137,6 +139,7 @@ router.post('/', async (req, res) => {
 	}
 
 	try {
+		await crud.connect();
 		const status = await table.create(payload);
 		res.status(200).json(status);
 	} catch (e) {
@@ -157,6 +160,7 @@ router.put('/:id', async (req, res) => {
 	}
 
 	try {
+		await crud.connect();
 		const status = await table.update(id, payload);
 		logger.debug(`[${txnId}] Update status - ${status}`);
 		return res.status(200).json(status);
@@ -178,6 +182,7 @@ router.delete('/:id', async (req, res) => {
 	}
 
 	try {
+		await crud.connect();
 		const status = await table.delete(id);
 		logger.trace(`[${txnId}] Deleted documnet ${id} :: ${status}`);
 		res.status(200).json({

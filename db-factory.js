@@ -200,11 +200,13 @@ async function init() {
 		logger.trace(`Data Storage Connector document :: ${JSON.stringify(dataStorageConnectorDetails)}`);
 
 
+		serviceDoc.connectors.data.type = dataStorageConnectorDetails.type;
+		serviceDoc.connectors.data.values = dataStorageConnectorDetails.values;
+		serviceDoc.connectors.data.options = dataStorageConnectorDetails.options;
+
 		if (dataStorageConnectorDetails?.type === 'MONGODB') {
 			serviceDoc.connectors.data.type = 'MONGODB';
 			serviceDoc.connectors.data.Mongo = dataStorageConnectorDetails.values;
-		} else {
-			serviceDoc.connectors.data.values = dataStorageConnectorDetails.values;
 		}
 
 
