@@ -237,10 +237,14 @@ async function init() {
 		// GENERATE THE CODE
 		require('./codeGen').init(serviceDoc);
 		// CONNECT TO APPCENTER DB
-		await establishingAppCenterDBConnections();
-		// INITIALIZE MODELS
-		require('./api/models').init();
-		logger.debug('Initialised mongo models.');
+		if (serviceDoc.connectors.data.type === 'MSSQL') {
+			logger.debug('Skipped Mongoose Model Init');
+		} else {
+			await establishingAppCenterDBConnections();
+			// INITIALIZE MODELS
+			require('./api/models').init();
+			logger.debug('Initialised mongo models.');
+		}
 	} catch (e) {
 		logger.error('Error in DB init!');
 		logger.error(e);
