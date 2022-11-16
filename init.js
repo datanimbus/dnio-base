@@ -220,7 +220,7 @@ async function informSM() {
 		if (res.statusCode === 200) {
 			let maintenanceInfo = null;
 			const body = res.body;
-			logger.trace('SM status change API called successfully');
+			logger.info('SM status change API called successfully');
 			logger.trace('SM status change api response :: ', JSON.stringify(body));
 			if (body.status == 'Maintenance') {
 				logger.info('Service going into maintenance mode!');
