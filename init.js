@@ -148,7 +148,7 @@ async function clearUnusedFiles() {
 				promise = filesToBeDeleted.map(_f => {
 					logger.trace(`Deleting file from S3 - ${_f}`);
 					let data = {};
-					data.filename = `${config.app}/${config.serviceId}_${config.serviceName}/${_f}`;
+					data.fileName = `${config.app}/${config.serviceId}_${config.serviceName}/${_f}`;
 					data.accessKeyId = config.connectors.file.S3.accessKeyId;
 					data.secretAccessKey = config.connectors.file.S3.secretAccessKey;
 					data.region = config.connectors.file.S3.region;
