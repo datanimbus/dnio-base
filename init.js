@@ -80,7 +80,7 @@ function getFileNames(doc, field) {
 }
 
 function startCronJob() {
-	cron.schedule('15 2 * * *', clearUnusedFiles);
+	cron.schedule('0 */1 * * *', clearUnusedFiles);
 }
 startCronJob();
 
