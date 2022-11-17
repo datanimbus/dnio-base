@@ -18,8 +18,9 @@ let table;
 	crud = new mssql({ connectionString: serviceData.connectors.data.values.connectionString });
 	const jsonSchema = schemaUtils.convertToJSONSchema(serviceData.definition);
 	await crud.connect();
-	// table = crud.table((serviceData.connectors.data.options.tableName || _.snakeCase(serviceData.name)), jsonSchema);
-	table = crud.table('drug_repo', jsonSchema);
+	logger.info(`Table Name :: ${(serviceData.connectors.data.options.tableName || _.snakeCase(serviceData.name))}`);
+	table = crud.table((serviceData.connectors.data.options.tableName || _.snakeCase(serviceData.name)), jsonSchema);
+	// table = crud.table('drug_repo', jsonSchema);
 })();
 
 
