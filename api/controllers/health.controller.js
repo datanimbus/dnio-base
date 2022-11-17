@@ -40,6 +40,10 @@ router.get('/ready', async (req, res) => {
 		if (mongoose.connection.readyState != 1) {
 			return res.status(400).end();
 		}
+		logger.trace('Init State:', global.runInit);
+		if (!global.runInit) {
+			require('../../init')();
+		}
 		return res.status(200).json();
 	} catch (err) {
 		logger.error(err);
