@@ -80,7 +80,7 @@ function getFileNames(doc, field) {
 }
 
 function startCronJob() {
-	cron.schedule('0 */1 * * *', clearUnusedFiles);
+	cron.schedule('15 2 * * *', clearUnusedFiles);
 }
 startCronJob();
 
@@ -89,7 +89,7 @@ async function clearUnusedFiles() {
 	const storage = config.connectors.file.type;
 	logger.debug('Cron triggered to clear unused file attachment');
 	logger.debug(`Storage Enigne - ${storage}`);
-	const datefilter = new Date(new Date().getTime() - 60 * 60 * 1000);
+	const datefilter = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
 	const count = await mongoose.connection.db.collection(`${config.serviceCollection}.files`).count({ 'uploadDate': { '$lte': datefilter } }, { filename: 1 });
 	let arr = [];
 	let totalBatchCount = count / batch;
