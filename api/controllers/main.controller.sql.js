@@ -56,6 +56,79 @@ router.get('/utils/securedFields', async (req, res) => {
 	}
 });
 
+router.put('/utils/bulkUpdate', (req, res) => {
+	async function execute() {
+		const id = req.query.id;
+		if (!id) {
+			return res.status(400).json({
+				message: 'Invalid IDs',
+			});
+		}
+		if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
+			return res.status(403).json({
+				message: 'You don\'t have permission to update records',
+			});
+		}
+
+		let txnId = req.get(global.txnIdHeader);
+
+		try {
+			await crud.connect();
+			const status = await table.update(id, req.body);
+			logger.debug(`[${txnId}] Update status - ${JSON.stringify(status)}`);
+
+			const docs = await table.list();
+			return res.status(200).json(docs);
+		} catch (e) {
+			handleError(e, txnId);
+		}
+	}
+	execute().catch((err) => {
+		logger.error(err);
+		res.status(400).json({
+			message: err.message,
+		});
+	});
+});
+
+router.delete('/utils/bulkDelete', async (req, res) => {
+	let txnId = req.get(global.txnIdHeader);
+	const ids = req.query.ids || req.body.ids;
+	logger.debug(`[${txnId}] Bulk Delete request received for record ${ids}`);
+
+	const userFilter = req.query.filter || req.body.filter;
+	if ((!ids || ids.length == 0) && (!userFilter || _.isEmpty(userFilter))) {
+		return res.status(400).json({
+			message: 'Invalid Request, Not sure what to delete',
+		});
+	}
+
+	if (!specialFields.hasPermissionForDELETE(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+		logger.error(`[${txnId}] User does not have permission to update/delete records ${(req.user && req.user.appPermissions ? req.user.appPermissions : [])}`);
+		return res.status(403).json({
+			message: 'You don\'t have permission to update records',
+		});
+	}
+
+	try {
+		await crud.connect();
+		if (userFilter) {
+			const docs = await table.list({ filter: userFilter, select: '_id' });
+
+			docs.forEach(doc => ids.push(doc._id));
+		}
+		ids.push('Test');
+
+		const status = await table.deleteMany(ids.join(','));
+		logger.trace(`[${txnId}] Deleted documnets ${ids} :: ${status}`);
+		res.status(200).json({
+			message: `${status} Documents Deleted`,
+		});
+	} catch (e) {
+		handleError(res, e, txnId);
+	}
+});
+
 /**
  * @deprecated
  */
@@ -194,43 +267,7 @@ router.delete('/:id', async (req, res) => {
 	}
 });
 
-router.delete('/utils/bulkDelete', async (req, res) => {
-	let txnId = req.get(global.txnIdHeader);
-	const ids = req.query.ids || req.body.ids;
-	logger.debug(`[${txnId}] Bulk Delete request received for record ${ids}`);
 
-	const userFilter = req.query.filter || req.body.filter;
-	if ((!ids || ids.length == 0) && (!userFilter || _.isEmpty(userFilter))) {
-		return res.status(400).json({
-			message: 'Invalid Request, Not sure what to delete',
-		});
-	}
-
-	if (!specialFields.hasPermissionForDELETE(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
-		logger.error(`[${txnId}] User does not have permission to update/delete records ${(req.user && req.user.appPermissions ? req.user.appPermissions : [])}`);
-		return res.status(403).json({
-			message: 'You don\'t have permission to update records',
-		});
-	}
-
-	try {
-		await crud.connect();
-		if (userFilter) {
-			const docs = await table.list({filter: userFilter, select: '_id'});
-
-			docs.forEach(doc => ids.push(doc._id));
-		}
-		ids.push('Test');
-		
-		const status = await table.deleteMany(ids.join(','));
-		logger.trace(`[${txnId}] Deleted documnets ${ids} :: ${status}`);
-		res.status(200).json({
-			message: `${status} Documents Deleted`,
-		});
-	} catch (e) {
-		handleError(res, e, txnId);
-	}
-});
 
 // WHAT is THIS?
 router.post('/hook', async (req, res) => {
