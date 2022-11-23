@@ -243,7 +243,12 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 				}
 				return null;
 			}).filter(e => e);
-			const tempFilter = Object.assign.apply({},keyValPairs);
+			let tempFilter;
+			if(_.isEmpty(keyValPairs)) {
+				tempFilter = {};
+			} else {
+				tempFilter = Object.assign.apply({},keyValPairs);
+			}
 			if (_.isEmpty(tempFilter)) {
 				if (!insert) {
 					return {
