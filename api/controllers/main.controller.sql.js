@@ -2,7 +2,7 @@ const router = require('express').Router();
 const log4js = require('log4js');
 const swaggerParser = require('swagger-parser');
 const _ = require('lodash');
-const { mssql } = require('@appveen/rest-crud');
+const restCrud = require('@appveen/rest-crud');
 
 const specialFields = require('../utils/special-fields.utils');
 const hooksUtils = require('../utils/hooks.utils');
@@ -15,12 +15,13 @@ let crud;
 let table;
 
 (async () => {
-	crud = new mssql({ connectionString: serviceData.connectors.data.values.connectionString });
+	let sql = restCrud[serviceData.connectors.data.type.toLowerCase()];
+	crud = await new sql(serviceData.connectors.data.values);
 	const jsonSchema = schemaUtils.convertToJSONSchema(serviceData.definition);
 	await crud.connect();
 	logger.info(`Table Name :: ${(serviceData.connectors.data.options.tableName || _.snakeCase(serviceData.name))}`);
 	table = crud.table((serviceData.connectors.data.options.tableName || _.snakeCase(serviceData.name)), jsonSchema);
-	// table = crud.table('drug_repo', jsonSchema);
+	table.createTable();
 })();
 
 
