@@ -24,8 +24,8 @@ DATA_STACK_APP="${config.app}"
 DATA_STACK_ALLOWED_FILE_TYPE="${config.allowedFileTypes}"
 DATA_STORAGE_ENGINE="${config?.connectors?.data?.type || "MONGODB"}"
 ${ config?.connectors?.data?.type === 'MONGODB' ?
-`MONGO_APPCENTER_URL="${config.connectors?.data?.Mongo.connectionString}"` : 
-`MONGO_APPCENTER_URL="${process.env.MONGO_APPCENTER_URL}"`
+`MONGO_APPCENTER_URL="${config.connectors?.data?.values.connectionString}"` : 
+`APPCENTER_URL="${config.connectors?.data?.values}"`
 }
 FILE_STORAGE_ENGINE="${config?.connectors?.file?.type || "GRIDFS"}"
 ${ config.fileStorage?.type === 'Azure Blob Storage' ?

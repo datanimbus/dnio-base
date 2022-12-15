@@ -13,7 +13,7 @@
     "dependencies": {
         "@appveen/data.stack-utils": "^1.0.21",
         "@appveen/ds-auth-cache": "^1.0.6",
-        "@appveen/rest-crud": "^0.0.3",
+        "@appveen/rest-crud": "https://github.com/appveen/rest-crud.git",
         "@appveen/utils": "^2.1.12",
         "archiver": "^5.2.0",
         "async": "^3.2.0",
