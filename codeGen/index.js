@@ -3,7 +3,7 @@ const fs = require('fs');
 const { generateDefinition } = require('./createDefinition');
 const { generateYaml } = require('./generateYaml');
 const { generateYamlSchemaFree } = require('./generateYamlSchemaFree');
-const { dotEnvFile } = require('./tempfiles');
+const { dotEnvFile, gcsFile } = require('./tempfiles');
 const specialFieldsGenrator = require('./special-fields-generator');
 const globalDefHelper = require('./globalDefinitionHelper');
 
@@ -13,7 +13,37 @@ function generateServiceDefinition(serviceDocument) {
 	if (serviceDocument.schemaFree) {
 		logger.info(`Service ${serviceDocument._id}/${serviceDocument.name} has no schema.`);
 		serviceDocument['definitionWithId'] = JSON.parse(JSON.stringify(serviceDocument['definition']));
-		serviceDocument['definition'] = serviceDocument['definition'].filter(attr => attr.key != '_id');
+		serviceDocument['definition'] = [];
+		fs.writeFileSync('./api/helpers/service.definition.js', 'var definition = ' + JSON.stringify({
+			"_id": {
+				"type": "String"
+			},
+			"_expireAt": {
+				"type": "Date"
+			},
+			"_metadata": {
+				"type": {
+					"version": {
+						"type": {
+							"service": {
+								"type": "Number",
+								"default": 0
+							},
+							"release": {
+								"type": "String",
+								"default": "1.0.0"
+							}
+						}
+					},
+					"filemapper": {
+						"type": "String"
+					},
+					"workflow": {
+						"type": "String"
+					}
+				}
+			}
+		}) + ';\nmodule.exports.definition=definition;', 'utf-8');
 	} else {
 		logger.info(`Service ${serviceDocument._id}/${serviceDocument.name} is schema validated.`);
 		serviceDocument['definition'] = globalDefHelper(serviceDocument['definition']);
@@ -45,12 +75,13 @@ module.exports.init = (serviceDocument) => {
 
 		generateSwaggerYAML(serviceDocument);
 
-		if (!serviceDocument.schemaFree) {
-			fs.writeFileSync('./api/utils/special-fields.utils.js', specialFieldsGenrator.genrateCode(serviceDocument), 'utf-8');
-			logger.debug('Generated special-fields.utils.js');
-		}
-
+		fs.writeFileSync('./api/utils/special-fields.utils.js', specialFieldsGenrator.genrateCode(serviceDocument), 'utf-8');
+		logger.debug('Generated special-fields.utils.js');
+		
 		fs.writeFileSync('./.env', dotEnvFile(serviceDocument), 'utf-8');
+		if (serviceDocument.connectors?.file?.type === 'GCS') {
+			fs.writeFileSync('./gcs.json', JSON.stringify(gcsFile(serviceDocument.connectors.file.GCS)), 'utf-8');
+		}
 		logger.debug('Generated .env');
 
 		logger.info(`All files generated for ${serviceDocument._id}/${serviceDocument.name}`);

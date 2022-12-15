@@ -75,7 +75,7 @@ router.post('/', (req, res) => {
 					}
 				});
 			}
-			logger.info(`[${txnId}] : File export result :: `, result);
+			logger.info(`[${txnId}] : File export result :: ${JSON.stringify(result)}`);
 			informGW(result, req.get('Authorization'));
 		} catch (e) {
 			if (typeof e === 'string') {

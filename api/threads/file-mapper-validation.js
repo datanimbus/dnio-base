@@ -1,8 +1,10 @@
 const { parentPort, workerData } = require('worker_threads');
-const _ = require('lodash');
 const mongoose = require('mongoose');
 const log4js = require('log4js');
-mongoose.set('useFindAndModify', false);
+const sift = require('sift');
+const _ = require('lodash');
+
+// mongoose.set('useFindAndModify', false);
 
 const config = require('../../config');
 
@@ -32,6 +34,7 @@ async function execute() {
 	const fileMapperUtils = require('../utils/fileMapper.utils');
 	const commonUtils = require('../utils/common.utils');
 	const workflowUtils = require('../utils/workflow.utils');
+	const specialUtils = require('../utils/special-fields.utils');
 
 	const model = mongoose.model('fileMapper');
 	const fileTransfersModel = mongoose.model('fileTransfers');
@@ -39,8 +42,21 @@ async function execute() {
 	const data = workerData.data;
 	const req = workerData.req;
 	const fileId = data.fileId;
-	let txnId = workerData.req.headers[global.txnIdHeader];
+
+	const dynamicFilter = await specialUtils.getDynamicFilter(req);
+	logger.debug(`[${fileId}] Dynamic Filter in File Mapper:`, dynamicFilter);
+	let tester;
+	if (dynamicFilter && !_.isEmpty(dynamicFilter)) {
+		tester = sift(dynamicFilter);
+	}
+
+	let txnId = workerData.req.headers.txnid;
 	logger.debug(`[${txnId}] Worker :: ${fileId}`);
+
+	let fileTransferDocumentId = await fileTransfersModel.collection.findOne({ fileId: fileId });
+	fileTransferDocumentId = fileTransferDocumentId._id;
+	logger.debug(`[${fileId}] File mapper record ID :: ${fileTransferDocumentId}`);
+
 	const isHeaderProvided = Boolean.valueOf(data.headers);
 	const headerMapping = data.headerMapping;
 	const fileName = data.fileName;
@@ -48,9 +64,9 @@ async function execute() {
 	let startTime = Date.now();
 	const sheetData = await fileMapperUtils.getSheetData(bufferData, isHeaderProvided);
 	let endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('SHEET READ :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: SHEET READ :: ${endTime - startTime} ms`);
+
+
 	let mappedSchemaData;
 	startTime = Date.now();
 	if (Array.isArray(sheetData)) {
@@ -59,27 +75,36 @@ async function execute() {
 		mappedSchemaData = [fileMapperUtils.objectMapping(sheetData, headerMapping)];
 	}
 	endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('OBJECT MAPPING :: ', endTime - startTime);
-	logger.debug('=======================================');
-	await fileTransfersModel.findOneAndUpdate({ fileId: fileId }, { $set: { isHeaderProvided, headerMapping, status: 'Validating' } });
+	logger.debug(`[${fileId}] File mapper validation :: OBJECT MAPPING :: ${endTime - startTime} ms`);
+	await fileTransfersModel.findOneAndUpdate({ _id: fileTransferDocumentId }, { $set: { isHeaderProvided, headerMapping, status: 'Validating' } });
 
 	/**---------- After Response Process ------------*/
 	startTime = Date.now();
 	await model.deleteMany({ fileId });
+	console.log(mappedSchemaData);
 	let serializedData = mappedSchemaData.map((e, i) => {
 		const temp = {};
 		temp.fileId = fileId;
 		temp.fileName = fileName;
-		temp.data = JSON.parse(JSON.stringify(e));
 		temp.sNo = isHeaderProvided ? (i + 1) : i;
+		if (!e) {
+			logger.debug('Record rejected as it is undefined');
+			temp.data = {};
+			temp.status = 'Error';
+			temp.message = 'Unable to map the data. Missing mapping.';
+			return temp;
+		}
+		temp.data = JSON.parse(JSON.stringify(e));
+		if (tester && !tester(e)) {
+			logger.debug('Record was rejected because of dynamic filter:', temp.sNo);
+			temp.status = 'Error';
+			temp.message = 'You don\'t have access for this operation.';
+		}
 		return temp;
 	});
 	mappedSchemaData = null;
 	endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('SERIALIZED DATA :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: SERIALIZED DATA :: ${endTime - startTime}ms`);
 	startTime = Date.now();
 	let batch = [serializedData];
 	if (serializedData.length > 5000) {
@@ -89,34 +114,35 @@ async function execute() {
 	batch = null;
 	serializedData = null;
 	endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('INSERT MANY :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: INSERT MANY :: ${endTime - startTime}ms`);
+
+
 	startTime = Date.now();
 	let duplicateDocs = await model.aggregate([
-		{ $match: { fileId, 'data._id': { $exists: true } } },
+		{ $match: { fileId, status: { $ne: 'Error' }, 'data._id': { $exists: true } } },
 		{ $group: { _id: '$data._id', count: { $sum: 1 } } },
 		{ $match: { _id: { $ne: null }, count: { $gt: 1 } } },
 		{ $project: { 'duplicateId': '$_id', _id: 0 } },
 	]);
 	logger.trace('=======================================');
-	logger.trace('DUPLICATE DOCS :: ', duplicateDocs);
+	logger.trace(`[${fileId}] DUPLICATE DOCS :: `, duplicateDocs);
 	logger.trace('=======================================');
 	let duplicateIds = _.map(duplicateDocs, 'duplicateId');
 	let arr = [];
-	arr.push(model.updateMany({ fileId, 'data._id': { $in: duplicateIds } }, { $set: { status: 'Duplicate', conflict: false } }));
-	arr.push(model.updateMany({ fileId, 'data._id': { $nin: duplicateIds } }, { $set: { status: 'Validated' } }));
+	arr.push(model.updateMany({ fileId, 'data._id': { $in: duplicateIds }, status: { $ne: 'Error' } }, { $set: { status: 'Duplicate', conflict: false } }));
+	arr.push(model.updateMany({ fileId, 'data._id': { $nin: duplicateIds }, status: { $ne: 'Error' } }, { $set: { status: 'Validated' } }));
 	await Promise.all(arr);
 	duplicateDocs = null;
 	duplicateIds = null;
 	arr = null;
 	endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('STATUS UPDATE :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: STATUS UPDATE :: ${endTime - startTime}ms`);
+
+
+
 	startTime = Date.now();
 	let conflictDocs = await model.aggregate([
-		{ $match: { fileId, 'data._id': { $exists: true } } },
+		{ $match: { fileId, status: { $ne: 'Error' }, 'data._id': { $exists: true } } },
 		{
 			$lookup:
 			{
@@ -133,18 +159,17 @@ async function execute() {
 		{ $group: { _id: '$duplicateId', count: { $sum: 1 } } }
 	]);
 	logger.trace('=======================================');
-	logger.trace('CONFLICT DOCS :: ', conflictDocs);
+	logger.trace(`[${fileId}] CONFLICT DOCS :: `, conflictDocs);
 	logger.trace('=======================================');
 	let conflictIds = _.map(conflictDocs, '_id');
-	await model.updateMany({ fileId, 'data._id': { $in: conflictIds } }, { $set: { status: 'Duplicate', conflict: true } });
+	await model.updateMany({ fileId, 'data._id': { $in: conflictIds }, status: { $ne: 'Error' } }, { $set: { status: 'Duplicate', conflict: true } });
 	conflictDocs = null;
 	conflictIds = null;
 	endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('CONFLICT UPDATE :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: CONFLICT UPDATE :: ${endTime - startTime}ms`);
+
 	startTime = Date.now();
-	let pendingDocs = (await model.find({ fileId }));
+	let pendingDocs = (await model.find({ fileId, status: { $ne: 'Error' } }));
 	batch = [pendingDocs];
 	if (pendingDocs.length > 2500) {
 		batch = _.chunk(pendingDocs, 2500);
@@ -193,9 +218,7 @@ async function execute() {
 	}, Promise.resolve());
 
 	endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('SIMULATION :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: SIMULATION :: ${endTime - startTime}ms`);
 	startTime = Date.now();
 	let finalData = await model.aggregate([
 		{
@@ -220,9 +243,7 @@ async function execute() {
 		}
 	]);
 	endTime = Date.now();
-	logger.debug('=======================================');
-	logger.debug('$FACET :: ', endTime - startTime);
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: $FACET :: ${endTime - startTime}ms`);
 	const validCount = (finalData[0].validCount).length > 0 ? finalData[0].validCount[0].count : 0;
 	const errorCount = (finalData[0].errorCount).length > 0 ? finalData[0].errorCount[0].count : 0;
 	const duplicateCount = (finalData[0].duplicateCount).length > 0 ? finalData[0].duplicateCount[0].count : 0;
@@ -236,13 +257,14 @@ async function execute() {
 		'_metadata.lastUpdated': new Date()
 	};
 	finalData = null;
-	logger.debug('=======================================');
-	logger.debug('MEMORY USAGE :: ', JSON.stringify(process.memoryUsage()));
-	logger.debug('=======================================');
+	logger.debug(`[${fileId}] File mapper validation :: MEMORY USAGE :: ${JSON.stringify(process.memoryUsage())}`);
+
 	if (errorCount > 100 || conflictCount > 100) {
 		result.status = 'Error';
 	}
 	// mongoose.disconnect();
+	await fileTransfersModel.findOneAndUpdate({ _id: fileTransferDocumentId }, { $set: result });
+
 	return result;
 }
 

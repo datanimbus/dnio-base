@@ -65,19 +65,19 @@ e.streamingConfig = {
 e.mongoAuthorOptions = {
 	useUnifiedTopology: true,
 	useNewUrlParser: true,
-	minSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
+	minPoolSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
 	dbName: process.env.MONGO_AUTHOR_DBNAME || 'datastackConfig',
 };
 e.mongoAppCenterOptions = {
 	useUnifiedTopology: true,
 	useNewUrlParser: true,
-	minSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
+	minPoolSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
 	dbName: null
 };
 e.mongoLogsOptions = {
 	useUnifiedTopology: true,
 	useNewUrlParser: true,
-	minSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
+	minPoolSize: process.env.MONGO_CONNECTION_POOL_SIZE || 5,
 	dbName: process.env.MONGO_LOGS_DBNAME || 'datastackLogs'
 };
 
@@ -102,6 +102,7 @@ e.serviceVersion = null;
 e.serviceDB = null;
 e.serviceEndpoint = null;
 e.serviceCollection = null;
+e.fileAttachmentAttributes = null;
 e.permanentDelete = null;
 e.disableInsights = null;
 e.disableAudits = null;
@@ -112,9 +113,12 @@ e.ID_SUFFIX = null;
 e.ID_COUNTER = null;
 e.allowedExt = null;
 
+// EXPERIMENTAL FEATURES
+e.ML_FILE_PARSER = e.parseBoolean(process.env.ML_FILE_PARSER);
+
 e.MaxJSONSize = process.env.MAX_JSON_SIZE || '1mb';
 e.dataStackDefaultTimezone = process.env.TZ_DEFAULT || 'Zulu';
-
+e.fqdn = process.env.FQDN;
 
 e.baseUrlSM = get('sm') + '/sm';
 e.baseUrlNE = get('ne') + '/ne';
@@ -128,6 +132,7 @@ e.baseUrlCOMMON = get('common') + '/api/common';
 e.baseUrlGW = get('gw');
 
 e.TOKEN_SECRET = process.env.TOKEN_SECRET || 'u?5k167v13w5fhjhuiweuyqi67621gqwdjavnbcvadjhgqyuqagsduyqtw87e187etqiasjdbabnvczmxcnkzn';
+e.RBAC_JWT_KEY = process.env.RBAC_JWT_KEY || 'u?5k167v13w5fhjhuiweuyqi67621gqwdjavnbcvadjhgqyuqagsduyqtw87e187etqiasjdbabnvczmxcnkzn';
 
 
 function get(_service) {
@@ -159,14 +164,14 @@ function get(_service) {
 }
 
 
-e.fileStorage = {
-	storage: process.env.STORAGE_ENGINE || 'GRIDFS',	//GRIDFS/AZURE/GCS/S3
-	'AZURE': {
-		'connectionString': process.env.STORAGE_AZURE_CONNECTION_STRING,
-		'container': process.env.STORAGE_AZURE_CONTAINER,
-		'sharedKey': process.env.STORAGE_AZURE_SHARED_KEY,
-		'timeout': process.env.STORAGE_AZURE_TIMEOUT
-	}
-};
+// e.fileStorage = {
+// 	storage: process.env.STORAGE_ENGINE || 'GRIDFS',	//GRIDFS/AZURE/GCS/S3
+// 	'AZURE': {
+// 		'connectionString': process.env.STORAGE_AZURE_CONNECTION_STRING,
+// 		'container': process.env.STORAGE_AZURE_CONTAINER,
+// 		'sharedKey': process.env.STORAGE_AZURE_SHARED_KEY,
+// 		'timeout': process.env.STORAGE_AZURE_TIMEOUT
+// 	}
+// };
 
 module.exports = e;

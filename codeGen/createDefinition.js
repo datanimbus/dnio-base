@@ -15,8 +15,11 @@ function filterMongooseFields(schemaObj) {
 function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 	if (schemaArr[0] && schemaArr[0].key == '_self') {
 		let attribute = schemaArr[0];
-		if (attribute['properties'] && (attribute['properties']['password'])) {
+		if (attribute['properties'] && (attribute['properties']['password'] && !attribute['properties']['fileType'])) {
 			specialFields['secureFields'].push(nestedKey);
+		}
+		if (attribute['properties'] && (attribute['properties']['fileType'])) {
+			specialFields['fileFields'].push(nestedKey);
 		}
 		if (attribute['type'] === 'Object') {
 			processSchema(attribute['definition'], mongoSchema, nestedKey, specialFields);
@@ -60,9 +63,9 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 			if (attribute['properties'] && attribute['properties']['dateType']) {
 				specialFields['dateFields'].push({ field: nestedKey, dateType: attribute['properties']['dateType'], defaultTimezone:  attribute['properties']['defaultTimezone'] });
 			}
-			if (attribute['properties'] && (attribute['properties']['password'])) {
-				specialFields['secureFields'].push(nestedKey);
-			}
+			// if (attribute['properties'] && (attribute['properties']['password'])) {
+			// 	specialFields['secureFields'].push(nestedKey);
+			// }
 		}
 	} else {
 		schemaArr.forEach(attribute => {
@@ -252,8 +255,11 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 				if (attribute['properties'] && attribute['properties']['createOnly']) {
 					specialFields['createOnlyFields'].push(newNestedKey);
 				}
-				if (attribute['properties'] && attribute['properties']['password']) {
+				if (attribute['properties'] && attribute['properties']['password'] && !attribute['properties']['fileType']) {
 					specialFields['secureFields'].push(newNestedKey);
+				}
+				if (attribute['properties'] && attribute['properties']['fileType']) {
+					specialFields['fileFields'].push(newNestedKey);
 				}
 				if (attribute['properties'] && attribute['properties']['unique'] && !attribute['properties']['password']) {
 					let locale = attribute['properties'].locale || 'en';
@@ -303,6 +309,7 @@ function generateDefinition(config) {
 		precisionFields: [],
 		secureFields: [],
 		uniqueFields: [],
+		fileFields: [],
 		relationUniqueFields: [],
 		dateFields: [],
 		// relationRequiredFields: []
@@ -317,6 +324,7 @@ function generateDefinition(config) {
 	config.createOnlyFields = specialFields.createOnlyFields;
 	config.precisionFields = specialFields.precisionFields;
 	config.secureFields = specialFields.secureFields;
+	config.fileFields = specialFields.fileFields;
 	config.uniqueFields = specialFields.uniqueFields;
 	config.dateFields = specialFields.dateFields;
 	config.relationUniqueFields = specialFields.relationUniqueFields;
@@ -333,7 +341,7 @@ function generateDefinition(config) {
 			version: {
 				type: {
 					service: { type: 'Number', default: 0 },
-					release: { type: 'Number', default: 0 }
+					release: { type: 'String', default: 0 }
 				}
 			},
 			filemapper: { type: 'String' },

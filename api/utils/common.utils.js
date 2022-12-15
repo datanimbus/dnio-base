@@ -115,8 +115,9 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 	let document = documentCache.get(key);
 	try {
 		if (!service) {
+			logger.debug('Fetching Data Service :: ', serviceId);
 			service = httpClient.httpRequest({
-				url: `${config.baseUrlSM}/${config.appNamespace}/service/${serviceId}/?app=${config.app}`,
+				url: `${config.baseUrlSM}/${config.app}/service/${serviceId}/?app=${config.app}`,
 				method: 'GET',
 				headers: {
 					'TxnId': req ? req.headers[global.txnIdHeader] : '',
@@ -132,6 +133,9 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 			serviceCache.set(serviceId, service);
 		}
 		service = await service;
+		if (!service) {
+			throw new Error('Data Service not found');
+		}
 		const dataServiceUrl = '/api/c/' + service.app + service.api + '/' + documentId;
 		let api = config.baseUrlGW + dataServiceUrl + '?expand=true';
 		// if (expandLevel < 2) {
@@ -174,85 +178,118 @@ async function getServiceDoc(req, serviceId, documentId, throwError) {
 	}
 }
 
-// /**
-//  * 
-//  * @param {*} req The Incoming Request Object
-//  * @param {*} data The data to encrypt
-//  */
-// async function encryptText(req, data) {
-// 	data = data.toString();
-// 	var options = {
-// 		url: config.baseUrlSEC + '/enc/' + config.app + '/encrypt',
-// 		method: 'POST',
-// 		headers: {
-// 			'TxnId': req ? req.headers[global.txnIdHeader] : '',
-// 			'User': req ? req.headers[global.userHeader] : '',
-// 			'Authorization': req ? req.headers.authorization : '',
-// 			'Content-Type': 'application/json',
-// 		},
-// 		body: { data },
-// 		json: true
-// 	};
-// 	try {
-// 		const res = await httpClient.httpRequest(options);
-// 		if (!res) {
-// 			logger.error(`[${req.headers[global.txnIdHeader]}] Security service down`);
-// 			throw new Error('Security service down');
-// 		}
-// 		if (res.statusCode === 200) {
-// 			return {
-// 				value: res.body.data,
-// 				checksum: crypto.createHash('md5').update(data).digest('hex')
-// 			};
-// 		} else {
-// 			logger.error(`[${req.headers[global.txnIdHeader]}] Error response code from security service :: `, res.statusCode);
-// 			logger.error(`[${req.headers[global.txnIdHeader]}] Error response from security service :: `, res.body);
-// 			throw new Error('Error encrypting text');
-// 		}
-// 	} catch (e) {
-// 		logger.error(`[${req.headers[global.txnIdHeader]}] Error requesting Security service`, e);
-// 		throw e;
-// 	}
-// }
 
-// /**
-//  * 
-//  * @param {*} req The Incoming Request Object
-//  * @param {*} data The data to decrypt
-//  */
-// async function decryptText(req, data) {
-// 	if (!data) {
-// 		data = req;
-// 		req = undefined;
-// 	}
-// 	var options = {
-// 		url: config.baseUrlSEC + '/enc/' + config.app + '/decrypt',
-// 		method: 'POST',
-// 		headers: {
-// 			'TxnId': req ? req.headers[global.txnIdHeader] : '',
-// 			'User': req ? req.headers[global.userHeader] : '',
-// 			'Authorization': req ? req.headers.authorization : '',
-// 			'Content-Type': 'application/json',
-// 		},
-// 		body: { data },
-// 		json: true
-// 	};
-// 	try {
-// 		const res = await httpClient.httpRequest(options);
-// 		if (!res) {
-// 			logger.error(`[${req.headers[global.txnIdHeader]}] Security service down`);
-// 			throw new Error('Security service down');
-// 		}
-// 		if (res.statusCode === 200) {
-// 			return res.body.data;
-// 		} else {
-// 			throw new Error('Error decrypting text');
-// 		}
-// 	} catch (e) {
-// 		logger.error(`[${req ? req.headers[global.txnIdHeader] : ''}] Error requesting Security service :: `, e.message ? e.message : (e.body ? e.body : e));
-// 		throw e;
-// 	}
-// }
+
+/**
+ * 
+ * @param {*} req The Incoming Request Object
+ * @param {string} serviceId The Service ID for whose docs needs to be fetched
+ * @param {string} documentId The Document ID that needs to be fetched
+ */
+async function getServiceDocsUsingFilter(req, serviceName, filter, select, throwError) {
+	const expandLevel = (req.headers['Expand-Level'] || 0) + 1;
+	let service = serviceCache.get(serviceName);
+	try {
+		if (!service) {
+			logger.debug('Fetching Data Service :: ', serviceName);
+			service = httpClient.httpRequest({
+				url: `${config.baseUrlSM}/${config.app}/service/?app=${config.app}&filter={"name":"${serviceName}"}&count=1`,
+				method: 'GET',
+				headers: {
+					'TxnId': req ? req.headers[global.txnIdHeader] : '',
+					'User': req ? req.headers[global.userHeader] : '',
+					'Authorization': req ? req.headers.authorization || req.headers.Authorization : '',
+					'Content-Type': 'application/json'
+				},
+				qs: {
+					select: 'api,app,definition,attributeList,collectionName'
+				},
+				json: true
+			}).then(res => {
+				if (!res.body || res.body.length == 0) {
+					return null;
+				}
+				return res.body[0];
+			});
+			serviceCache.set(serviceName, service);
+		}
+		service = await service;
+		if (!service) {
+			throw new Error('Data Service not found');
+		}
+		const dataServiceUrl = '/api/c/' + service.app + service.api + '/?filter=' + JSON.stringify(filter);
+		let api = config.baseUrlGW + dataServiceUrl + '&expand=false';
+		// if (expandLevel < 2) {
+		//     api += '?expand=true';
+		// }
+		const document = await httpClient.httpRequest({
+			url: api,
+			method: 'GET',
+			headers: {
+				'TxnId': req ? req.headers[global.txnIdHeader] : '',
+				'Authorization': req ? req.headers.authorization || req.headers.Authorization : '',
+				'Content-Type': 'application/json',
+				'Expand-Level': expandLevel
+			},
+			qs: {
+				select
+			},
+			json: true
+		}).then(res => {
+			const temp = res.body;
+			temp._href = dataServiceUrl;
+			return temp;
+		}).catch(err => {
+			logger.error('Error in getServiceDoc.DocumentFetch :: ', err.statusCode, err.error);
+			logger.trace(err);
+			if (throwError) {
+				throw err;
+			} else {
+				return null;
+			}
+		});
+		return document;
+	} catch (e) {
+		logger.error('Error in getServiceDoc :: ', e.message);
+		if (throwError) {
+			throw e;
+		} else {
+			return null;
+		}
+	}
+}
+
+
+/**
+ * 
+ * @param {*} file The File to encrypt
+ * @param {*} encryptionKey The key to encrypt with
+ */
+async function encryptFile(file, encryptionKey) {
+	try {
+		const res = await secUtils.encryptFile(file, encryptionKey);
+		return res.body.data;
+	} catch (e) {
+		logger.error('Error requesting Security service', e);
+		throw e;
+	}
+}
+
+
+/**
+ * 
+ * @param {*} file The File to decrypt
+ * @param {*} encryptionKey The key to decrypt with
+ */
+async function decryptFile(file, encryptionKey) {
+	try {
+		const res = await secUtils.decryptFile(file, encryptionKey);
+		return res.body.data;
+	} catch (e) {
+		logger.error('Error requesting Security service', e);
+		throw e;
+	}
+}
 
 
 /**
@@ -479,7 +516,7 @@ e.getStoredServiceDetail = function (serviceId, serviceDetailsObj, req) {
 		return Promise.resolve();
 	} else {
 		var options = {
-			url: `${config.baseUrlSM}/${config.appNamespace}/service/${serviceId}?select=port,api,relatedSchemas,app,preHooks,definition&app=${config.app}`,
+			url: `${config.baseUrlSM}/${config.app}/service/${serviceId}?select=port,api,relatedSchemas,app,preHooks,definition&app=${config.app}`,
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
@@ -701,151 +738,29 @@ function removeAudit(doc) {
 	client.publish('auditQueueRemove', JSON.stringify(auditData));
 }
 
-let secureFields = ''.split(',');
-
-function decryptSecureData(d) {
-	var options = {
-		url: config.baseUrlSEC + `/enc/${config.app}/decrypt`,
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		body: { data: d },
-		json: true
-	};
-	return new Promise((resolve, reject) => {
-		request.post(options, function (err, res, body) {
-			if (err) {
-				logger.error('Error requesting Security service');
-				reject(err);
-			} else if (!res) {
-				logger.error('Security service down');
-				reject(new Error('Security service down'));
-			}
-			else {
-				if (res.statusCode === 200) {
-					let obj = {
-						//value: d,
-						value: d.toString(),
-						checksum: crypto.createHash('md5').update(body.data).digest('hex')
-					};
-					resolve(obj);
-				} else {
-					logger.error('Error encrypting text');
-					logger.debug('Returning previous value ' + d);
-					resolve({ value: d });
-					// reject(new Error('Error encrypting text'))
-				}
-			}
-		});
-	});
-}
-
-function getData(filter, page, count) {
-	page = (page === 0) ? 0 : page * count;
-	return mongoose.connection.db.collection(config.serviceCollection).find(filter).skip(page).limit(count).toArray();
-}
-
-function fixData(field, data) {
-	let keys = field.split('.');
-	if (keys.length == 1) {
-		if (data[keys[0]]) {
-			if (Array.isArray(data[keys[0]])) {
-				let promises = data[keys[0]].map(_d => decryptSecureData(_d));
-				return Promise.all(promises)
-					.then(_d => {
-						data[keys[0]] = _d;
-						return data;
-					})
-					.catch(err => {
-						logger.error(err);
-						return data;
-					});
-			} else {
-				return decryptSecureData(data[keys[0]])
-					.then(_d => {
-						data[keys[0]] = _d;
-						return data;
-					})
-					.catch(err => {
-						logger.error(err);
-						return data;
-					});
-			}
-		}
-	}
-	else {
-		if (data[keys[0]]) {
-			let ele = keys.shift();
-			let newNestedKey = keys.join('.');
-			if (Array.isArray(data[ele])) {
-				let promises = data[ele].map(_d => fixData(newNestedKey, _d));
-				return Promise.all(promises)
-					.then(_d => {
-						data[ele] = _d;
-						return data;
-					});
-			}
-			return fixData(newNestedKey, data[ele]).then(() => data);
-		}
-	}
-}
-
-function updateData(model, field, data) {
-	return fixData(field, data)
-		.then(() => {
-			let id = data._id;
-			return model.update({ _id: id }, data);
-		});
-}
-
-function fixForField(field) {
-	const model = mongoose.model(config.serviceId);
-	let filter = { $and: [{ [field]: { $exists: true } }, { [field]: { $ne: null } }, { [`${field}.value`]: { $exists: false } }] };
-	return model.count(filter)
-		.then((count) => {
-			if (count > 0) logger.info(`Secure text fix :: ${count} Documents found for ${field}`);
-			let batchSize = 100;
-			let totalBatches = count / batchSize;
-			let arr = [];
-			for (let i = 0; i < totalBatches; i++) {
-				arr.push(i);
-			}
-			return arr.reduce((_p, curr) => {
-				logger.info(`Secure text fix :: batch :: ${JSON.stringify(curr)}`);
-				return _p
-					.then(() => {
-						return getData(filter, curr, batchSize);
-					})
-					.then(_data => _data.map(_d => updateData(model, field, _d)))
-					.then(_updatePromises => Promise.all(_updatePromises));
-			}, Promise.resolve());
-		});
-}
-
-e.fixSecureText = function () {
-	if (secureFields.join() != '') logger.info(`Fixing Secure Text. Fields - ${secureFields}`);
-	return secureFields.reduce((acc, curr) => {
-		return acc.then(() => {
-			return fixForField(curr);
-		});
-	}, Promise.resolve());
-};
-
 function decryptData(data, nestedKey, forFile) {
 	let keys = nestedKey.split('.');
 	if (keys.length == 1) {
 		if (data[keys[0]]) {
 			if (Array.isArray(data[keys[0]])) {
 				let promises = data[keys[0]].map(_d => {
-					return decryptText(_d.value)
-						.then(_decrypted => {
-							if (forFile)
+					if (_d.value) {
+						return decryptText(_d.value)
+							.then(_decrypted => {
+								if (forFile)
+									_d = _decrypted;
+								else
+									_d.value = _decrypted;
+								return _d;
+							});
+					} else {
+						return decryptText(_d)
+							.then(_decrypted => {
 								_d = _decrypted;
-							else
-								_d.value = _decrypted;
-							return _d;
-						});
+
+								return _d;
+							});
+					}
 				});
 				return Promise.all(promises)
 					.then(_d => {
@@ -859,6 +774,12 @@ function decryptData(data, nestedKey, forFile) {
 							data[keys[0]] = _d;
 						else
 							data[keys[0]].value = _d;
+						return data;
+					});
+			} else if (data[keys[0]] && typeof data[keys[0]] == 'string') {
+				return decryptText(data[keys[0]])
+					.then(_d => {
+						data[keys[0]] = _d;
 						return data;
 					});
 			}
@@ -1072,7 +993,10 @@ function removeNullForUniqueAttribute(obj, key) {
 
 e.getDocumentIds = getDocumentIds;
 e.getServiceDoc = getServiceDoc;
+e.getServiceDocsUsingFilter = getServiceDocsUsingFilter;
 e.getUserDoc = getUserDoc;
+e.encryptFile = encryptFile;
+e.decryptFile = decryptFile;
 e.encryptText = encryptText;
 e.decryptText = decryptText;
 e.getGeoDetails = getGeoDetails;

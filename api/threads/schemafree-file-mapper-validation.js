@@ -5,7 +5,7 @@ const log4js = require('log4js');
 
 const config = require('../../config');
 
-mongoose.set('useFindAndModify', false);
+// mongoose.set('useFindAndModify', false);
 
 let additionalLoggerIdentifier = 'Worker/MapperValidation';
 
@@ -70,7 +70,10 @@ async function execute() {
 	logger.trace(`[${txnId}] Parsed buffer data :: ${JSON.stringify(bufferData)}`);
 
 	// Updating transfer model to reflect validating status
-	await fileTransfersModel.findOneAndUpdate({ fileId: fileId }, { $set: { isHeaderProvided: false, headerMapping: null, status: 'Validating' } });
+	let fileTransferDocumentId = await fileTransfersModel.collection.findOne({ fileId: fileId });
+	fileTransferDocumentId = fileTransferDocumentId._id;
+
+	await fileTransfersModel.findOneAndUpdate({ _id: fileTransferDocumentId }, { $set: { isHeaderProvided: false, headerMapping: null, status: 'Validating' } });
 
 	// creating serialized data for storing to bulkCreate collection
 	serializedData = bufferData.map(e => {
@@ -230,6 +233,7 @@ async function execute() {
 	if (errorCount > 100 || conflictCount > 100) {
 		result.status = 'Error';
 	}
+	await fileTransfersModel.findOneAndUpdate({ _id: fileTransferDocumentId }, { $set: result });
 	return result;
 }
 

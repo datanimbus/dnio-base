@@ -1,23 +1,18 @@
 const _ = require('lodash');
  var definition = {
-    "name": {
+    "studyId": {
         "type": "String"
     },
-    "age": {
-        "type": "Number",
-        "validate": [
-            {
-                "validator": function anonymous(value
-) {
-
-					if(!value) return true;
-                    return Number.isFinite(value);
-                    
-}
-            }
-        ]
+    "siteId": {
+        "type": "String"
     },
-    "date": {
+    "subjectId": {
+        "type": "String"
+    },
+    "visitId": {
+        "type": "String"
+    },
+    "visitDate": {
         "type": {
             "rawData": {
                 "type": "String"
@@ -36,95 +31,26 @@ const _ = require('lodash');
             }
         }
     },
-    "boolean": {
+    "visitRepeatKey": {
         "type": "String"
     },
-    "location": {
-        "type": {
-            "geometry": {
-                "type": {
-                    "type": "String"
-                },
-                "coordinates": {
-                    "type": [
-                        {
-                            "type": "Number"
-                        }
-                    ]
-                }
-            },
-            "formattedAddress": {
-                "type": "String"
-            },
-            "town": {
-                "type": "String"
-            },
-            "district": {
-                "type": "String"
-            },
-            "state": {
-                "type": "String"
-            },
-            "country": {
-                "type": "String"
-            },
-            "pincode": {
-                "type": "String"
-            },
-            "userInput": {
-                "type": "String"
-            }
-        }
+    "formId": {
+        "type": "String"
     },
-    "file": {
-        "type": {
-            "_id": {
-                "type": "String"
-            },
-            "filename": {
-                "type": "String"
-            },
-            "contentType": {
-                "type": "String"
-            },
-            "length": {
-                "type": "Number"
-            },
-            "chunkSize": {
-                "type": "Number"
-            },
-            "uploadDate": {
-                "type": "Date"
-            },
-            "md5": {
-                "type": "String"
-            },
-            "metadata": {
-                "filename": {
-                    "type": "String"
-                }
-            }
-        }
+    "formRepeatKey": {
+        "type": "String"
     },
-    "user": {
-        "type": {
-            "_id": {
-                "type": "String"
-            }
-        },
-        "default": {
-            "_id": "meghana@appveen.com"
-        }
+    "itemGroupId": {
+        "type": "String"
     },
-    "password": {
-        "type": {
-            "value": {
-                "type": "String"
-            },
-            "checksum": {
-                "type": "String"
-            }
-        }
+    "itemGroupRowId": {
+        "type": "String"
+    },
+    "itemId": {
+        "type": "String"
+    },
+    "itemValue": {
+        "type": "String"
     },
     "_id": {
         "type": "String"
@@ -141,7 +67,7 @@ const _ = require('lodash');
                         "default": 0
                     },
                     "release": {
-                        "type": "Number",
+                        "type": "String",
                         "default": 0
                     }
                 }
