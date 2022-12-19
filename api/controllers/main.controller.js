@@ -244,10 +244,10 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 				return null;
 			}).filter(e => e);
 			let tempFilter;
-			if(_.isEmpty(keyValPairs)) {
+			if (_.isEmpty(keyValPairs)) {
 				tempFilter = {};
 			} else {
-				tempFilter = Object.assign.apply({},keyValPairs);
+				tempFilter = Object.assign.apply({}, keyValPairs);
 			}
 			if (_.isEmpty(tempFilter)) {
 				if (!insert) {
@@ -701,6 +701,14 @@ router.post('/', async (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
 	let id = req.params.id;
 	let payload = req.body;
+
+	const errors = await specialFields.validateDateFields(req, payload, null);
+	if (errors && !_.isEmpty(errors)) {
+		let txnId = req.headers['txnId'];
+		logger.error(`[${txnId}] Error in validation date fields :: `, errors);
+		return res.status(400).json({ message: 'Error in validation date fields', errors });
+	}
+
 	logger.debug(`[${txnId}] Create request received.`);
 	if (!serviceData.schemaFree) {
 		const dynamicFilter = await specialFields.getDynamicFilter(req);
