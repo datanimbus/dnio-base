@@ -8,6 +8,7 @@ function genrateCode(config) {
 		schema = JSON.parse(schema);
 	}
 	let code = [];
+	let uniqueIndexes = [];
 	code.push('const mongoose = require(\'mongoose\');');
 	code.push('const _ = require(\'lodash\');');
 	code.push('const moment = require(\'moment\');');
@@ -48,6 +49,8 @@ function genrateCode(config) {
 	code.push('function mongooseUniquePlugin() {');
 	code.push('\treturn function (schema) {');
 	const textPaths = createIndex(schema);
+	if (uniqueIndexes.length > 0)
+		code.push(`\t\tschema.${uniqueIndexes.join('.')};`);
 	createTextSearchIndex(textPaths);
 	code.push('\t}');
 	code.push('}');
@@ -582,7 +585,8 @@ function genrateCode(config) {
 						if (def.type === 'User' || def.properties.relatedTo) {
 							path = path + '._id';
 						}
-						code.push(`\t\tschema.index({ '${path}': 1 }, { unique: '${path} field should be unique', sparse: true, collation: { locale: 'en', strength: 2 } });`);
+						// code.push(`\t\tschema.index({ '${path}': 1 }, { unique: '${path} field should be unique', sparse: true, collation: { locale: 'en', strength: 2 } });`);
+						uniqueIndexes.push(`index({ '${path}': 1 }, { unique: '${path} field should be unique', sparse: true, collation: { locale: 'en', strength: 2 } })`)
 					}
 					if (def.properties.geoType) {
 						code.push(`\t\tschema.index({ '${path}.geometry': '2dsphere' }, { name: '${path}_geoJson' });`);
