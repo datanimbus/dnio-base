@@ -213,8 +213,12 @@ async function init() {
 
 		if (fileStorageConnectorDetails?.type === 'GRIDFS') {
 			serviceDoc.connectors.file.type = 'GRIDFS';
-			serviceDoc.connectors.file.Mongo = fileStorageConnectorDetails.values;
-
+			if ((!fileStorageConnectorDetails.values.connectionString || fileStorageConnectorDetails.values.connectionString == '') && fileStorageConnectorDetails.options.default) {
+				serviceDoc.connectors.file.Mongo = { connectionString: config.mongoUrl };	
+			} else {
+				serviceDoc.connectors.file.Mongo = fileStorageConnectorDetails.values;
+			}
+			
 		} else if (fileStorageConnectorDetails?.type === 'AZBLOB') {
 			serviceDoc.connectors.file.type = 'AZBLOB';
 			serviceDoc.connectors.file.AZURE = fileStorageConnectorDetails.values;
