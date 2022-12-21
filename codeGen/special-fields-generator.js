@@ -338,18 +338,18 @@ function genrateCode(config) {
 	code.push('}');
 	code.push('');
 
-	code.push(`function getDateRangeObject(date) {`);
-	code.push(`\tif (date) {`);
-	code.push(`\t\tconst filter = {};`);
-	code.push(`\t\tconst temp = moment.utc(date);`);
-	code.push(`\t\ttemp.startOf('date');`);
-	code.push(`\t\tfilter['$gte'] = temp.utc().format();`);
-	code.push(`\t\ttemp.endOf('date');`);
-	code.push(`\t\tfilter['$lte'] = temp.utc().format();`);
-	code.push(`\t\treturn filter;`);
-	code.push(`\t}`);
-	code.push(`\treturn null;`);
-	code.push(`}`);
+	code.push('function getDateRangeObject(date) {');
+	code.push('\tif (date) {');
+	code.push('\t\tconst filter = {};');
+	code.push('\t\tconst temp = moment.utc(date);');
+	code.push('\t\ttemp.startOf(\'date\');');
+	code.push('\t\tfilter[\'$gte\'] = temp.utc().toISOString();');
+	code.push('\t\ttemp.endOf(\'date\');');
+	code.push('\t\tfilter[\'$lte\'] = temp.utc().toISOString();');
+	code.push('\t\treturn filter;');
+	code.push('\t}');
+	code.push('\treturn null;');
+	code.push('}');
 
 
 
