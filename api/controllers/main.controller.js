@@ -708,6 +708,7 @@ router.post('/', async (req, res) => {
 		logger.error(`[${txnId}] Error in validation date fields :: `, errors);
 		return res.status(400).json({ message: 'Error in validation date fields', errors });
 	}
+	logger.trace(`[${txnId}] Payload after date field validation`, payload);
 
 	logger.debug(`[${txnId}] Create request received.`);
 	if (!serviceData.schemaFree) {
