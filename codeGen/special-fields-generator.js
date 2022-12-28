@@ -586,7 +586,7 @@ function genrateCode(config) {
 							path = path + '._id';
 						}
 						// code.push(`\t\tschema.index({ '${path}': 1 }, { unique: '${path} field should be unique', sparse: true, collation: { locale: 'en', strength: 2 } });`);
-						uniqueIndexes.push(`index({ '${path}': 1 }, { unique: '${path} field should be unique', sparse: true, collation: { locale: 'en', strength: 2 } })`)
+						uniqueIndexes.push(`index({ '${path}': 1 }, { unique: true, sparse: true, collation: { locale: 'en', strength: 2 }, name: '${path}_1' })`)
 					}
 					if (def.properties.geoType) {
 						code.push(`\t\tschema.index({ '${path}.geometry': '2dsphere' }, { name: '${path}_geoJson' });`);
