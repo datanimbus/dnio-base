@@ -857,13 +857,22 @@ router.put('/:id', async (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
 	const upsert = req.query.upsert == 'true';
 	let payload = req.body;
+
+	let errors = await specialFields.validateDateFields(req, payload, null) || {};
+	if (errors && !_.isEmpty(errors)) {
+		let txnId = req.headers['txnId'];
+		logger.error(`[${txnId}] Error in validation date fields :: `, errors);
+		return res.status(400).json({ message: 'Error in validation date fields', errors });
+	}
+	logger.trace(`[${txnId}] Payload after date field validation`, payload);
+
 	let status;
 	let wfId;
 	let isNewDoc = false;
 	let id = req.params.id;
 	let useFilter = req.params.useFilter;
 	let filter = { _id: id };
-	let errors = {};
+	
 	if (req.query.filter && (useFilter == 'true' || useFilter == true)) {
 		filter = JSON.parse(req.query.filter);
 		let tempFilter;
