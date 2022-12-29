@@ -3,6 +3,8 @@
  */
 
 const _ = require('lodash');
+const commonUtils = require('../api/utils/common.utils');
+
 const mongooseFields = ['required', 'default', 'index', 'select', 'lowercase', 'uppercase', 'trim', 'match', 'enum', 'min', 'max', 'minlength', 'maxlength'];
 const logger = global.logger;
 function filterMongooseFields(schemaObj) {
@@ -159,7 +161,14 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 			if (attribute['properties']) {
 				Object.keys(attribute['properties']).forEach(keyOfObj => {
 					if (mongooseFields.indexOf(keyOfObj) > -1) {
-						mongoSchema[key][keyOfObj] = attribute['properties'][keyOfObj];
+						if (keyOfObj == 'default' && attribute['properties']['dateType']) {
+							let dateValue = { "rawData": attribute['properties'][keyOfObj] };
+							let defaultDate = commonUtils.getFormattedDate(null, dateValue, attribute['properties']['defaultTimezone'], []);
+
+							mongoSchema[key][keyOfObj] = defaultDate;
+						} else {
+							mongoSchema[key][keyOfObj] = attribute['properties'][keyOfObj];
+						}
 						if (!mongoSchema[key]['required']) delete mongoSchema[key].required;
 						if (!mongoSchema[key]['unique']) delete mongoSchema[key].unique;
 					}

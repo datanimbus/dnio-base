@@ -70,8 +70,8 @@ const app = express();
 			logger.info('Server started on port ' + PORT);
 			if (!config.isK8sEnv()) {
 				queueMgmt.client.on('connect', function () {
-					require('./init')();
 				});
+				require('./init')();
 			}
 		} else {
 			logger.error(err);
