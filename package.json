@@ -11,7 +11,7 @@
     "author": "Jugnu Agrawal",
     "license": "ISC",
     "dependencies": {
-        "@appveen/data.stack-utils": "1.0.19",
+        "@appveen/data.stack-utils": "1.0.21",
         "@appveen/ds-auth-cache": "1.0.2",
         "@appveen/utils": "^2.1.6",
         "archiver": "^5.2.0",
