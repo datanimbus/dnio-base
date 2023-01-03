@@ -34,6 +34,7 @@ async function execute() {
 	const data = workerData.data;
 	const fileId = data.fileId;
 	const fileName = data.fileName;
+	const isHeaderProvided = Boolean.valueOf(data.headers);
 	let txnId = req.headers[global.txnIdHeader];
 	logger.debug(`[${txnId}] Schema Free File Mapper Validation process started :: ${fileId}`);
 
@@ -76,10 +77,11 @@ async function execute() {
 	await fileTransfersModel.findOneAndUpdate({ _id: fileTransferDocumentId }, { $set: { isHeaderProvided: false, headerMapping: null, status: 'Validating' } });
 
 	// creating serialized data for storing to bulkCreate collection
-	serializedData = bufferData.map(e => {
+	serializedData = bufferData.map((e, i) => {
 		const temp = {};
 		temp.fileId = fileId;
 		temp.fileName = fileName;
+		temp.sNo = isHeaderProvided ? (i + 1) : i;
 		temp.data = JSON.parse(JSON.stringify(e));
 		return temp;
 	});
