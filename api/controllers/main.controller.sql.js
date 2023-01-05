@@ -57,6 +57,41 @@ router.get('/utils/securedFields', async (req, res) => {
 	}
 });
 
+router.put('/utils/bulkUpsert', (req, res) => {
+	async function execute() {
+		const id = req.query.id;
+		if (!id) {
+			return res.status(400).json({
+				message: 'Invalid IDs',
+			});
+		}
+		if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
+			return res.status(403).json({
+				message: 'You don\'t have permission to update records',
+			});
+		}
+
+		let txnId = req.get(global.txnIdHeader);
+
+		try {
+			await crud.connect();
+			const status = await table.update(id, req.body);
+			logger.debug(`[${txnId}] Update status - ${JSON.stringify(status)}`);
+
+			const docs = await table.list();
+			return res.status(200).json(docs);
+		} catch (e) {
+			handleError(e, txnId);
+		}
+	}
+	execute().catch((err) => {
+		logger.error(err);
+		res.status(400).json({
+			message: err.message,
+		});
+	});
+});
+
 router.put('/utils/bulkUpdate', (req, res) => {
 	async function execute() {
 		const id = req.query.id;
