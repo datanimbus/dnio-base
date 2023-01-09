@@ -1,14 +1,16 @@
+const uuid = require('uuid/v1');
 const _ = require('lodash');
 
 function genrateCode(config) {
-	let schema = config.definition;
+	let schema = config.definition || [];
 	// global.logger.info('schema :: defoiniton  ::', JSON.stringify(schema));
 	if (typeof schema === 'string') {
 		schema = JSON.parse(schema);
 	}
-	const code = [];
+	let code = [];
 	code.push('const mongoose = require(\'mongoose\');');
 	code.push('const _ = require(\'lodash\');');
+	code.push('const moment = require(\'moment\');');
 	code.push('');
 	code.push('const config = require(\'../../config\');');
 	code.push('const httpClient = require(\'../../http-client\');');
@@ -23,6 +25,7 @@ function genrateCode(config) {
 	code.push(`const uniqueFields = ${JSON.stringify(config.uniqueFields)};`);
 	code.push(`const relationUniqueFields = '${config.relationUniqueFields}'.split(',');`);
 	code.push(`const dateFields = ${JSON.stringify((config.dateFields || []))}`);
+	code.push(`const fileFields = ${JSON.stringify((config.fileFields || []))}`);
 	// code.push(`const relationRequiredFields = '${config.relationRequiredFields}'.split(',');`);
 
 	/**------------------------ CREATE ONLY ----------------------- */
@@ -44,7 +47,8 @@ function genrateCode(config) {
 	/**------------------------ UNIQUE ----------------------- */
 	code.push('function mongooseUniquePlugin() {');
 	code.push('\treturn function (schema) {');
-	createIndex(schema);
+	const textPaths = createIndex(schema);
+	createTextSearchIndex(textPaths);
 	code.push('\t}');
 	code.push('}');
 	code.push('');
@@ -278,8 +282,13 @@ function genrateCode(config) {
 	// code.push('\t\treturn data;');
 	// code.push('\t}');
 
+	//By Pass using ENV Variable Code
+	code.push('\tif (process.env.SKIP_AUTH == \'true\' || process.env.SKIP_AUTH == \'TRUE\') {');
+	code.push('\t\treturn data;');
+	code.push('\t}');
+
 	//App Admin Code
-	code.push('\tif (req.user.apps && req.user.apps.indexOf(config.app) > -1) {');
+	code.push('\tif (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {');
 	code.push('\t\treturn data;');
 	code.push('\t}');
 
@@ -310,6 +319,35 @@ function genrateCode(config) {
 	}
 
 
+	/**----------------------- DYNAMIC-FILTER ------------------- */
+	code.push('');
+	code.push('async function getDynamicFilter(req, data) {');
+	code.push('\tlet filter;');
+	code.push('\tlet allFilters = [];');
+	parseRoleForDynamicFilters(config.role.roles);
+	code.push('\tif (allFilters && allFilters.length > 0) {');
+	code.push('\t\tlogger.debug(\'Dynamic Filter Applied\', JSON.stringify(allFilters));');
+	code.push('\t\treturn { $and: allFilters };');
+	code.push('\t} else {');
+	code.push('\t\tlogger.debug(\'Dynamic Filter Not Applied.\');');
+	code.push('\t\treturn null;');
+	code.push('\t}');
+	code.push('}');
+	code.push('');
+
+	code.push(`function getDateRangeObject(date) {`);
+	code.push(`\tif (date) {`);
+	code.push(`\t\tconst filter = {};`);
+	code.push(`\t\tconst temp = moment.utc(date);`);
+	code.push(`\t\ttemp.startOf('date');`);
+	code.push(`\t\tfilter['$gte'] = temp.utc().format();`);
+	code.push(`\t\ttemp.endOf('date');`);
+	code.push(`\t\tfilter['$lte'] = temp.utc().format();`);
+	code.push(`\t\treturn filter;`);
+	code.push(`\t}`);
+	code.push(`\treturn null;`);
+	code.push(`}`);
+
 
 
 	/**------------------------ EXPORTS ----------------------- */
@@ -337,6 +375,7 @@ function genrateCode(config) {
 	code.push('module.exports.cascadeRelation = cascadeRelation;');
 
 	code.push('module.exports.filterByPermission = filterByPermission;');
+	code.push('module.exports.getDynamicFilter = getDynamicFilter;');
 
 
 	return code.join('\n');
@@ -526,13 +565,16 @@ function genrateCode(config) {
 		});
 	}
 
+
+
 	function createIndex(schema, parentKey) {
+		let textPaths = [];
 		schema.forEach(def => {
 			let key = def.key;
 			let path = parentKey ? parentKey + '.' + key : key;
 			if (key != '_id' && def.properties) {
 				if (def.type == 'Object' && !def.properties.geoType) {
-					createIndex(def.definition, path);
+					textPaths = textPaths.concat(createIndex(def.definition, path));
 				} else if (def.type == 'Array') {
 					// No index for Array
 				} else {
@@ -545,9 +587,23 @@ function genrateCode(config) {
 					if (def.properties.geoType) {
 						code.push(`\t\tschema.index({ '${path}.geometry': '2dsphere' }, { name: '${path}_geoJson' });`);
 					}
+					if (def.type == 'String') {
+						textPaths.push(path);
+					}
 				}
 			}
 		});
+		return textPaths;
+	}
+
+	function createTextSearchIndex(paths) {
+		const fields = [];
+		if (paths && paths.length > 0) {
+			paths.forEach(path => {
+				fields.push(`"${path}": "text"`);
+			});
+			code.push(`\t\tschema.index({ ${fields.join(', ')} }, { name: 'text_search' });`);
+		}
 	}
 
 	function parseSchemaForUnique(schema, parentKey) {
@@ -749,40 +805,79 @@ function genrateCode(config) {
 			const path = parentKey ? parentKey + '.' + key : key;
 			if (key != '_id' && def.properties) {
 				if (def.properties.password && def.type != 'Array') {
-					code.push(`\tlet ${_.camelCase(path + '.value')}New = _.get(newData, '${path}.value')`);
-					code.push(`\tlet ${_.camelCase(path + '.value')}Old = _.get(oldData, '${path}.value')`);
-					code.push(`\tif (${_.camelCase(path + '.value')}New && ${_.camelCase(path + '.value')}New != ${_.camelCase(path + '.value')}Old) {`);
-					code.push('\t\ttry {');
-					code.push(`\t\t\tconst doc = await commonUtils.encryptText(req, ${_.camelCase(path + '.value')}New);`);
-					code.push('\t\t\tif (doc) {');
-					code.push(`\t\t\t\t_.set(newData, '${path}', doc);`);
-					code.push('\t\t\t}');
-					code.push('\t\t} catch (e) {');
-					code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
-					code.push('\t\t}');
-					code.push('\t}');
+					if (def.properties.longText || def.properties.richText) {
+						code.push(`\tlet ${_.camelCase(path)}New = _.get(newData, '${path}')`);
+						code.push(`\tlet ${_.camelCase(path)}Old = _.get(oldData, '${path}')`);
+						code.push(`\tif (${_.camelCase(path)}New && ${_.camelCase(path)}New != ${_.camelCase(path)}Old) {`);
+						code.push('\t\ttry {');
+						code.push(`\t\t\tconst doc = await commonUtils.encryptText(req, ${_.camelCase(path)}New);`);
+						code.push('\t\t\tif (doc && doc.value) {');
+						code.push(`\t\t\t\t_.set(newData, '${path}', doc.value);`);
+						code.push('\t\t\t}');
+						code.push('\t\t} catch (e) {');
+						code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
+						code.push('\t\t}');
+						code.push('\t}');
+					} else if (!def.properties.fileType) {
+						code.push(`\tlet ${_.camelCase(path + '.value')}New = _.get(newData, '${path}.value')`);
+						code.push(`\tlet ${_.camelCase(path + '.value')}Old = _.get(oldData, '${path}.value')`);
+						code.push(`\tif (${_.camelCase(path + '.value')}New && ${_.camelCase(path + '.value')}New != ${_.camelCase(path + '.value')}Old) {`);
+						code.push('\t\ttry {');
+						code.push(`\t\t\tconst doc = await commonUtils.encryptText(req, ${_.camelCase(path + '.value')}New);`);
+						code.push('\t\t\tif (doc) {');
+						code.push(`\t\t\t\t_.set(newData, '${path}', doc);`);
+						code.push('\t\t\t}');
+						code.push('\t\t} catch (e) {');
+						code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
+						code.push('\t\t}');
+						code.push('\t}');
+					}
 				} else if (def.type == 'Object') {
 					parseSchemaForEncryption(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].properties.password) {
-						code.push(`\tlet ${_.camelCase(path)}New = _.get(newData, '${path}') || [];`);
-						code.push(`\tlet ${_.camelCase(path)}Old = _.get(oldData, '${path}') || [];`);
-						code.push(`\tif (${_.camelCase(path)}New && Array.isArray(${_.camelCase(path)}New) && ${_.camelCase(path)}New.length > 0) {`);
-						code.push(`\t\tlet promises = ${_.camelCase(path)}New.map(async (item, i) => {`);
-						code.push('\t\t\ttry {');
-						code.push(`\t\t\t\tif (item && item.value && !${_.camelCase(path)}Old.find(e => e.value == item.value)) {`);
-						code.push('\t\t\t\t\tconst doc = await commonUtils.encryptText(req, item.value);');
-						code.push('\t\t\t\t\tif (doc) {');
-						code.push('\t\t\t\t\t\t_.assign(item, doc);');
-						code.push('\t\t\t\t\t}');
-						code.push('\t\t\t\t}');
-						code.push('\t\t\t} catch (e) {');
-						code.push(`\t\t\t\terrors['${path}.' + i] = e.message ? e.message : e;`);
-						code.push('\t\t\t}');
-						code.push('\t\t});');
-						code.push('\t\tpromises = await Promise.all(promises);');
-						code.push('\t\tpromises = null;');
-						code.push('\t}');
+						if (def.definition[0].properties.longText || def.definition[0].properties.richText) {
+							code.push(`\tlet ${_.camelCase(path)}New = _.get(newData, '${path}') || [];`);
+							code.push(`\tlet ${_.camelCase(path)}Old = _.get(oldData, '${path}') || [];`);
+							code.push(`\tif (${_.camelCase(path)}New && Array.isArray(${_.camelCase(path)}New) && ${_.camelCase(path)}New.length > 0) {`);
+							code.push(`\t\tlet promises = ${_.camelCase(path)}New.map(async (item, i) => {`);
+							code.push('\t\t\ttry {');
+							code.push(`\t\t\t\tif (item && !${_.camelCase(path)}Old.find(e => e == item)) {`);
+							code.push('\t\t\t\t\tconst doc = await commonUtils.encryptText(req, item);');
+							code.push('\t\t\t\t\tif (doc && doc.value) {');
+							code.push('\t\t\t\t\t\treturn doc.value;');
+							code.push('\t\t\t\t\t}');
+							code.push('\t\t\t\t} else {');
+							code.push('\t\t\t\t\treturn item;');
+							code.push('\t\t\t\t}');
+							code.push('\t\t\t} catch (e) {');
+							code.push(`\t\t\t\terrors['${path}.' + i] = e.message ? e.message : e;`);
+							code.push('\t\t\t}');
+							code.push('\t\t});');
+							code.push('\t\tpromises = await Promise.all(promises);');
+							code.push(`\t\t_.set(newData, '${path}', promises);`);
+							code.push('\t\tpromises = null;');
+							code.push('\t}');
+						} else if (!def.definition[0].properties.fileType) {
+							code.push(`\tlet ${_.camelCase(path)}New = _.get(newData, '${path}') || [];`);
+							code.push(`\tlet ${_.camelCase(path)}Old = _.get(oldData, '${path}') || [];`);
+							code.push(`\tif (${_.camelCase(path)}New && Array.isArray(${_.camelCase(path)}New) && ${_.camelCase(path)}New.length > 0) {`);
+							code.push(`\t\tlet promises = ${_.camelCase(path)}New.map(async (item, i) => {`);
+							code.push('\t\t\ttry {');
+							code.push(`\t\t\t\tif (item && item.value && !${_.camelCase(path)}Old.find(e => e.value == item.value)) {`);
+							code.push('\t\t\t\t\tconst doc = await commonUtils.encryptText(req, item.value);');
+							code.push('\t\t\t\t\tif (doc) {');
+							code.push('\t\t\t\t\t\t_.assign(item, doc);');
+							code.push('\t\t\t\t\t}');
+							code.push('\t\t\t\t}');
+							code.push('\t\t\t} catch (e) {');
+							code.push(`\t\t\t\terrors['${path}.' + i] = e.message ? e.message : e;`);
+							code.push('\t\t\t}');
+							code.push('\t\t});');
+							code.push('\t\tpromises = await Promise.all(promises);');
+							code.push('\t\tpromises = null;');
+							code.push('\t}');
+						}
 					} else if (def.definition[0].type == 'Object') {
 						code.push(`\tlet ${_.camelCase(path)}New = _.get(newData, '${path}') || [];`);
 						code.push(`\tlet ${_.camelCase(path)}Old = _.get(oldData, '${path}') || [];`);
@@ -806,46 +901,81 @@ function genrateCode(config) {
 			const path = parentKey ? parentKey + '.' + key : key;
 			if (key != '_id' && def.properties) {
 				if (def.properties.password && def.type != 'Array') {
-					code.push(`\tlet ${_.camelCase(path + '.value')} = _.get(newData, '${path}.value')`);
-					code.push(`\tif (${_.camelCase(path + '.value')}) {`);
-					code.push('\t\ttry {');
-					code.push(`\t\t\tconst doc = await commonUtils.decryptText(req, ${_.camelCase(path + '.value')});`);
-					code.push('\t\t\tif (doc) {');
-					code.push('\t\t\t\tif(req.query && req.query.forFile) {');
-					code.push(`\t\t\t\t\t_.set(newData, '${path}', doc);`);
-					code.push('\t\t\t\t} else {');
-					code.push(`\t\t\t\t\t_.set(newData, '${path}.value', doc);`);
-					code.push('\t\t\t\t}');
-					code.push('\t\t\t}');
-					code.push('\t\t} catch (e) {');
-					code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
-					code.push('\t\t}');
-					code.push('\t}');
+					if (def.properties.richText || def.properties.longText) {
+						code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}')`);
+						code.push(`\tif (${_.camelCase(path)}) {`);
+						code.push('\t\ttry {');
+						code.push(`\t\t\tconst doc = await commonUtils.decryptText(req, ${_.camelCase(path)});`);
+						code.push('\t\t\tif (doc) {');
+						code.push(`\t\t\t\t\t_.set(newData, '${path}', doc);`);
+						code.push('\t\t\t}');
+						code.push('\t\t} catch (e) {');
+						code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
+						code.push('\t\t}');
+						code.push('\t}');
+					} else if (!def.properties.fileType) {
+						code.push(`\tlet ${_.camelCase(path + '.value')} = _.get(newData, '${path}.value')`);
+						code.push(`\tif (${_.camelCase(path + '.value')}) {`);
+						code.push('\t\ttry {');
+						code.push(`\t\t\tconst doc = await commonUtils.decryptText(req, ${_.camelCase(path + '.value')});`);
+						code.push('\t\t\tif (doc) {');
+						code.push('\t\t\t\tif(req.query && req.query.forFile) {');
+						code.push(`\t\t\t\t\t_.set(newData, '${path}', doc);`);
+						code.push('\t\t\t\t} else {');
+						code.push(`\t\t\t\t\t_.set(newData, '${path}.value', doc);`);
+						code.push('\t\t\t\t}');
+						code.push('\t\t\t}');
+						code.push('\t\t} catch (e) {');
+						code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
+						code.push('\t\t}');
+						code.push('\t}');
+					}
 				} else if (def.type == 'Object') {
 					parseSchemaForDecryption(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].properties.password) {
-						code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}') || [];`);
-						code.push(`\tif (${_.camelCase(path)} && Array.isArray(${_.camelCase(path)}) && ${_.camelCase(path)}.length > 0) {`);
-						code.push(`\t\tlet promises = ${_.camelCase(path)}.map(async (item, i) => {`);
-						code.push('\t\t\ttry {');
-						code.push('\t\t\t\tif (item && item.value) {');
-						code.push('\t\t\t\t\tconst doc = await commonUtils.decryptText(req, item.value);');
-						code.push('\t\t\t\t\tif (doc) {');
-						code.push('\t\t\t\t\t\tif (req.query && req.query.forFile) {');
-						code.push('\t\t\t\t\t\t\titem = doc;');
-						code.push('\t\t\t\t\t\t} else {');
-						code.push('\t\t\t\t\t\t\titem.value = doc;');
-						code.push('\t\t\t\t\t\t}');
-						code.push('\t\t\t\t\t}');
-						code.push('\t\t\t\t}');
-						code.push('\t\t\t} catch (e) {');
-						code.push(`\t\t\t\terrors['${path}.' + i] = e.message ? e.message : e;`);
-						code.push('\t\t\t}');
-						code.push('\t\t});');
-						code.push('\t\tpromises = await Promise.all(promises);');
-						code.push('\t\tpromises = null;');
-						code.push('\t}');
+						if (def.definition[0].properties.richText || def.definition[0].properties.longText) {
+							code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}') || [];`);
+							code.push(`\tif (${_.camelCase(path)} && Array.isArray(${_.camelCase(path)}) && ${_.camelCase(path)}.length > 0) {`);
+							code.push(`\t\tlet promises = ${_.camelCase(path)}.map(async (item, i) => {`);
+							code.push('\t\t\ttry {');
+							code.push('\t\t\t\tif (item) {');
+							code.push('\t\t\t\t\tconst doc = await commonUtils.decryptText(req, item);');
+							code.push('\t\t\t\t\tif (doc) {');
+							code.push('\t\t\t\t\t\t\treturn doc;');
+							code.push('\t\t\t\t\t}');
+							code.push('\t\t\t\t}');
+							code.push('\t\t\t} catch (e) {');
+							code.push(`\t\t\t\terrors['${path}.' + i] = e.message ? e.message : e;`);
+							code.push('\t\t\t}');
+							code.push('\t\t});');
+							code.push('\t\tpromises = await Promise.all(promises);');
+							code.push(`\t\t_.set(newData, '${path}', promises);`);
+							code.push('\t\tpromises = null;');
+							code.push('\t}');
+						} else if (!def.definition[0].properties.fileType) {
+							code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}') || [];`);
+							code.push(`\tif (${_.camelCase(path)} && Array.isArray(${_.camelCase(path)}) && ${_.camelCase(path)}.length > 0) {`);
+							code.push(`\t\tlet promises = ${_.camelCase(path)}.map(async (item, i) => {`);
+							code.push('\t\t\ttry {');
+							code.push('\t\t\t\tif (item && item.value) {');
+							code.push('\t\t\t\t\tconst doc = await commonUtils.decryptText(req, item.value);');
+							code.push('\t\t\t\t\tif (doc) {');
+							code.push('\t\t\t\t\t\tif (req.query && req.query.forFile) {');
+							code.push('\t\t\t\t\t\t\titem = doc;');
+							code.push('\t\t\t\t\t\t} else {');
+							code.push('\t\t\t\t\t\t\titem.value = doc;');
+							code.push('\t\t\t\t\t\t}');
+							code.push('\t\t\t\t\t}');
+							code.push('\t\t\t\t}');
+							code.push('\t\t\t} catch (e) {');
+							code.push(`\t\t\t\terrors['${path}.' + i] = e.message ? e.message : e;`);
+							code.push('\t\t\t}');
+							code.push('\t\t});');
+							code.push('\t\tpromises = await Promise.all(promises);');
+							code.push('\t\tpromises = null;');
+							code.push('\t}');
+						}
 					} else if (def.definition[0].type == 'Object') {
 						code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}') || [];`);
 						code.push(`\tif (${_.camelCase(path)} && Array.isArray(${_.camelCase(path)}) && ${_.camelCase(path)}.length > 0) {`);
@@ -885,7 +1015,6 @@ function genrateCode(config) {
 					code.push('\t} catch (e) {');
 					code.push(`\t\terrors['${path}'] = e.message ? e.message : e;`);
 					code.push('\t}');
-					code.push(`\t_.set(newData, '${path}', ${_.camelCase(path)});`);
 				} else if (def.type == 'Object') {
 					parseSchemaForBoolean(def.definition, path);
 				} else if (def.type == 'Array') {
@@ -910,7 +1039,6 @@ function genrateCode(config) {
 						code.push('\t\t\t}');
 						code.push('\t\t});');
 						code.push('\t}');
-						code.push(`\t_.set(newData, '${path}', ${_.camelCase(path)});`);
 					} else if (def.definition[0].type == 'Object') {
 						code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}') || [];`);
 						code.push(`\tif (${_.camelCase(path)} && Array.isArray(${_.camelCase(path)}) && ${_.camelCase(path)}.length > 0) {`);
@@ -1048,8 +1176,6 @@ function genrateCode(config) {
 
 
 
-
-
 	function parseFieldsForPermisison(fields, parentKey) {
 		Object.keys(fields).forEach(key => {
 			const dataKey = parentKey ? parentKey + '.' + key : key;
@@ -1070,9 +1196,12 @@ function genrateCode(config) {
 		roles.forEach(e => {
 			return e.operations.forEach(o => {
 				if (!methodIdMap[o.method]) {
-					methodIdMap[o.method] = [];
+					methodIdMap[o.method] = {
+						permissionIds: [],
+						rules: e.rules
+					};
 				}
-				methodIdMap[o.method].push(e.id);
+				methodIdMap[o.method].permissionIds.push(e.id);
 			});
 		});
 		Object.keys(methodIdMap).forEach(method => {
@@ -1082,8 +1211,13 @@ function genrateCode(config) {
 			// code.push('\t\treturn true;');
 			// code.push('\t}');
 
+			//By Pass using ENV Variable Code
+			code.push('\tif (process.env.SKIP_AUTH == \'true\' || process.env.SKIP_AUTH == \'TRUE\') {');
+			code.push('\t\treturn true;');
+			code.push('\t}');
+
 			//App Admin Code
-			code.push('\tif (req.user.apps && req.user.apps.indexOf(config.app) > -1) {');
+			code.push('\tif (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {');
 			code.push('\t\treturn true;');
 			code.push('\t}');
 			//Data Service Admin Code
@@ -1091,7 +1225,7 @@ function genrateCode(config) {
 			code.push('\t\treturn true;');
 			code.push('\t}');
 			//Normal User Code
-			code.push(`\tif (_.intersection(${JSON.stringify(methodIdMap[method])}, permissions).length > 0) {`);
+			code.push(`\tif (_.intersection(${JSON.stringify(methodIdMap[method].permissionIds)}, permissions).length > 0) {`);
 			code.push('\t\treturn true;');
 			code.push('\t}');
 
@@ -1134,6 +1268,11 @@ function genrateCode(config) {
 			// code.push('\t\treturn true;');
 			// code.push('\t}');
 
+			//By Pass using ENV Variable Code
+			code.push('\tif (process.env.SKIP_AUTH == \'true\' || process.env.SKIP_AUTH == \'TRUE\') {');
+			code.push('\t\treturn true;');
+			code.push('\t}');
+
 			//Data Service Admin Code
 			code.push(`\tif (_.intersection(['ADMIN_${config._id}'], permissions).length > 0) {`);
 			code.push('\t\treturn true;');
@@ -1161,7 +1300,153 @@ function genrateCode(config) {
 		code.push('module.exports.getNextWFStep = getNextWFStep;');
 
 	}
-}
 
+	function parseRoleForDynamicFilters(roles) {
+		//SKIP if ADMIN
+		code.push(`\tif (_.intersection(['ADMIN_${config._id}'], (req.user && req.user.appPermissions ? req.user.appPermissions : [])).length > 0) {`);
+		code.push('\t\treturn null;');
+		code.push('\t}');
+
+		//By Pass using ENV Variable Code
+		code.push('\tif (process.env.SKIP_AUTH == \'true\' || process.env.SKIP_AUTH == \'TRUE\') {');
+		code.push('\t\treturn null;');
+		code.push('\t}');
+		roles.forEach(role => {
+			if (role.enableFilter && role.rule && role.rule.length > 0) {
+				code.push(`\tif (_.intersection(['${role.id}'], (req.user && req.user.appPermissions ? req.user.appPermissions : [])).length > 0) {`)
+				role.rule.forEach(rule => {
+					if (!_.isEmpty(rule.filter)) {
+						code = code.concat(getFilterGenratorCode(rule.filter));
+					}
+				});
+				code.push(`\t\tif (filter && !_.isEmpty(filter)) {`);
+				code.push(`\t\t\tallFilters.push(filter);`);
+				code.push(`\t\t}`);
+				code.push(`\t}`)
+			}
+		});
+		function parseObject(filter, rule, parentKeys) {
+			let paths = [];
+			if (!parentKeys) {
+				parentKeys = [];
+			}
+			Object.keys(rule).forEach(key => {
+				let tempKey = key;
+				if (key == '$user') {
+					paths.push({
+						type: 'User',
+						path: parentKeys,
+						dynamic: rule[key]
+					});
+				} else if (key == '$service') {
+					paths.push({
+						type: 'Service',
+						path: parentKeys,
+						dynamic: rule[key]
+					});
+				} else if (key == '$request') {
+					paths.push({
+						type: 'Request',
+						path: parentKeys,
+						dynamic: rule[key]
+					});
+				} else if (typeof rule[key] == 'object') {
+					parentKeys.push(tempKey);
+					if (Array.isArray(rule[key])) {
+						rule[key].forEach((item, i) => {
+							const keys = JSON.parse(JSON.stringify(parentKeys));
+							keys.push(i);
+							paths = paths.concat(parseObject(filter, item, keys));
+						});
+					} else {
+						const keys = JSON.parse(JSON.stringify(parentKeys));
+						paths = paths.concat(parseObject(filter, rule[key], keys));
+					}
+				} else {
+
+				}
+			});
+			return paths;
+		}
+
+		function convertServiceBlock(block) {
+			const field = block['$field'];
+			const filter = block['$filter'];
+			const dataService = block['$name'];
+
+			let tempCode = getFilterGenratorCode(filter, true);
+			// tempCode.push(`if (_.isEmpty(filterInner)) {`);
+			// tempCode.push(`\treturn null;`);
+			// tempCode.push(`}`);
+			tempCode.push(`if (!filterInner) {`);
+			tempCode.push(`\tfilterInner = {};`);
+			tempCode.push(`}`);
+			tempCode.push(`const docs = await commonUtils.getServiceDocsUsingFilter(req, '${dataService}', filterInner, '${field}', true);`);
+			tempCode.push(`return docs.map(doc => _.get(doc, '${field}'));`);
+			return tempCode;
+		}
+
+
+		function getFilterGenratorCode(filter, innerBlock) {
+			const tempCode = [];
+			if (typeof filter == 'string') {
+				filter = JSON.parse(filter);
+			}
+			const paths = parseObject(filter, filter);
+			let filterVarName = 'filter';
+			if (innerBlock) {
+				filterVarName += 'Inner';
+				tempCode.push(`\tlet ${filterVarName} = ${JSON.stringify(filter)};`);
+			} else {
+				tempCode.push(`\t${filterVarName} = ${JSON.stringify(filter)};`);
+			}
+
+			paths.forEach(item => {
+				if (item.type === 'Request') {
+					const id = _.camelCase(uuid());
+					tempCode.push(`\tconst field_${id} = '${item.dynamic['$field']}';`);
+					delete item.dynamic['$field'];
+					tempCode.push(`\tconst var_${id} = await httpClient.httpRequest(${JSON.stringify(item.dynamic)});`);
+					tempCode.push(`\tif (var_${id} && var_${id}.statusCode && var_${id}.statusCode == 200) {`);
+					tempCode.push(`\t\tif (!var_${id}.body || _.isEmpty(var_${id}.body)) {`);
+					tempCode.push(`\t\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, 'NO_VALUE');`);
+					tempCode.push(`\t\t} else {`);
+					tempCode.push(`\t\t\tconst var_${id}Body = _.get(var_${id}.body, field_${id});`);
+					tempCode.push(`\t\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, { $in: var_${id}Body });`);
+					tempCode.push(`\t\t}`);
+					tempCode.push(`\t} else {`);
+					tempCode.push(`\t\tthrow var_${id}.body;`);
+					tempCode.push(`\t}`);
+				} else if (item.type === 'Service') {
+					const id = _.camelCase(uuid());
+					const variableName = 'var_' + id;
+					const functionName = 'function_' + id;
+					tempCode.push(`\tasync function ${functionName}(req) {`);
+					tempCode.push(`\t\t${convertServiceBlock(item.dynamic).join('\n')}`);
+					tempCode.push(`\t}`);
+					tempCode.push(`\tconst ${variableName} = await ${functionName}(req);`);
+					tempCode.push(`\tif (!${variableName} || _.isEmpty(${variableName})) {`);
+					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, 'NO_VALUE');`);
+					tempCode.push(`\t} else {`);
+					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, { $in: ${variableName} });`);
+					tempCode.push(`\t}`);
+				} else {
+					tempCode.push(`\tlet var_${_.camelCase(item.path)} = _.get(req.user, '${item.dynamic}');`);
+					tempCode.push(`\tif (!var_${_.camelCase(item.path)} || _.isEmpty(var_${_.camelCase(item.path)})) {`);
+					tempCode.push(`\t\tvar_${_.camelCase(item.path)} = {};`);
+					tempCode.push(`\t}`);
+					tempCode.push(`\tif (var_${_.camelCase(item.path)}.type == 'Boolean') {`);
+					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, var_${_.camelCase(item.path)}.value);`);
+					tempCode.push(`\t} else if(var_${_.camelCase(item.path)}.type == 'Date') {`);
+					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, (getDateRangeObject(var_${_.camelCase(item.path)}.value) || 'NO_VALUE'));`);
+					tempCode.push(`\t} else {`);
+					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, (var_${_.camelCase(item.path)}.value || 'NO_VALUE'));`);
+					tempCode.push(`\t}`);
+				}
+			});
+			return tempCode;
+		}
+	}
+}
 
 module.exports.genrateCode = genrateCode;

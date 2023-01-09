@@ -7,6 +7,7 @@ const config = require('../../config');
 const definition = require('../helpers/service.definition').definition;
 const mongooseUtils = require('../utils/mongoose.utils');
 const hooksUtils = require('../utils/hooks.utils');
+const mlFileParserUtil = require('../utils/ml.fileparser.utils');
 const specialFields = require('../utils/special-fields.utils');
 const { removeNullForUniqueAttribute } = require('../utils/common.utils');
 const serviceData = require('../../service.json');
@@ -23,14 +24,9 @@ let serviceId = process.env.SERVICE_ID || 'SRVC2006';
 let schema;
 
 if (serviceData.schemaFree) {
-	schema = new mongoose.Schema({ _id: 'String' }, {
-		strict: false,
-		usePushEach: true
-	});
+	schema = mongooseUtils.MakeSchema(definition, { strict: false });
 } else {
-	schema = new mongoose.Schema(definition, {
-		usePushEach: true
-	});
+	schema = mongooseUtils.MakeSchema(definition);
 
 	schema.plugin(specialFields.mongooseUniquePlugin());
 
@@ -222,14 +218,14 @@ schema.pre('save', function (next) {
 
 	if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !oldDoc &&
 		!serviceData.stateModel.initialStates.includes(_.get(newDoc, serviceData.stateModel.attribute)) &&
-		!workflowUtils.hasAdminAccess(req, req.user.appPermissions)) {
+		!workflowUtils.hasAdminAccess(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
 		return next(new Error('Record is not in initial state.'));
 	}
 
 	if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && oldDoc
 		&& !serviceData.stateModel.states[_.get(oldDoc, serviceData.stateModel.attribute)].includes(_.get(newDoc, serviceData.stateModel.attribute))
 		&& _.get(oldDoc, serviceData.stateModel.attribute) !== _.get(newDoc, serviceData.stateModel.attribute)
-		&& !workflowUtils.hasAdminAccess(req, req.user.appPermissions)) {
+		&& !workflowUtils.hasAdminAccess(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
 		return next(new Error('State transition is not allowed'));
 	}
 	next();
@@ -266,12 +262,25 @@ schema.post('save', function (error, doc, next) {
 
 schema.post('save', function (doc, next) {
 	const req = doc._req;
+	const txnId = req.headers[global.txnIdHeader] || req.headers['txnid'] || req.headers['TxnId'];
+	if (config.ML_FILE_PARSER) {
+		let data = doc.toObject();
+		logger.debug(`[${txnId}] Adding item to file parser queue.`);
+		mlFileParserUtil.addFileParserQueueItem(txnId, data);
+	} else {
+		logger.debug(`[${txnId}] Skipping file parser.`);
+	}
+	next();
+});
+
+schema.post('save', function (doc, next) {
+	const req = doc._req;
 	const newData = doc.toObject();
 	const oldData = doc._oldDoc ? JSON.parse(JSON.stringify(doc._oldDoc)) : null;
 	const webHookData = {};
 	webHookData._id = newData._id;
 	webHookData.user = req.headers[global.userHeader];
-	webHookData.txnId = req.headers[global.txnIdHeader] || req.headers['txnid'];
+	webHookData.txnId = req.headers[global.txnIdHeader] || req.headers['txnid'] || req.headers['TxnId'];
 	webHookData.new = JSON.parse(JSON.stringify(newData));
 	webHookData.old = JSON.parse(JSON.stringify(oldData));
 	next();

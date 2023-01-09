@@ -95,7 +95,7 @@ function setRoles(role) {
 // 		if (!token) return res.status(401).json({ message: 'Unauthorized' });
 
 // 		token = token.split('JWT ')[1];
-// 		const user = JWT.verify(token, config.TOKEN_SECRET, { ignoreExpiration: true });
+// 		const user = JWT.verify(token, config.RBAC_JWT_KEY, { ignoreExpiration: true });
 // 		if (!user) {
 // 			logger.error(`[${req.header('txnId')}] Invalid JWT format`);
 // 			return res.status(401).json({ 'message': 'Unauthorized' });

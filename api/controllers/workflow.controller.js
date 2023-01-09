@@ -275,7 +275,7 @@ router.put('/doc/:id', async (req, res) => {
 		const remarks = payload.remarks;
 		const attachments = payload.attachments;
 		const newData = payload.data;
-		if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
+		if (!specialFields.hasPermissionForPUT(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
 			return res.status(403).json({
 				message: 'You don\'t have permission to update records',
 			});
@@ -481,7 +481,7 @@ async function rework(req, res) {
 		};
 		const promises = docs.map(async (doc) => {
 			try {
-				if (!specialFields.hasWFPermissionFor[doc.checkerStep](req, req.user.appPermissions)) {
+				if (!specialFields.hasWFPermissionFor[doc.checkerStep](req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
 					event._noInsert = true;
 					return results.push({ status: 400, message: 'No Permission to Respond this WF record', id: doc._id });
 				}
@@ -552,7 +552,7 @@ async function revert(req, res) {
 		};
 		const promises = docs.map(async (doc) => {
 			try {
-				if (!specialFields.hasWFPermissionFor[doc.checkerStep](req, req.user.appPermissions)) {
+				if (!specialFields.hasWFPermissionFor[doc.checkerStep](req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
 					event._noInsert = true;
 					return results.push({ status: 400, message: 'No Permission to Respond this WF record', id: doc._id });
 				}
@@ -619,7 +619,7 @@ async function approve(req, res) {
 				attachments: attachments,
 				timestamp: Date.now()
 			};
-			if (!specialFields.hasWFPermissionFor[doc.checkerStep](req, req.user.appPermissions)) {
+			if (!specialFields.hasWFPermissionFor[doc.checkerStep](req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
 				event._noInsert = true;
 				return results.push({ status: 400, message: 'No Permission to approve WF record', id: doc._id });
 			}
@@ -779,7 +779,7 @@ async function reject(req, res) {
 		};
 		const promises = docs.map(async (doc) => {
 			try {
-				if (!specialFields.hasWFPermissionFor[doc.checkerStep](req, req.user.appPermissions)) {
+				if (!specialFields.hasWFPermissionFor[doc.checkerStep](req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
 					return results.push({ status: 400, message: 'No Permission to reject WF record', id: doc._id });
 				}
 				if (doc.operation == 'PUT' || doc.operation == 'DELETE') {
@@ -820,7 +820,7 @@ async function reject(req, res) {
 async function decryptAndExpandWFItems(wfItems, req) {
 	if (wfItems && Array.isArray(wfItems)) {
 		// Decrypting secured fields
-		if (specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0]) {
+		if (specialFields.secureFields && specialFields.secureFields.length && specialFields.secureFields[0] && req.query.decrypt == true) {
 			let promises = [];
 			wfItems.forEach(e => {
 				if (e && e.data && e.data.old)

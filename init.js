@@ -15,6 +15,7 @@ const fileFields = serviceDetails.fileFields;
 const logger = log4js.getLogger(global.loggerName);
 
 function init() {
+	global.runInit = true;
 	try {
 		if (!fs.existsSync(path.join(process.cwd(), 'hooks.json'))) {
 			fs.writeFileSync(path.join(process.cwd(), 'hooks.json'), '{"preHooks":[],"experienceHooks":[],"wizard":[],"webHooks":[],"workflowHooks":[]}', 'utf-8');
@@ -22,9 +23,11 @@ function init() {
 	} catch (e) {
 		logger.error(e);
 	}
-	return controller.fixSecureText()
-		.then(() => informSM())
-		.then(() => GetKeys());
+	return informSM().then(() => GetKeys()).then(() => {
+		// global.runInit = false;
+	}).catch(err => {
+		global.runInit = false;
+	});
 }
 
 function setDefaultTimezone() {
@@ -83,9 +86,9 @@ startCronJob();
 
 async function clearUnusedFiles() {
 	const batch = 1000;
-	const storage = config.fileStorage.storage;
+	const storage = config.connectors.file.type;
 	logger.debug('Cron triggered to clear unused file attachment');
-	logger.debug(`Storage Enigne - ${config.fileStorage.storage}`);
+	logger.debug(`Storage Enigne - ${storage}`);
 	const datefilter = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
 	const count = await mongoose.connection.db.collection(`${config.serviceCollection}.files`).count({ 'uploadDate': { '$lte': datefilter } }, { filename: 1 });
 	let arr = [];
@@ -121,13 +124,13 @@ async function clearUnusedFiles() {
 			let promise;
 			if (storage === 'GRIDFS') {
 				promise = filesToBeDeleted.map(_f => deleteFileFromDB(_f));
-			} else if (storage === 'AZURE') {
+			} else if (storage === 'AZBLOB') {
 				promise = filesToBeDeleted.map(_f => {
 					logger.trace(`Deleting file - ${_f}`);
 					let data = {};
-					data.filename = _f;
-					data.connectionString = config.fileStorage[storage].connectionString;
-					data.containerName = config.fileStorage[storage].container;
+					data.filename = `${config.app}/${config.serviceId}_${config.serviceName}/${_f}`;
+					data.connectionString = config.connectors.file.AZURE.connectionString;
+					data.containerName = config.connectors.file.AZURE.container;
 
 					return new Promise((resolve, reject) => {
 						try {
@@ -140,6 +143,28 @@ async function clearUnusedFiles() {
 							mongoose.connection.db.collection(`${config.serviceCollection}.files`).deleteOne({ filename: _f });
 						})
 						.catch(err => logger.error(`Error deleting file ${_f} from Azure Blob ${err}`));
+				});
+			} else if (storage === 'S3') {
+				promise = filesToBeDeleted.map(_f => {
+					logger.trace(`Deleting file from S3 - ${_f}`);
+					let data = {};
+					data.fileName = `${config.app}/${config.serviceId}_${config.serviceName}/${_f}`;
+					data.accessKeyId = config.connectors.file.S3.accessKeyId;
+					data.secretAccessKey = config.connectors.file.S3.secretAccessKey;
+					data.region = config.connectors.file.S3.region;
+					data.bucket = config.connectors.file.S3.bucket;
+
+					return new Promise((resolve, reject) => {
+						try {
+							resolve(storageEngine.S3.deleteFile(data));
+						} catch (err) {
+							reject(err);
+						}
+					})
+						.then(() => {
+							mongoose.connection.db.collection(`${config.serviceCollection}.files`).deleteOne({ filename: _f });
+						})
+						.catch(err => logger.error(`Error deleting file ${_f} from S3 :: ${err}`));
 				});
 			} else {
 				logger.error('External Storage type is not allowed');
@@ -195,7 +220,7 @@ async function informSM() {
 		if (res.statusCode === 200) {
 			let maintenanceInfo = null;
 			const body = res.body;
-			logger.trace('SM status change API called successfully');
+			logger.info('SM status change API called successfully');
 			logger.trace('SM status change api response :: ', JSON.stringify(body));
 			if (body.status == 'Maintenance') {
 				logger.info('Service going into maintenance mode!');

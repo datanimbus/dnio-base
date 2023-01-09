@@ -3,7 +3,7 @@ const log4js = require('log4js');
 const mongoose = require('mongoose');
 const _ = require('lodash');
 
-mongoose.set('useFindAndModify', false);
+// mongoose.set('useFindAndModify', false);
 
 const config = require('../../config');
 require('../../queue');
@@ -83,7 +83,7 @@ async function execute() {
 					serviceDoc._req = req;
 					await serviceDoc.save();
 					doc.result = 'SUCCESS';
-				} else if(doc.action == 'DISCARD') {
+				} else if (doc.action == 'DISCARD') {
 					doc.result = 'SUCCESS';
 				} else {
 					logger.error(`Unknow action ${doc.action} for dedupe Item ${doc._id}`);

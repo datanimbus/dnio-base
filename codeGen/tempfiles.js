@@ -3,7 +3,6 @@ const logger = global.logger;
 function dotEnvFile(config) {
 	return `
 NODE_ENV="development"
-MONGO_APPCENTER_URL="${process.env.MONGO_APPCENTER_URL}"
 MONGO_AUTHOR_URL="${process.env.MONGO_AUTHOR_URL}"
 MONGO_LOGS_URL="${process.env.MONGO_LOGS_URL}"
 ODP_APP="${config.app}"
@@ -23,14 +22,43 @@ DATA_STACK_APP_NS="appveen-${config.app}"
 DATA_STACK_NAMESPACE="appveen"
 DATA_STACK_APP="${config.app}"
 DATA_STACK_ALLOWED_FILE_TYPE="${config.allowedFileTypes}"
-STORAGE_ENGINE="${process.env.STORAGE_ENGINE}"
-STORAGE_AZURE_CONNECTION_STRING="${process.env.STORAGE_AZURE_CONNECTION_STRING}"
-STORAGE_AZURE_CONTAINER="${process.env.STORAGE_AZURE_CONTAINER}"
-STORAGE_AZURE_SHARED_KEY="${process.env.STORAGE_AZURE_SHARED_KEY}"
-STORAGE_AZURE_TIMEOUT="${process.env.STORAGE_AZURE_TIMEOUT}"
+DATA_STORAGE_ENGINE="${config?.connectors?.data?.type || "MONGODB"}"
+${ config?.connectors?.data?.type === 'MONGODB' ?
+`MONGO_APPCENTER_URL="${config.connectors?.data?.Mongo.connectionString}"` : 
+`MONGO_APPCENTER_URL="${process.env.MONGO_APPCENTER_URL}"`
+}
+FILE_STORAGE_ENGINE="${config?.connectors?.file?.type || "GRIDFS"}"
+${ config.fileStorage?.type === 'Azure Blob Storage' ?
+`STORAGE_AZURE_CONNECTION_STRING="${config.connectors?.file?.AZURE?.connectionString}"
+STORAGE_AZURE_CONTAINER="${config.connectors?.file?.AZURE?.container}"
+STORAGE_AZURE_SHARED_KEY="${config.connectors?.file?.AZURE?.sharedKey}"
+STORAGE_AZURE_TIMEOUT="${config.connectors?.file?.AZURE?.timeout}"` : ``
+}
+${ config.fileStorage?.type === 'Amazon S3' ?
+`STORAGE_S3_ACCESS_KEY_ID="${config.connectors?.file?.S3?.accessKeyId}"
+STORAGE_S3_SECRET_ACCESS_KEY="${config.connectors?.file?.S3?.secretAccessKey}"
+STORAGE_S3_REGION="${config.connectors?.file?.S3?.region}"
+STORAGE_S3_BUCKET="${config.connectors?.file?.S3?.bucket}"` : ``
+}
 `;
 }
 
+function gcsFile(config) {
+	return {
+		'type': 'service_account',
+		'project_id': config.projectId,
+		'private_key_id': config.privateKeyId,
+		'private_key': config.privateKey,
+		'client_email': config.clientEmail,
+		'client_id': config.clientId,
+		'auth_uri': config.authURI,
+		'token_uri': config.tokenURI,
+		'auth_provider_x509_cert_url': config.authCertURL,
+		'client_x509_cert_url': config.clientCertURL
+	};
+}
+
 module.exports = {
-	dotEnvFile
+	dotEnvFile,
+	gcsFile
 };

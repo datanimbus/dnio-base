@@ -78,13 +78,16 @@ router.get('/:fileId', (req, res) => {
 router.post('/:fileId/create', (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
 	async function execute() {
-		const data = req.body;
+		const data = JSON.parse(JSON.stringify(req.body));
 		const fileId = data.fileId;
 		const fileName = data.fileName;
 		const startTime = Date.now();
 		let endTime;
 		try {
-			await fileTransfersModel.findOneAndUpdate({ fileId }, { $set: { status: 'Importing' } });
+			let fileTransferDocumentId = await fileTransfersModel.collection.findOne({ fileId: fileId });
+			fileTransferDocumentId = fileTransferDocumentId._id;
+
+			await fileTransfersModel.findOneAndUpdate({ _id: fileTransferDocumentId }, { $set: { status: 'Importing' } });
 			logger.info(`[${txnId}] File mapper :: Creation process :: Started`);
 			res.status(202).json({ message: 'Creation Process started...' });
 
@@ -98,7 +101,7 @@ router.post('/:fileId/create', (req, res) => {
 				fileId,
 				data
 			});
-			await fileTransfersModel.findOneAndUpdate({ fileId }, { $set: result });
+			await fileTransfersModel.findOneAndUpdate({ _id: fileTransferDocumentId }, { $set: result });
 			endTime = Date.now();
 			let socketData = JSON.parse(JSON.stringify(result));
 			socketData.fileId = fileId;
@@ -130,40 +133,38 @@ router.post('/:fileId/create', (req, res) => {
 router.put('/:fileId/mapping', (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
 	async function execute() {
-		const data = req.body;
+		const data = JSON.parse(JSON.stringify(req.body));
 		const fileId = data.fileId;
 		const fileName = data.fileName;
 		const startTime = Date.now();
 		let endTime;
+
+		let headerMapping = data.headerMapping;
+		let atleastOneMappingPresent = Object.keys(headerMapping).filter(key => headerMapping[key] != null).length > 0;
+		logger.debug(`[${txnId}] [${fileId}] File mapper ::  At least one mapping present :: ${atleastOneMappingPresent}`);
+		if (!atleastOneMappingPresent && !serviceDetails.schemaFree) throw Error('At least one field must be mapped');
+
 		try {
-			logger.info(`[${txnId}] File mapper :: Validation process :: Started`);
+			logger.info(`[${txnId}] [${fileId}] File mapper :: Validation process :: Started`);
+			logger.debug(`[${txnId}] [${fileId}] File mapper :: File name :: ${fileName}`);
 			res.status(202).json({ message: 'Validation Process Started...' });
 
 			/**---------- After Response Process ------------*/
 			let result;
+			let threadName = 'file-mapper-validation';
 			if (serviceDetails.schemaFree) {
-				result = await threadUtils.executeThread(txnId, 'schemafree-file-mapper-validation', {
-					req: {
-						headers: req.headers,
-						user: req.user,
-						rawHeaders: req.rawHeaders
-					},
-					fileId,
-					data
-				});
-			} else {
-				result = await threadUtils.executeThread(txnId, 'file-mapper-validation', {
-					req: {
-						headers: req.headers,
-						user: req.user,
-						rawHeaders: req.rawHeaders
-					},
-					fileId,
-					data
-				});
+				threadName = 'schemafree-file-mapper-validation';
 			}
+			result = await threadUtils.executeThread(txnId, threadName, {
+				req: {
+					headers: req.headers,
+					user: req.user,
+					rawHeaders: req.rawHeaders
+				},
+				fileId,
+				data
+			});
 
-			await fileTransfersModel.findOneAndUpdate({ fileId }, { $set: result });
 			endTime = Date.now();
 			let socketData = JSON.parse(JSON.stringify(result));
 			socketData.fileId = fileId;

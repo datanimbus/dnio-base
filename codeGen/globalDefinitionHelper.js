@@ -38,7 +38,7 @@ function expandSchemaWithGlobalDef(schema) {
 					if (properties) attribute['properties'] = JSON.parse(JSON.stringify(properties));
 				}
 			}
-			else if (attribute['properties'] && attribute['properties']['password']) {
+			else if (attribute['properties'] && attribute['properties']['password'] && !attribute['properties']['longText'] && !attribute['properties']['richText'] && !attribute['properties']['fileType']) {
 				let sysDef = systemGlobalSchema['SecureText'];
 				if (sysDef) {
 					sysDef.key = attribute.key;

@@ -8,7 +8,7 @@ const logger = log4js.getLogger(global.loggerName);
 
 router.post('/decrypt', async (req, res) => {
 	try {
-		if (!(specialFields.hasPermissionForGET(req, req.user.appPermissions))) {
+		if (!(specialFields.hasPermissionForGET(req, (req.user && req.user.appPermissions ? req.user.appPermissions : [])))) {
 			return res.status(403).json({
 				message: 'You don\'t have permission to decrypt records',
 			});
