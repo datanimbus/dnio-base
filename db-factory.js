@@ -123,7 +123,7 @@ async function initConfigVariables(serviceDoc, reinitLogger) {
 		config.servicePort = serviceDoc.port;
 	}
 	config.serviceVersion = serviceDoc.version;
-	config.serviceDB = `${config.namespace}-${serviceDoc.app}`;
+	config.serviceDB = serviceDoc.connectors.data.values.database ;
 	config.serviceEndpoint = serviceDoc.api;
 	config.serviceCollection = serviceDoc.collectionName;
 
@@ -165,7 +165,7 @@ async function initConfigVariables(serviceDoc, reinitLogger) {
 
 	config.connectors.data.type = serviceDoc?.connectors?.data?.type || 'MONGODB';
 	if (config?.connectors?.data?.type === 'MONGODB') {
-		config.connectors.data.Mongo = serviceDoc?.connectors?.data?.Mongo || { connectionString: config.mongoUrl };
+		config.connectors.data.values = serviceDoc?.connectors?.data?.values || { connectionString: config.mongoUrl, database: config.serviceDB };
 	}
 
 	config.connectors.file.type = serviceDoc?.connectors?.file?.type || 'GRIDFS';
@@ -200,20 +200,25 @@ async function init() {
 
 
 		serviceDoc.connectors.data.type = dataStorageConnectorDetails.type;
-		serviceDoc.connectors.data.values = dataStorageConnectorDetails.values;
+
+		if (dataStorageConnectorDetails?.type === 'MONGODB' && dataStorageConnectorDetails?.options.default) {
+			serviceDoc.connectors.data.values = { "connectionString": config.mongoUrl, "database": config.namespace + '-' + serviceDoc.app }
+		} else {
+			serviceDoc.connectors.data.values = dataStorageConnectorDetails.values;
+		}
+		
 		if (serviceDoc.connectors.data.options && serviceDoc.connectors.data.options.tableName) dataStorageConnectorDetails.options["tableName"] = serviceDoc.connectors.data.options.tableName
 		serviceDoc.connectors.data.options = dataStorageConnectorDetails.options;
-
-		if (dataStorageConnectorDetails?.type === 'MONGODB') {
-			serviceDoc.connectors.data.type = 'MONGODB';
-			serviceDoc.connectors.data.Mongo = dataStorageConnectorDetails.values;
-		}
 
 
 		if (fileStorageConnectorDetails?.type === 'GRIDFS') {
 			serviceDoc.connectors.file.type = 'GRIDFS';
-			serviceDoc.connectors.file.Mongo = fileStorageConnectorDetails.values;
-
+			if ((!fileStorageConnectorDetails.values.connectionString || fileStorageConnectorDetails.values.connectionString == '') && fileStorageConnectorDetails.options.default) {
+				serviceDoc.connectors.file.Mongo = { connectionString: config.mongoUrl };	
+			} else {
+				serviceDoc.connectors.file.Mongo = fileStorageConnectorDetails.values;
+			}
+			
 		} else if (fileStorageConnectorDetails?.type === 'AZBLOB') {
 			serviceDoc.connectors.file.type = 'AZBLOB';
 			serviceDoc.connectors.file.AZURE = fileStorageConnectorDetails.values;
@@ -259,6 +264,43 @@ async function initForWorker(additionalLoggerIdentifier) {
 		await establishAuthorAndLogsDBConnections();
 		let serviceDoc = await fetchServiceDetails(config.serviceId);
 		logger.trace(`Service document : ${JSON.stringify(serviceDoc)}`);
+
+		let fileStorageConnectorDetails = await fetchConnectorDetails(serviceDoc?.connectors?.file?._id);
+		logger.trace(`File Storage Connector document :: ${JSON.stringify(fileStorageConnectorDetails)}`);
+
+		let dataStorageConnectorDetails = await fetchConnectorDetails(serviceDoc?.connectors?.data?._id);
+		logger.trace(`Data Storage Connector document :: ${JSON.stringify(dataStorageConnectorDetails)}`);
+
+
+		serviceDoc.connectors.data.type = dataStorageConnectorDetails.type;
+
+		if (dataStorageConnectorDetails?.type === 'MONGODB' && dataStorageConnectorDetails?.options.default) {
+			serviceDoc.connectors.data.values = { "connectionString": config.mongoUrl, "database": config.namespace + '-' + serviceDoc.app }
+		} else {
+			serviceDoc.connectors.data.values = dataStorageConnectorDetails.values;
+		}
+		
+		if (serviceDoc.connectors.data.options && serviceDoc.connectors.data.options.tableName) dataStorageConnectorDetails.options["tableName"] = serviceDoc.connectors.data.options.tableName
+		serviceDoc.connectors.data.options = dataStorageConnectorDetails.options;
+
+		
+		if (fileStorageConnectorDetails?.type === 'GRIDFS') {
+			serviceDoc.connectors.file.type = 'GRIDFS';
+			serviceDoc.connectors.file.Mongo = fileStorageConnectorDetails.values;
+
+		} else if (fileStorageConnectorDetails?.type === 'AZBLOB') {
+			serviceDoc.connectors.file.type = 'AZBLOB';
+			serviceDoc.connectors.file.AZURE = fileStorageConnectorDetails.values;
+
+		} else if (fileStorageConnectorDetails?.type === 'S3') {
+			serviceDoc.connectors.file.type = 'S3';
+			serviceDoc.connectors.file.S3 = fileStorageConnectorDetails.values;
+
+		} else if (fileStorageConnectorDetails?.type === 'GCS') {
+			serviceDoc.connectors.file.type = 'GCS';
+			serviceDoc.connectors.file.GCS = fileStorageConnectorDetails.values;
+		}
+
 		// INIT CONFIG based on the service doc
 		initConfigVariables(serviceDoc, false);
 		config.updateLogger(additionalLoggerIdentifier);

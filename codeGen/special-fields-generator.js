@@ -8,6 +8,7 @@ function genrateCode(config) {
 		schema = JSON.parse(schema);
 	}
 	let code = [];
+	let uniqueIndexes = [];
 	code.push('const mongoose = require(\'mongoose\');');
 	code.push('const _ = require(\'lodash\');');
 	code.push('const moment = require(\'moment\');');
@@ -48,6 +49,8 @@ function genrateCode(config) {
 	code.push('function mongooseUniquePlugin() {');
 	code.push('\treturn function (schema) {');
 	const textPaths = createIndex(schema);
+	if (uniqueIndexes.length > 0)
+		code.push(`\t\tschema.${uniqueIndexes.join('.')};`);
 	createTextSearchIndex(textPaths);
 	code.push('\t}');
 	code.push('}');
@@ -335,18 +338,18 @@ function genrateCode(config) {
 	code.push('}');
 	code.push('');
 
-	code.push(`function getDateRangeObject(date) {`);
-	code.push(`\tif (date) {`);
-	code.push(`\t\tconst filter = {};`);
-	code.push(`\t\tconst temp = moment.utc(date);`);
-	code.push(`\t\ttemp.startOf('date');`);
-	code.push(`\t\tfilter['$gte'] = temp.utc().format();`);
-	code.push(`\t\ttemp.endOf('date');`);
-	code.push(`\t\tfilter['$lte'] = temp.utc().format();`);
-	code.push(`\t\treturn filter;`);
-	code.push(`\t}`);
-	code.push(`\treturn null;`);
-	code.push(`}`);
+	code.push('function getDateRangeObject(date) {');
+	code.push('\tif (date) {');
+	code.push('\t\tconst filter = {};');
+	code.push('\t\tconst temp = moment.utc(date);');
+	code.push('\t\ttemp.startOf(\'date\');');
+	code.push('\t\tfilter[\'$gte\'] = temp.utc().toISOString();');
+	code.push('\t\ttemp.endOf(\'date\');');
+	code.push('\t\tfilter[\'$lte\'] = temp.utc().toISOString();');
+	code.push('\t\treturn filter;');
+	code.push('\t}');
+	code.push('\treturn null;');
+	code.push('}');
 
 
 
@@ -582,7 +585,8 @@ function genrateCode(config) {
 						if (def.type === 'User' || def.properties.relatedTo) {
 							path = path + '._id';
 						}
-						code.push(`\t\tschema.index({ '${path}': 1 }, { unique: '${path} field should be unique', sparse: true, collation: { locale: 'en', strength: 2 } });`);
+						// code.push(`\t\tschema.index({ '${path}': 1 }, { unique: '${path} field should be unique', sparse: true, collation: { locale: 'en', strength: 2 } });`);
+						uniqueIndexes.push(`index({ '${path}': 1 }, { unique: true, sparse: true, collation: { locale: 'en', strength: 2 }, name: '${path}_1' })`)
 					}
 					if (def.properties.geoType) {
 						code.push(`\t\tschema.index({ '${path}.geometry': '2dsphere' }, { name: '${path}_geoJson' });`);

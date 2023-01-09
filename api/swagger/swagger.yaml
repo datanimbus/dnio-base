@@ -1,9 +1,9 @@
 swagger: '2.0'
 info:
-  version: '5'
-  title: Clinical Data API
-host: localhost:20868
-basePath: /Jerry/clinicalData
+  version: '1'
+  title: sql-test API
+host: localhost:20014
+basePath: /Adam/sqlTest
 schemes:
   - http
 consumes:
@@ -16,8 +16,8 @@ paths:
   /:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of 'Clinical Data'
-      operationId: v1_srvc21962List
+      description: Retrieve a list of 'sql-test'
+      operationId: v1_srvc2005List
       parameters:
         - name: page
           in: query
@@ -57,14 +57,14 @@ paths:
         '500':
           description: Internal server error
     post:
-      description: Create a new 'Clinical Data'
-      operationId: v1_srvc21962Create
+      description: Create a new 'sql-test'
+      operationId: v1_srvc2005Create
       parameters:
         - name: data
           in: body
-          description: Payload to create a 'Clinical Data'
+          description: Payload to create a 'sql-test'
           schema:
-            $ref: '#/definitions/clinicalData_create'
+            $ref: '#/definitions/sqlTest_create'
         - name: authorization
           in: header
           type: string
@@ -91,14 +91,14 @@ paths:
   /utils/simulate:
     x-swagger-router-controller: controller
     post:
-      description: validate 'Clinical Data'
-      operationId: v1_srvc21962Simulate
+      description: validate 'sql-test'
+      operationId: v1_srvc2005Simulate
       parameters:
         - name: data
           in: body
-          description: Payload to validate 'Clinical Data'
+          description: Payload to validate 'sql-test'
           schema:
-            $ref: '#/definitions/clinicalData_update'
+            $ref: '#/definitions/sqlTest_update'
         - name: authorization
           in: header
           type: string
@@ -133,8 +133,8 @@ paths:
   /utils/bulkShow:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of 'Clinical Data'
-      operationId: v1_srvc21962BulkShow
+      description: Retrieve a list of 'sql-test'
+      operationId: v1_srvc2005BulkShow
       parameters:
         - name: id
           in: query
@@ -162,8 +162,8 @@ paths:
   /utils/securedFields:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of secured fields in 'Clinical Data'
-      operationId: v1_srvc21962SecuredFields
+      description: Retrieve a list of secured fields in 'sql-test'
+      operationId: v1_srvc2005SecuredFields
       responses:
         '200':
           description: List of the entites
@@ -175,7 +175,7 @@ paths:
     x-swagger-router-controller: controller
     post:
       description: triggers the hook with data
-      operationId: v1_srvc21962Hook
+      operationId: v1_srvc2005Hook
       parameters:
         - name: url
           in: query
@@ -197,7 +197,7 @@ paths:
     x-swagger-router-controller: controller
     post:
       description: triggers the hook with data
-      operationId: v1_srvc21962ExperienceHook
+      operationId: v1_srvc2005ExperienceHook
       parameters:
         - name: name
           in: query
@@ -218,8 +218,8 @@ paths:
   /utils/bulkDelete:
     x-swagger-router-controller: controller
     delete:
-      description: Deletes a list of 'clinicalData'
-      operationId: v1_srvc21962BulkDelete
+      description: Deletes a list of 'sqlTest'
+      operationId: v1_srvc2005BulkDelete
       parameters:
         - name: authorization
           in: header
@@ -245,8 +245,8 @@ paths:
   /utils/count:
     x-swagger-router-controller: controller
     get:
-      description: returns count of 'Clinical Data'
-      operationId: v1_srvc21962Count
+      description: returns count of 'sql-test'
+      operationId: v1_srvc2005Count
       parameters:
         - &ref_0
           name: filter
@@ -274,8 +274,8 @@ paths:
   /{id}:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve an existing 'Clinical Data'
-      operationId: v1_srvc21962Show
+      description: Retrieve an existing 'sql-test'
+      operationId: v1_srvc2005Show
       parameters:
         - name: select
           in: query
@@ -297,7 +297,7 @@ paths:
           default: false
       responses:
         '200':
-          description: Clinical Data document
+          description: sql-test document
         '400':
           description: Bad parameters
         '404':
@@ -305,19 +305,19 @@ paths:
         '500':
           description: Internal server error
     put:
-      description: Update an existing 'Clinical Data'
-      operationId: v1_srvc21962Update
+      description: Update an existing 'sql-test'
+      operationId: v1_srvc2005Update
       parameters:
         - name: data
           in: body
-          description: Payload to update a 'Clinical Data'
+          description: Payload to update a 'sql-test'
           schema:
-            $ref: '#/definitions/clinicalData_update'
+            $ref: '#/definitions/sqlTest_update'
         - name: id
           in: path
           type: string
           required: true
-          description: Id of the 'Clinical Data' to be updated
+          description: Id of the 'sql-test' to be updated
         - name: authorization
           in: header
           type: string
@@ -344,14 +344,14 @@ paths:
         '500':
           description: Internal server error
     delete:
-      description: Delete an existing 'Clinical Data'
-      operationId: v1_srvc21962Destroy
+      description: Delete an existing 'sql-test'
+      operationId: v1_srvc2005Destroy
       parameters:
         - name: id
           in: path
           type: string
           required: true
-          description: Id of the 'Clinical Data' to be deleted
+          description: Id of the 'sql-test' to be deleted
         - name: authorization
           in: header
           type: string
@@ -359,35 +359,6 @@ paths:
       responses:
         '200':
           description: Empty object
-        '400':
-          description: Bad parameters
-        '404':
-          description: No records to list with the given parameter set.
-        '500':
-          description: Internal server error
-  /{id}/math:
-    x-swagger-router-controller: controller
-    put:
-      description: Does math operation on a 'Clinical Data'
-      operationId: v1_srvc21962Math
-      parameters:
-        - name: data
-          in: body
-          description: Payload to update a 'Clinical Data'
-          schema:
-            $ref: '#/definitions/clinicalData_math'
-        - name: id
-          in: path
-          type: string
-          required: true
-          description: Id of the 'Clinical Data' to be updated
-        - name: authorization
-          in: header
-          type: string
-          description: The JWT token for req.validation
-      responses:
-        '200':
-          description: Update entry
         '400':
           description: Bad parameters
         '404':
@@ -408,7 +379,7 @@ paths:
           in: query
           type: string
           description: filename of file
-      operationId: v1_srvc21962ExportedFileDownload
+      operationId: v1_srvc2005ExportedFileDownload
       responses:
         '200':
           description: file download
@@ -419,7 +390,7 @@ paths:
   /utils/fileMapper/{fileId}/count:
     x-swagger-router-controller: controller
     get:
-      description: returns count of 'Clinical Data'
+      description: returns count of 'sql-test'
       operationId: fileMapperCount
       parameters:
         - *ref_0
@@ -440,8 +411,8 @@ paths:
   /utils/export:
     x-swagger-router-controller: controller
     post:
-      description: Retrieve a list of 'Clinical Data'
-      operationId: v1_srvc21962Export
+      description: Retrieve a list of 'sql-test'
+      operationId: v1_srvc2005Export
       parameters:
         - name: filter
           in: body
@@ -483,7 +454,7 @@ paths:
     x-swagger-router-controller: controller
     get:
       description: Retrieve list of bulk actions'
-      operationId: v1_srvc21962ExportDetails
+      operationId: v1_srvc2005ExportDetails
       parameters:
         - name: page
           in: query
@@ -520,7 +491,7 @@ paths:
     x-swagger-router-controller: controller
     get:
       description: count of bulk actions'
-      operationId: v1_srvc21962ExportDetailsCount
+      operationId: v1_srvc2005ExportDetailsCount
       parameters:
         - name: page
           in: query
@@ -557,7 +528,7 @@ paths:
     x-swagger-router-controller: controller
     delete:
       description: Deletes a file with file id
-      operationId: v1_srvc21962ExportDetailsDelete
+      operationId: v1_srvc2005ExportDetailsDelete
       parameters:
         - name: id
           in: path
@@ -629,154 +600,66 @@ paths:
         '500':
           description: Internal server error
 definitions:
-  clinicalData_create:
+  sqlTest_create:
     properties:
-      studyId:
+      url:
         type:
           - string
           - 'null'
-      siteId:
+      name:
         type:
           - string
           - 'null'
-      subjectId:
+      manufacturers:
         type:
           - string
           - 'null'
-      visitId:
+      stock:
         type:
           - string
           - 'null'
-      visitDate:
-        properties:
-          rawData:
-            type:
-              - string
-              - 'null'
-          tzData:
-            type:
-              - string
-              - 'null'
-          tzInfo:
-            type:
-              - string
-              - 'null'
-          utc:
-            type:
-              - string
-              - 'null'
-          unix:
-            type:
-              - number
-              - 'null'
-      visitRepeatKey:
+      introduction:
         type:
           - string
           - 'null'
-      formId:
+      benefits:
         type:
           - string
           - 'null'
-      formRepeatKey:
+      label:
         type:
           - string
           - 'null'
-      itemGroupId:
-        type:
-          - string
-          - 'null'
-      itemGroupRowId:
-        type:
-          - string
-          - 'null'
-      itemId:
-        type:
-          - string
-          - 'null'
-      itemValue:
-        type:
-          - string
-          - 'null'
-  clinicalData_update:
+  sqlTest_update:
     properties:
-      studyId:
+      url:
         type:
           - string
           - 'null'
-      siteId:
+      name:
         type:
           - string
           - 'null'
-      subjectId:
+      manufacturers:
         type:
           - string
           - 'null'
-      visitId:
+      stock:
         type:
           - string
           - 'null'
-      visitDate:
-        properties:
-          rawData:
-            type:
-              - string
-              - 'null'
-          tzData:
-            type:
-              - string
-              - 'null'
-          tzInfo:
-            type:
-              - string
-              - 'null'
-          utc:
-            type:
-              - string
-              - 'null'
-          unix:
-            type:
-              - number
-              - 'null'
-      visitRepeatKey:
+      introduction:
         type:
           - string
           - 'null'
-      formId:
+      benefits:
         type:
           - string
           - 'null'
-      formRepeatKey:
+      label:
         type:
           - string
           - 'null'
-      itemGroupId:
-        type:
-          - string
-          - 'null'
-      itemGroupRowId:
-        type:
-          - string
-          - 'null'
-      itemId:
-        type:
-          - string
-          - 'null'
-      itemValue:
-        type:
-          - string
-          - 'null'
-  clinicalData_math:
-    properties:
-      $inc:
-        type: object
-        properties:
-          visitDate.unix:
-            type: number
-      $mul:
-        type: object
-        properties:
-          visitDate.unix:
-            type: number
   mapping:
     properties:
       headers:

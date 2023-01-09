@@ -12,7 +12,8 @@ const precisionFields = [];
 const secureFields = ''.split(',');
 const uniqueFields = [];
 const relationUniqueFields = ''.split(',');
-const dateFields = [{"field":"visitDate","dateType":"date","defaultTimezone":"Zulu"}]
+const dateFields = []
+const fileFields = []
 /**
  * @param {*} req The Incomming Request Object
  * @param {*} newData The New Document Object
@@ -29,7 +30,7 @@ function validateCreateOnly(req, newData, oldData, forceRemove) {
 
 function mongooseUniquePlugin() {
 	return function (schema) {
-		schema.index({ "studyId": "text", "siteId": "text", "subjectId": "text", "visitId": "text", "visitRepeatKey": "text", "formId": "text", "formRepeatKey": "text", "itemGroupId": "text", "itemGroupRowId": "text", "itemId": "text", "itemValue": "text" }, { name: 'text_search' });
+		schema.index({ "url": "text", "name": "text", "manufacturers": "text", "stock": "text", "introduction": "text", "benefits": "text", "label": "text" }, { name: 'text_search' });
 	}
 }
 
@@ -219,78 +220,68 @@ async function enrichGeojson(req, newData, oldData) {
 async function validateDateFields(req, newData, oldData) {
 	let txnId = req.headers['txnid'];
 	const errors = {};
-	let visitDateDefaultTimezone = 'Zulu';
-	let visitDateSupportedTimezones = [];
-	let visitDateNew = _.get(newData, 'visitDate')
-	let visitDateOld = _.get(oldData, 'visitDate')
-	if (typeof visitDateNew === 'string') {
-		visitDateNew = {
-			rawData: visitDateNew
-		};
-	}
-	if (typeof visitDateOld === 'string') {
-		visitDateOld = {
-			rawData: visitDateOld
-		};
-	}
-	if (!_.isEqual(visitDateNew, visitDateOld)) {
-		try {
-			visitDateNew = commonUtils.getFormattedDate(txnId, visitDateNew, visitDateDefaultTimezone, visitDateSupportedTimezones);
-			_.set(newData, 'visitDate', visitDateNew);
-		} catch (e) {
-			errors['visitDate'] = e.message ? e.message : e;
-		}
-	}
 	return Object.keys(errors).length > 0 ? errors : null;
 }
 
 function hasPermissionForPOST(req, permissions) {
-	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
+	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
 		return true;
 	}
-	if (_.intersection(['ADMIN_SRVC21962'], permissions).length > 0) {
+	if (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {
 		return true;
 	}
-	if (_.intersection(["P6733802061"], permissions).length > 0) {
+	if (_.intersection(['ADMIN_SRVC2005'], permissions).length > 0) {
+		return true;
+	}
+	if (_.intersection(["P1857467316"], permissions).length > 0) {
 		return true;
 	}
 	return false;
 }
 module.exports.hasPermissionForPOST = hasPermissionForPOST;
 function hasPermissionForPUT(req, permissions) {
-	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
+	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
 		return true;
 	}
-	if (_.intersection(['ADMIN_SRVC21962'], permissions).length > 0) {
+	if (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {
 		return true;
 	}
-	if (_.intersection(["P6733802061"], permissions).length > 0) {
+	if (_.intersection(['ADMIN_SRVC2005'], permissions).length > 0) {
+		return true;
+	}
+	if (_.intersection(["P1857467316"], permissions).length > 0) {
 		return true;
 	}
 	return false;
 }
 module.exports.hasPermissionForPUT = hasPermissionForPUT;
 function hasPermissionForDELETE(req, permissions) {
-	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
+	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
 		return true;
 	}
-	if (_.intersection(['ADMIN_SRVC21962'], permissions).length > 0) {
+	if (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {
 		return true;
 	}
-	if (_.intersection(["P6733802061"], permissions).length > 0) {
+	if (_.intersection(['ADMIN_SRVC2005'], permissions).length > 0) {
+		return true;
+	}
+	if (_.intersection(["P1857467316"], permissions).length > 0) {
 		return true;
 	}
 	return false;
 }
 module.exports.hasPermissionForDELETE = hasPermissionForDELETE;
 function hasPermissionForGET(req, permissions) {
-	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
+	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
 		return true;
 	}
-	if (_.intersection(['ADMIN_SRVC21962'], permissions).length > 0) {
+	if (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {
 		return true;
 	}
-	if (_.intersection(["P6733802061","P7680752529","P8373673737"], permissions).length > 0) {
+	if (_.intersection(['ADMIN_SRVC2005'], permissions).length > 0) {
+		return true;
+	}
+	if (_.intersection(["P1857467316","P1120635501"], permissions).length > 0) {
 		return true;
 	}
 	return false;
@@ -298,53 +289,41 @@ function hasPermissionForGET(req, permissions) {
 module.exports.hasPermissionForGET = hasPermissionForGET;
 
 function filterByPermission(req, permissions, data) {
-	if (req.user.apps && req.user.apps.indexOf(config.app) > -1) {
+	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
 		return data;
 	}
-	if (_.intersection(['ADMIN_SRVC21962'], permissions).length > 0) {
+	if (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {
+		return data;
+	}
+	if (_.intersection(['ADMIN_SRVC2005'], permissions).length > 0) {
 		return data;
 	}
 	if (_.intersection([], permissions).length > 0) {
 		return data;
 	}
-	if (_.intersection(["P6733802061","P7680752529","P8373673737"], permissions).length == 0) {
+	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
 		_.unset(data, '_id');
 	}
-	if (_.intersection(["P6733802061","P7680752529"], permissions).length == 0) {
-		_.unset(data, 'studyId');
+	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
+		_.unset(data, 'url');
 	}
-	if (_.intersection(["P6733802061","P7680752529","P8373673737"], permissions).length == 0) {
-		_.unset(data, 'siteId');
+	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
+		_.unset(data, 'name');
 	}
-	if (_.intersection(["P6733802061","P7680752529","P8373673737"], permissions).length == 0) {
-		_.unset(data, 'subjectId');
+	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
+		_.unset(data, 'manufacturers');
 	}
-	if (_.intersection(["P6733802061","P7680752529"], permissions).length == 0) {
-		_.unset(data, 'visitId');
+	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
+		_.unset(data, 'stock');
 	}
-	if (_.intersection(["P6733802061","P7680752529"], permissions).length == 0) {
-		_.unset(data, 'visitDate');
+	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
+		_.unset(data, 'introduction');
 	}
-	if (_.intersection(["P6733802061","P7680752529"], permissions).length == 0) {
-		_.unset(data, 'visitRepeatKey');
+	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
+		_.unset(data, 'benefits');
 	}
-	if (_.intersection(["P6733802061","P7680752529"], permissions).length == 0) {
-		_.unset(data, 'formId');
-	}
-	if (_.intersection(["P6733802061","P7680752529"], permissions).length == 0) {
-		_.unset(data, 'formRepeatKey');
-	}
-	if (_.intersection(["P6733802061","P7680752529"], permissions).length == 0) {
-		_.unset(data, 'itemGroupId');
-	}
-	if (_.intersection(["P6733802061","P7680752529"], permissions).length == 0) {
-		_.unset(data, 'itemGroupRowId');
-	}
-	if (_.intersection(["P6733802061","P7680752529"], permissions).length == 0) {
-		_.unset(data, 'itemId');
-	}
-	if (_.intersection(["P6733802061","P7680752529"], permissions).length == 0) {
-		_.unset(data, 'itemValue');
+	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
+		_.unset(data, 'label');
 	}
 		return data;
 }
@@ -353,25 +332,11 @@ function filterByPermission(req, permissions, data) {
 async function getDynamicFilter(req, data) {
 	let filter;
 	let allFilters = [];
-	if (_.intersection(['ADMIN_SRVC21962'], req.user.appPermissions).length > 0) {
+	if (_.intersection(['ADMIN_SRVC2005'], (req.user && req.user.appPermissions ? req.user.appPermissions : [])).length > 0) {
 		return null;
 	}
-	if (_.intersection(['P8373673737'], req.user.appPermissions).length > 0) {
-	filter = {"siteId":{"$user":"attributes.site"}};
-	let var_siteId = _.get(req.user, 'attributes.site');
-	if (!var_siteId || _.isEmpty(var_siteId)) {
-		var_siteId = {};
-	}
-	if (var_siteId.type == 'Boolean') {
-		_.set(filter, ["siteId"], var_siteId.value);
-	} else if(var_siteId.type == 'Date') {
-		_.set(filter, ["siteId"], (getDateRangeObject(var_siteId.value) || 'NO_VALUE'));
-	} else {
-		_.set(filter, ["siteId"], (var_siteId.value || 'NO_VALUE'));
-	}
-		if (filter && !_.isEmpty(filter)) {
-			allFilters.push(filter);
-		}
+	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
+		return null;
 	}
 	if (allFilters && allFilters.length > 0) {
 		logger.debug('Dynamic Filter Applied', JSON.stringify(allFilters));
@@ -387,9 +352,9 @@ function getDateRangeObject(date) {
 		const filter = {};
 		const temp = moment.utc(date);
 		temp.startOf('date');
-		filter['$gte'] = temp.utc().format();
+		filter['$gte'] = temp.utc().toISOString();
 		temp.endOf('date');
-		filter['$lte'] = temp.utc().format();
+		filter['$lte'] = temp.utc().toISOString();
 		return filter;
 	}
 	return null;

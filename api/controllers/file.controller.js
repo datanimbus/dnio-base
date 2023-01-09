@@ -135,7 +135,7 @@ router.get('/download/:id', (req, res) => {
 							downloadFilePath += '.dec';
 						} catch (err) {
 							logger.error(err);
-							if (err.code == 'ERR_OSSL_EVP_BAD_DECRYPT') {
+							if (err.code == 'ERR_OSSL_EVP_BAD_DECRYPT' || err.code.includes('BAD_DECRYPT')) {
 								return renderError(res, 400, "Bad Decryption Key", { fqdn: config.fqdn });
 							} else {
 								return renderError(res, 500, err.message, { fqdn: config.fqdn });
