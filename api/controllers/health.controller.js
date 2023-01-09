@@ -10,7 +10,7 @@ const logger = log4js.getLogger(global.loggerName);
 
 router.get('/live', async (req, res) => {
 	try {
-		if (serviceDoc && serviceDoc.connectors && serviceDoc.connectors.data && serviceDoc.connectors.data.type == 'MSSQL') {
+		if (serviceDoc?.connectors?.data?.type == 'MSSQL' || serviceDoc?.connectors?.data?.type == 'MYSQL' || serviceDoc?.connectors?.data?.type == 'PGSQL') {
 			return res.status(200).json();
 		}
 		logger.trace('Mongo DB State:', mongoose.connection.readyState);
@@ -30,7 +30,7 @@ router.get('/live', async (req, res) => {
 
 router.get('/ready', async (req, res) => {
 	try {
-		if (serviceDoc && serviceDoc.connectors && serviceDoc.connectors.data && serviceDoc.connectors.data.type == 'MSSQL') {
+		if (serviceDoc?.connectors?.data?.type == 'MSSQL' || serviceDoc?.connectors?.data?.type == 'MYSQL' || serviceDoc?.connectors?.data?.type == 'PGSQL') {
 			logger.trace('Init State:', global.runInit);
 			if (!global.runInit) {
 				require('../../init')();

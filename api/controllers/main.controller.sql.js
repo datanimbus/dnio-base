@@ -2,7 +2,7 @@ const router = require('express').Router();
 const log4js = require('log4js');
 const swaggerParser = require('swagger-parser');
 const _ = require('lodash');
-const { mssql } = require('@appveen/rest-crud');
+const restCrud = require('@appveen/rest-crud');
 
 const specialFields = require('../utils/special-fields.utils');
 const hooksUtils = require('../utils/hooks.utils');
@@ -15,12 +15,13 @@ let crud;
 let table;
 
 (async () => {
-	crud = new mssql({ connectionString: serviceData.connectors.data.values.connectionString });
+	let sql = restCrud[serviceData.connectors.data.type.toLowerCase()];
+	crud = await new sql(serviceData.connectors.data.values);
 	const jsonSchema = schemaUtils.convertToJSONSchema(serviceData.definition);
 	await crud.connect();
 	logger.info(`Table Name :: ${(serviceData.connectors.data.options.tableName || _.snakeCase(serviceData.name))}`);
 	table = crud.table((serviceData.connectors.data.options.tableName || _.snakeCase(serviceData.name)), jsonSchema);
-	// table = crud.table('drug_repo', jsonSchema);
+	table.createTable();
 })();
 
 
@@ -54,6 +55,88 @@ router.get('/utils/securedFields', async (req, res) => {
 	} catch (err) {
 		handleError(res, err, txnId);
 	}
+});
+
+router.put('/utils/bulkUpsert', async (req, res) => {
+
+	let txnId = req.get(global.txnIdHeader);
+	let payload = req.body;
+
+	if (!specialFields.hasPermissionForPOST(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+		logger.error(`[${txnId}] User does not have permission to create records ${(req.user && req.user.appPermissions ? req.user.appPermissions : [])}`);
+		return res.status(403).json({
+			message: 'You don\'t have permission to create records',
+		});
+	}
+
+	try {
+		await crud.connect();
+		const status = await table.create(payload);
+		res.status(200).json(status);
+	} catch (e) {
+		handleError(res, e, txnId);
+	}
+
+	// let update = req.query.update || 'true';
+	// let insert = req.query.insert || 'true';
+	// if (typeof update == 'string' && _.lowerCase(update) == 'false') {
+	// 	update = false;
+	// } else {
+	// 	update = true;
+	// }
+	// if (typeof insert == 'string' && _.lowerCase(insert) == 'false') {
+	// 	insert = false;
+	// } else {
+	// 	insert = true;
+	// }
+	// let keys = req.body.keys;
+	// const allDocs = req.body.docs;
+	// if (!keys || !Array.isArray(keys) || keys.length == 0) {
+	// 	keys = ['_id'];
+	// }
+	// const idIndex = keys.indexOf('_id');
+	// if (idIndex > -1) {
+	// 	keys = keys.splice(idIndex, 1);
+	// }
+	// if (!allDocs || allDocs.length == 0) {
+	// 	return res.status(400).json({
+	// 		message: 'Invalid Request, No documents to updated',
+	// 	});
+	// }
+
+	// if (!specialFields.hasPermissionForPUT(req, (req.user && req.user.appPermissions ? req.user.appPermissions : [])) && !specialFields.hasPermissionForPOST(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+	// 	return res.status(403).json({
+	// 		message: 'You don\'t have permission to update records',
+	// 	});
+	// }
+
+
+
+	// const id = req.query.id;
+	// if (!id) {
+	// 	return res.status(400).json({
+	// 		message: 'Invalid IDs',
+	// 	});
+	// }
+	// if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
+	// 	return res.status(403).json({
+	// 		message: 'You don\'t have permission to update records',
+	// 	});
+	// }
+
+	// let txnId = req.get(global.txnIdHeader);
+
+	// try {
+	// 	await crud.connect();
+	// 	const status = await table.create(req.body);
+	// 	logger.debug(`[${txnId}] Update status - ${JSON.stringify(status)}`);
+
+	// 	const docs = await table.list();
+	// 	return res.status(200).json(docs);
+	// } catch (e) {
+	// 	handleError(e, txnId);
+	// }
+
 });
 
 router.put('/utils/bulkUpdate', (req, res) => {

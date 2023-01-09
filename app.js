@@ -70,8 +70,8 @@ const app = express();
 			logger.info('Server started on port ' + PORT);
 			if (!config.isK8sEnv()) {
 				queueMgmt.client.on('connect', function () {
-					require('./init')();
 				});
+				require('./init')();
 			}
 		} else {
 			logger.error(err);
@@ -89,7 +89,7 @@ const app = express();
 			}, 15000);
 			logger.info('Process Kill Request Recieved');
 			// Stopping CRON Job;
-			global.job.cancel();
+			// global.job.cancel();
 			const intVal = setInterval(() => {
 				// Waiting For all pending requests to finish;
 				if (global.activeRequest === 0) {
