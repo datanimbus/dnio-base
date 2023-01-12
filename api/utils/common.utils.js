@@ -77,7 +77,7 @@ async function getUserDoc(req, userId) {
 	try {
 		if (!user) {
 			user = await httpClient.httpRequest({
-				url: `${config.baseUrlUSR}/${config.app}/user?page=1&count=30&filter=%7B%22bot%22%3A%20false%2C%20%22_id%22%3A%20%22${userId}%22%7D`,
+				url: `${config.baseUrlUSR}/${config.app}/user?filter={"_id": "${userId}"}`,
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
