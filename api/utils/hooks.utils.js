@@ -610,15 +610,15 @@ async function getHooks() {
 	logger.trace('Get hooks');
 	try {
 		let authorDB = mongoose.connections[1].client.db(config.authorDB);
-		authorDB.collection('services').findOne({ _id: config.serviceId }, { projection: { preHooks: 1, wizard: 1, webHooks: 1, workflowHooks: 1 } })
-			.then(_d => {
-				if (!_d) {
-					logger.error(`Get hooks :: Unable to find ${config.serviceId}`);
-					return;
-				}
-				logger.trace(`Get hooks :: data :: ${JSON.stringify(_d)}`);
-				setHooks(_d);
-			});
+		let data = await authorDB.collection('services').findOne({ _id: config.serviceId }, { projection: { preHooks: 1, wizard: 1, webHooks: 1, workflowHooks: 1 } });
+
+		if (!data) {
+			logger.error(`Get hooks :: Unable to find ${config.serviceId}`);
+			return;
+		}
+		logger.trace(`Get hooks :: data :: ${JSON.stringify(data)}`);
+		await setHooks(data);
+
 	} catch (err) {
 		logger.error(`Get hooks :: ${err}`);
 	}

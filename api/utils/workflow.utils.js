@@ -289,7 +289,24 @@ function simulateJSON(req, data, options) {
 		});
 	} else if (data._id && options.operation == 'PUT') {
 		promise = model.findOne({ _id: data._id }).lean(true).then(_d => {
-			return _.mergeWith(JSON.parse(JSON.stringify(_d)), data, commonUtils.mergeCustomizer);
+			if (!options.schemaFree) {
+				return _.mergeWith(JSON.parse(JSON.stringify(_d)), data, commonUtils.mergeCustomizer);
+			} else {
+				Object.keys(_d).forEach(key => {
+					if (key !== '__v' && key !== '_id' && key !== '_metadata' && key !== '_workflow') {
+						if (data[key] === undefined) {
+							_d[key] = undefined;
+						}
+					}
+				});
+				Object.keys(_d).forEach(key => {
+					if (key !== '__v' && key !== '_id' && key !== '_metadata' && key !== '_workflow') {
+						if (_d[key] !== data[key])
+							_d[key] = data[key];
+					}
+				});
+				return _d;
+			}
 		});
 	}
 	return promise.then((newData) => {
