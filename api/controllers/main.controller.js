@@ -1620,7 +1620,9 @@ function handleError(res, err, txnId) {
 	} else {
 		message = err.message;
 	}
-	res.status(500).json({ message });
+	if (!res.closed) {
+		res.status(500).json({ message });
+	}
 	// throw new Error(message);
 }
 
