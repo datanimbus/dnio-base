@@ -202,7 +202,12 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 		});
 	}
 
-	if (!specialFields.hasPermissionForPUT(req, (req.user && req.user.appPermissions ? req.user.appPermissions : [])) && !specialFields.hasPermissionForPOST(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+	if (insert && !specialFields.hasPermissionForPOST(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+		return res.status(403).json({
+			message: 'You don\'t have permission to insert records',
+		});
+	}
+	if (update && !specialFields.hasPermissionForPUT(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
 		return res.status(403).json({
 			message: 'You don\'t have permission to update records',
 		});
@@ -872,7 +877,7 @@ router.put('/:id', async (req, res) => {
 	let id = req.params.id;
 	let useFilter = req.params.useFilter;
 	let filter = { _id: id };
-	
+
 	if (req.query.filter && (useFilter == 'true' || useFilter == true)) {
 		filter = JSON.parse(req.query.filter);
 		let tempFilter;
