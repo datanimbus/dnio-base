@@ -1196,16 +1196,34 @@ function genrateCode(config) {
 	}
 
 	function parseRolesForPermisison(roles, workflowConfig) {
-		const methodIdMap = {};
+		const methodIdMap = {
+			GET: {
+				permissionIds: [],
+				rules: []
+			},
+			PUT: {
+				permissionIds: [],
+				rules: []
+			},
+			POST: {
+				permissionIds: [],
+				rules: []
+			},
+			DELETE: {
+				permissionIds: [],
+				rules: []
+			}
+		};
 		roles.forEach(e => {
 			return e.operations.forEach(o => {
-				if (!methodIdMap[o.method]) {
-					methodIdMap[o.method] = {
-						permissionIds: [],
-						rules: e.rules
-					};
-				}
+				// if (!methodIdMap[o.method]) {
+				// 	methodIdMap[o.method] = {
+				// 		permissionIds: [],
+				// 		rules: e.rules
+				// 	};
+				// }
 				methodIdMap[o.method].permissionIds.push(e.id);
+				methodIdMap[o.method].rules.push(e.rules);
 			});
 		});
 		Object.keys(methodIdMap).forEach(method => {
