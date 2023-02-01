@@ -139,7 +139,7 @@ function flatten(obj, deep, parent) {
 }
 
 function getUserDocuments(req, select, filter) {
-	const userUrl = `${config.baseUrlUSR}/usr/app/${config.app}`;
+	const userUrl = `${config.baseUrlUSR}/${config.app}/user`;
 	var options = {
 		url: `${userUrl}`,
 		method: 'GET',
@@ -167,10 +167,18 @@ function getUserDocuments(req, select, filter) {
 				reject(new Error('user management down'));
 			} else {
 				if (res.statusCode === 200) {
-					resolve(body);
+					if (_.isEmpty(body)) {
+						resolve([filter]);
+					} else {
+						resolve(body);
+					}
+				} else if (res.statusCode === 403) {
+					logger.debug('403 - You dont have access for this API');
+					resolve([filter]);
 				} else {
 					logger.trace(JSON.stringify(body));
-					reject(new Error('User API failed'));
+					resolve([filter]);
+					// reject(new Error('User API failed'));
 				}
 			}
 		});

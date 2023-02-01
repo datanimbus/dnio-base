@@ -37,7 +37,7 @@ async function establishingAppCenterDBConnections() {
 			global.gfsBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}` });
 			global.gfsBucketExport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.exportedFile` });
 			global.gfsBucketImport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.fileImport` });
-			
+
 			await setIsTransactionAllowed();
 		}
 	} catch (e) {
@@ -123,7 +123,7 @@ async function initConfigVariables(serviceDoc, reinitLogger) {
 		config.servicePort = serviceDoc.port;
 	}
 	config.serviceVersion = serviceDoc.version;
-	config.serviceDB = serviceDoc.connectors.data.values.database ;
+	config.serviceDB = serviceDoc.connectors.data.values.database;
 	config.serviceEndpoint = serviceDoc.api;
 	config.serviceCollection = serviceDoc.collectionName;
 
@@ -206,19 +206,20 @@ async function init() {
 		} else {
 			serviceDoc.connectors.data.values = dataStorageConnectorDetails.values;
 		}
-		
-		if (serviceDoc.connectors.data.options && serviceDoc.connectors.data.options.tableName) dataStorageConnectorDetails.options["tableName"] = serviceDoc.connectors.data.options.tableName
+
+		if (serviceDoc.connectors.data.options && serviceDoc.connectors.data.options.tableName)
+			dataStorageConnectorDetails.options["tableName"] = serviceDoc.connectors.data.options.tableName;
 		serviceDoc.connectors.data.options = dataStorageConnectorDetails.options;
 
 
 		if (fileStorageConnectorDetails?.type === 'GRIDFS') {
 			serviceDoc.connectors.file.type = 'GRIDFS';
 			if ((!fileStorageConnectorDetails.values.connectionString || fileStorageConnectorDetails.values.connectionString == '') && fileStorageConnectorDetails.options.default) {
-				serviceDoc.connectors.file.Mongo = { connectionString: config.mongoUrl };	
+				serviceDoc.connectors.file.Mongo = { connectionString: config.mongoUrl };
 			} else {
 				serviceDoc.connectors.file.Mongo = fileStorageConnectorDetails.values;
 			}
-			
+
 		} else if (fileStorageConnectorDetails?.type === 'AZBLOB') {
 			serviceDoc.connectors.file.type = 'AZBLOB';
 			serviceDoc.connectors.file.AZURE = fileStorageConnectorDetails.values;
@@ -279,11 +280,11 @@ async function initForWorker(additionalLoggerIdentifier) {
 		} else {
 			serviceDoc.connectors.data.values = dataStorageConnectorDetails.values;
 		}
-		
+
 		if (serviceDoc.connectors.data.options && serviceDoc.connectors.data.options.tableName) dataStorageConnectorDetails.options["tableName"] = serviceDoc.connectors.data.options.tableName
 		serviceDoc.connectors.data.options = dataStorageConnectorDetails.options;
 
-		
+
 		if (fileStorageConnectorDetails?.type === 'GRIDFS') {
 			serviceDoc.connectors.file.type = 'GRIDFS';
 			serviceDoc.connectors.file.Mongo = fileStorageConnectorDetails.values;
