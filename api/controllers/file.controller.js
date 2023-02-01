@@ -54,6 +54,8 @@ router.get('/:id/view', (req, res) => {
 				return await downloadFileFromAzure(id, txnId, res);
 			} else if (storage === 'S3') {
 				return await downloadFileFromS3(id, txnId, res);
+			} else if (storage === 'GCS') {
+				return await downloadFileFromGCS(id, txnId, res);
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
 				throw new Error(`External Storage ${storage} not allowed`);
@@ -169,6 +171,8 @@ router.get('/download/:id', (req, res) => {
 				return await downloadFileFromAzure(id, txnId, res, encryptionKey);
 			} else if (storage === 'S3') {
 				return await downloadFileFromS3(id, txnId, res, encryptionKey);
+			} else if (storage === 'GCS') {
+				return await downloadFileFromGCS(id, txnId, res, encryptionKey);
 			} else {
 				logger.error(`[${txnId}] External Storage type is not allowed`);
 				throw new Error(`External Storage ${storage} not allowed`);
@@ -487,6 +491,62 @@ async function downloadFileFromS3(id, txnId, res, encryptionKey) {
 
 		fs.writeFileSync(tmpFilePath, bufferData);
 
+		let downloadFilePath = tmpFilePath;
+
+		if (encryptionKey) {
+			try {
+				await commonUtils.decryptFile({ path: tmpFilePath }, encryptionKey);
+				downloadFilePath += '.dec';
+			} catch (err) {
+				logger.error(err);
+				if (err.code == 'ERR_OSSL_EVP_BAD_DECRYPT') {
+					return renderError(res, 400, "Bad Decryption Key", { fqdn: config.fqdn });
+				} else {
+					return renderError(res, 500, err.message, { fqdn: config.fqdn });
+				}
+			}
+		}
+		res.set('Content-Type', file.contentType);
+		res.set('Content-Disposition', 'attachment; filename="' + file.metadata.filename + '"');
+
+		let tmpReadStream = fs.createReadStream(downloadFilePath);
+		tmpReadStream.pipe(res);
+
+		tmpReadStream.on('error', function (err) {
+			logger.error(`[${txnId}] Error streaming file - ${err}`);
+			renderError(res, 500, err.message || 'Error on reading file');
+		});
+	} catch (err) {
+		logger.error(`[${txnId}] Error downloading file - ${err.message}`);
+		throw err;
+	}
+}
+
+async function downloadFileFromGCS(id, txnId, res, encryptionKey) {
+	try {
+		let file = await mongoose.model('files').findOne({ filename: id });
+
+		if (!file) {
+			logger.error(`[${txnId}] File not found`);
+			throw new Error('File Not Found');
+		}
+
+		logger.debug(`[${txnId}] File Found, downloading from GCS.`);
+		logger.trace(`[${txnId}] File details - ${JSON.stringify(file)}`);
+
+		let tmpFilePath = path.join(process.cwd(), 'tmp', id);
+
+		let data = {};
+		data.gcsConfigFilePath = path.join(process.cwd(), 'gcs.json');
+		data.bucket = config.connectors.file.GCS.bucket;
+		data.projectId =  config.connectors.file.GCS.projectId;
+		data.fileName = `${config.app}/${config.serviceId}_${config.serviceName}/${id}`;
+		data.tmpFilePath = tmpFilePath;
+
+
+		await storageEngine.GCS.downloadFile(data);
+
+		
 		let downloadFilePath = tmpFilePath;
 
 		if (encryptionKey) {

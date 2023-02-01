@@ -43,22 +43,6 @@ STORAGE_S3_BUCKET="${config.connectors?.file?.S3?.bucket}"` : ``
 `;
 }
 
-function gcsFile(config) {
-	return {
-		'type': 'service_account',
-		'project_id': config.projectId,
-		'private_key_id': config.privateKeyId,
-		'private_key': config.privateKey,
-		'client_email': config.clientEmail,
-		'client_id': config.clientId,
-		'auth_uri': config.authURI,
-		'token_uri': config.tokenURI,
-		'auth_provider_x509_cert_url': config.authCertURL,
-		'client_x509_cert_url': config.clientCertURL
-	};
-}
-
 module.exports = {
-	dotEnvFile,
-	gcsFile
+	dotEnvFile
 };

@@ -3,7 +3,7 @@ const fs = require('fs');
 const { generateDefinition } = require('./createDefinition');
 const { generateYaml } = require('./generateYaml');
 const { generateYamlSchemaFree } = require('./generateYamlSchemaFree');
-const { dotEnvFile, gcsFile } = require('./tempfiles');
+const { dotEnvFile } = require('./tempfiles');
 const specialFieldsGenrator = require('./special-fields-generator');
 const globalDefHelper = require('./globalDefinitionHelper');
 
@@ -80,7 +80,7 @@ module.exports.init = (serviceDocument) => {
 		
 		fs.writeFileSync('./.env', dotEnvFile(serviceDocument), 'utf-8');
 		if (serviceDocument.connectors?.file?.type === 'GCS') {
-			fs.writeFileSync('./gcs.json', JSON.stringify(gcsFile(serviceDocument.connectors.file.GCS)), 'utf-8');
+			fs.writeFileSync('./gcs.json', JSON.stringify(JSON.parse(serviceDocument.connectors.file.GCS.gcsKeyFile)), 'utf-8');
 		}
 		logger.debug('Generated .env');
 

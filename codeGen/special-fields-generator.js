@@ -465,7 +465,8 @@ function genrateCode(config) {
 					else {
 						code.push(`\t\t\tconst doc = await commonUtils.getUserDoc(req, ${_.camelCase(path + '._id')});`);
 						code.push('\t\t\t\tif (!doc) {');
-						code.push(`\t\t\t\t\terrors['${path}'] = ${_.camelCase(path + '._id')} + ' not found';`);
+						// code.push(`\t\t\t\t\terrors['${path}'] = ${_.camelCase(path + '._id')} + ' not found';`);
+						code.push(`\t\t\t\t\t_.set(newData, '${path}._id', userId);`);
 						code.push('\t\t\t\t} else {');
 						code.push(`\t\t\t\t\t_.set(newData, '${path}.basicDetails', doc.basicDetails);`);
 						code.push(`\t\t\t\t\t_.set(newData, '${path}.attributes', doc.attributes);`);
@@ -475,7 +476,7 @@ function genrateCode(config) {
 					}
 					code.push('\t\t\t}');
 					code.push('\t\t} catch (e) {');
-					code.push(`\t\t\t\t\t_.set(newData, '${path}', null);`);
+					// code.push(`\t\t\t\t\t_.set(newData, '${path}', null);`);
 					code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
 					code.push('\t\t}');
 					code.push('\t}');
