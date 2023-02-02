@@ -1,4 +1,5 @@
-FROM node:18-alpine
+FROM node:fermium-alpine
+# FROM node:18-alpine
 # FROM node:16.17.0-alpine3.16
 
 WORKDIR /tmp/app
