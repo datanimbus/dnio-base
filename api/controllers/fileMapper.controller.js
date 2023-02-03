@@ -99,7 +99,8 @@ router.post('/:fileId/create', (req, res) => {
 					rawHeaders: req.rawHeaders
 				},
 				fileId,
-				data
+				data,
+				schemaFree: serviceDetails.schemaFree ? true : false
 			});
 			await fileTransfersModel.findOneAndUpdate({ _id: fileTransferDocumentId }, { $set: result });
 			endTime = Date.now();

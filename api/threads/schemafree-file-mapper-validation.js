@@ -158,7 +158,8 @@ async function execute() {
 				try {
 					const data = await workflowUtils.simulateJSON(req, doc.toObject().data, {
 						operation: doc.data._id ? 'PUT' : 'POST',
-						source: 'fileMapper Validation'
+						source: 'fileMapper Validation',
+						schemaFree: true
 					});
 					_.mergeWith(doc.data, data, commonUtils.mergeCustomizer);
 					if (doc.status == 'Pending') {

@@ -77,7 +77,7 @@ async function getUserDoc(req, userId) {
 	try {
 		if (!user) {
 			user = await httpClient.httpRequest({
-				url: `${config.baseUrlUSR}/${config.app}/user/${userId}`,
+				url: `${config.baseUrlUSR}/${config.app}/user?filter={"_id": "${userId}"}`,
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ async function getUserDoc(req, userId) {
 				},
 				json: true
 			}).then(res => {
-				const temp = res.body;
+				const temp = res.body[0];
 				temp._href = userUrl;
 				return temp;
 			});

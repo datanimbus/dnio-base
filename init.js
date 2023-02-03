@@ -8,15 +8,17 @@ const storageEngine = require('@appveen/data.stack-utils').storageEngine;
 
 const config = require('./config');
 const httpClient = require('./http-client');
+const hooksUtils = require('./api/utils/hooks.utils');
 const controller = require('./api/utils/common.utils');
 const serviceDetails = require('./service.json');
 
 const fileFields = serviceDetails.fileFields;
 const logger = log4js.getLogger(global.loggerName);
 
-function init() {
+async function init() {
 	global.runInit = true;
 	try {
+		await hooksUtils.getHooks();
 		if (!fs.existsSync(path.join(process.cwd(), 'hooks.json'))) {
 			fs.writeFileSync(path.join(process.cwd(), 'hooks.json'), '{"preHooks":[],"experienceHooks":[],"wizard":[],"webHooks":[],"workflowHooks":[]}', 'utf-8');
 		}

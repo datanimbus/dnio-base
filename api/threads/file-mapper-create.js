@@ -48,6 +48,7 @@ async function execute() {
 	const create = data.create ? data.create : [];
 	const update = data.update ? data.update : [];
 	const req = workerData.req;
+	const schemaFree = workerData.schemaFree;
 
 	/**---------- After Response Process ------------*/
 	let docsToCreate = await model.find({ fileId, $or: [{ status: 'Validated' }, { sNo: { $in: create } }] });
@@ -114,7 +115,29 @@ async function execute() {
 					} else {
 						temp._oldDoc = temp.toObject();
 						temp._req = req;
-						_.mergeWith(temp, doc.data, mergeCustomizer);
+
+						if (!schemaFree) {
+							_.mergeWith(temp, doc.data, mergeCustomizer);
+						} else {
+							let tempDoc = doc.toObject();
+							let tDoc = temp.toObject();
+							Object.keys(tDoc).forEach(key => {
+								if (key !== '__v' && key !== '_id' && key !== '_metadata' && key !== '_workflow') {
+									if (tempDoc.data[key] == undefined) {
+										// temp.unset(key);
+										delete tDoc[key];
+									}
+								}
+							});
+							Object.keys(tempDoc.data).forEach(key => {
+								if (key !== '__v' && key !== '_id' && key !== '_metadata' && key !== '_workflow') {
+									if (tDoc[key] !== tempDoc.data[key])
+										tDoc[key] = tempDoc.data[key];
+								}
+							});
+							temp.overwrite(tDoc);
+						}
+
 						temp = await temp.save();
 					}
 					doc.status = 'Updated';
