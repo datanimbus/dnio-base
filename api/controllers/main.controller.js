@@ -450,7 +450,8 @@ router.get('/utils/count', async (req, res) => {
 		let errors = {};
 		try {
 			if (req.query.filter) {
-				filter = JSON.parse(req.query.filter);
+				filter = JSON.parse(decodeURIComponent(req.query.filter));
+
 				const tempFilter = await specialFields.patchRelationInFilter(
 					req,
 					filter,
@@ -505,14 +506,14 @@ router.get('/', async (req, res) => {
 		}
 		try {
 			logger.trace(`[${txnId}] Schema free ? ${serviceData.schemaFree}`);
-			logger.trace(`[${txnId}] Filter ${req.query.filter}`);
+			logger.trace(`[${txnId}] Filter ${decodeURIComponent(req.query.filter)}`);
 			logger.trace(`[${txnId}] Sort ${req.query.sort}`);
 			logger.trace(`[${txnId}] Select ${req.query.select}`);
 			logger.trace(`[${txnId}] Skip ${req.query.skip}`);
 			logger.trace(`[${txnId}] Limit ${req.query.limit}`);
 
 			if (req.query.filter) {
-				filter = JSON.parse(req.query.filter);
+				filter = JSON.parse(decodeURIComponent(req.query.filter));
 				let tempFilter;
 				if (!serviceData.schemaFree) {
 					tempFilter = await specialFields.patchRelationInFilter(
@@ -879,7 +880,7 @@ router.put('/:id', async (req, res) => {
 	let filter = { _id: id };
 
 	if (req.query.filter && (useFilter == 'true' || useFilter == true)) {
-		filter = JSON.parse(req.query.filter);
+		filter = JSON.parse(decodeURIComponent(req.query.filter));
 		let tempFilter;
 		if (!serviceData.schemaFree) {
 			tempFilter = await specialFields.patchRelationInFilter(
