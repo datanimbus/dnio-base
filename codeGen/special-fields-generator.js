@@ -577,7 +577,7 @@ function genrateCode(config) {
 			let key = def.key;
 			let path = parentKey ? parentKey + '.' + key : key;
 			if (key != '_id' && def.properties) {
-				if (def.type == 'Object' && !def.properties.geoType) {
+				if (def.type == 'Object' && !def.properties.geoType && !def.properties.relatedTo) {
 					textPaths = textPaths.concat(createIndex(def.definition, path));
 				} else if (def.type == 'Array') {
 					// No index for Array
