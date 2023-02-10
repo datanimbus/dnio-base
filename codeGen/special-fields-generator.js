@@ -1223,6 +1223,15 @@ function genrateCode(config) {
 				// 		rules: e.rules
 				// 	};
 				// }
+				if (!methodIdMap[o.method]) {
+					methodIdMap[o.method] = {};
+				}
+				if (!methodIdMap[o.method].permissionIds) {
+					methodIdMap[o.method].permissionIds = [];
+				}
+				if (!methodIdMap[o.method].rules) {
+					methodIdMap[o.method].rules = [];
+				}
 				methodIdMap[o.method].permissionIds.push(e.id);
 				methodIdMap[o.method].rules.push(e.rules);
 			});
