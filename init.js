@@ -168,6 +168,28 @@ async function clearUnusedFiles() {
 						})
 						.catch(err => logger.error(`Error deleting file ${_f} from S3 :: ${err}`));
 				});
+			} else if (storage === 'GCS') {
+				let gcsConfigFilePath = path.join(process.cwd(), 'gcs.json');
+				promise = filesToBeDeleted.map(_f => {
+					logger.trace(`Deleting file from GCS - ${_f}`);
+					let data = {};
+					data.fileName = `${config.app}/${config.serviceId}_${config.serviceName}/${_f}`;
+					data.gcsConfigFilePath = gcsConfigFilePath;
+					data.bucket = config.connectors.file.GCS.bucket;
+					data.projectId = config.connectors.file.GCS.projectId;
+
+					return new Promise((resolve, reject) => {
+						try {
+							resolve(storageEngine.GCS.deleteFile(data));
+						} catch (err) {
+							reject(err);
+						}
+					})
+						.then(() => {
+							mongoose.connection.db.collection(`${config.serviceCollection}.files`).deleteOne({ filename: _f });
+						})
+						.catch(err => logger.error(`Error deleting file ${_f} from GCS :: ${err}`));
+				});
 			} else {
 				logger.error('External Storage type is not allowed');
 				throw new Error(`External Storage ${storage} not allowed`);
