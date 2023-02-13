@@ -14,8 +14,8 @@ const { parentPort, workerData } = require('worker_threads');
 
 // mongoose.set('useFindAndModify', false);
 
-global.baseKey = workerData.baseKey;
-global.baseCert = workerData.baseCert;
+// global.baseKey = workerData.baseKey;
+// global.baseCert = workerData.baseCert;
 global.encryptionKey = workerData.encryptionKey;
 
 let additionalLoggerIdentifier = 'Worker/MapperValidation';

@@ -23,8 +23,8 @@ let logger = log4js.getLogger(LOGGER_NAME);
 
 global.userHeader = 'user';
 global.txnIdHeader = 'txnId';
-global.baseKey = workerData.baseKey;
-global.baseCert = workerData.baseCert;
+// global.baseKey = workerData.baseKey;
+// global.baseCert = workerData.baseCert;
 global.encryptionKey = workerData.encryptionKey;
 
 async function execute() {
