@@ -35,8 +35,7 @@ function md5(text) {
  * @param {string} text The text data to send in thread for encryption/decryption
  */
 function executeCipher(txnId, action, text) {
-	const baseKey = global.baseKey;
-	const baseCert = global.baseCert;
+	const appEncryptionKey = global.appEncryptionKey;
 	const encryptionKey = global.encryptionKey;
 	logger.debug(`[${txnId}] Exec. thread :: cipher`);
 	return new Promise((resolve, reject) => {
@@ -49,8 +48,7 @@ function executeCipher(txnId, action, text) {
 		const worker = new Worker(filePath, {
 			workerData: {
 				text,
-				baseKey,
-				baseCert,
+				appEncryptionKey,
 				encryptionKey,
 				action
 			}
