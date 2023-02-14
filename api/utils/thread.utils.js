@@ -22,8 +22,7 @@ function executeThread(_txnId, file, data) {
 			logger.error(`[${_txnId}] Exec. thread :: ${file} :: INVALID_FILE`);
 			return reject(new Error('INVALID_FILE'));
 		}
-		data.baseKey = global.baseKey;
-		data.baseCert = global.baseCert;
+		data.appEncryptionKey = global.appEncryptionKey;
 		data.encryptionKey = global.encryptionKey;
 		const worker = new Worker(filePath, {
 			workerData: data
