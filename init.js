@@ -287,8 +287,7 @@ async function GetKeys() {
 		const res = await httpClient.httpRequest(options);
 		if (res.statusCode === 200) {
 			const body = res.body;
-			global.baseKey = body.baseKey;
-			global.baseCert = body.baseCert;
+			global.appEncryptionKey = body.appEncryptionKey;
 			global.encryptionKey = body.encryptionKey;
 			logger.debug(`Keys for ${config.appNamespace} fetched`);
 			logger.trace(`Keys for ${config.appNamespace} : ${JSON.stringify(body)}`);
