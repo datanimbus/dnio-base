@@ -57,86 +57,116 @@ router.get('/utils/securedFields', async (req, res) => {
 	}
 });
 
-router.put('/utils/bulkUpsert', async (req, res) => {
-
+router.post('/utils/bulkUpsert', async (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
-	let payload = req.body;
+	let update = req.query.update || 'true';
+	let insert = req.query.insert || 'true';
 
-	if (!specialFields.hasPermissionForPOST(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
-		logger.error(`[${txnId}] User does not have permission to create records ${(req.user && req.user.appPermissions ? req.user.appPermissions : [])}`);
+	if (typeof update == 'string' && _.lowerCase(update) == 'false') {
+		update = false;
+	} else {
+		update = true;
+	}
+	if (typeof insert == 'string' && _.lowerCase(insert) == 'false') {
+		insert = false;
+	} else {
+		insert = true;
+	}
+
+	let keys = req.body.keys;
+	const allDocs = req.body.docs;
+
+	if (!keys || !Array.isArray(keys) || keys.length == 0) {
+		keys = ['_id'];
+	}
+	const idIndex = keys.indexOf('_id');
+	if (idIndex > -1) {
+		keys = keys.splice(idIndex, 1);
+	}
+	if (!allDocs || allDocs.length == 0) {
+		return res.status(400).json({
+			message: 'Invalid Request, No documents to updated',
+		});
+	}
+
+	if (insert && !specialFields.hasPermissionForPOST(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+		logger.error(`[${txnId}] User does not have permission to insert records ${(req.user && req.user.appPermissions ? req.user.appPermissions : [])}`);
 		return res.status(403).json({
-			message: 'You don\'t have permission to create records',
+			message: 'You don\'t have permission to insert records',
+		});
+	}
+	if (update && !specialFields.hasPermissionForPUT(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+		logger.error(`[${txnId}] User does not have permission to update records ${(req.user && req.user.appPermissions ? req.user.appPermissions : [])}`);
+		return res.status(403).json({
+			message: 'You don\'t have permission to update records',
 		});
 	}
 
 	try {
-		await crud.connect();
-		const status = await table.create(payload);
-		res.status(200).json(status);
-	} catch (e) {
-		handleError(res, e, txnId);
+		// let filter = {
+		// 	'_metadata.deleted': false,
+		// };
+
+		let promises = allDocs.map(async (data) => {
+
+			const keyValPairs = keys.map(key => {
+				const val = _.get(data, key);
+				if (val) {
+					return { [key]: val };
+				}
+				return null;
+			}).filter(e => e);
+
+			let tempFilter;
+			if (_.isEmpty(keyValPairs)) {
+				tempFilter = {};
+			} else {
+				tempFilter = Object.assign.apply({}, keyValPairs);
+			}
+
+			if (_.isEmpty(tempFilter)) {
+				if (!insert) {
+					return {
+						message: 'Insert flag was set to false',
+					};
+				} else {
+					return await table.create(data);
+				}
+			} else {
+				// _.merge(tempFilter, filter);
+				let dbDoc = await table.list({ filter: tempFilter, count: 1 });
+
+				if (dbDoc && !_.isEmpty(dbDoc)) {
+					if (!update) {
+						return {
+							message: 'Update flag was set to false',
+						};
+					} else {
+						return await table.update(dbDoc[0]._id, data);
+					}
+				} else {
+					if (!insert) {
+						return {
+							message: 'Insert flag was set to false',
+						};
+					} else {
+						return await table.create(data);
+					}
+				}
+			}
+		});
+
+		let allResult = await Promise.all(promises);
+		if (allResult.every((e) => e._id)) {
+			return res.status(200).json(allResult);
+		} else if (allResult.every((e) => !e._id)) {
+			return res.status(400).json(allResult);
+		} else {
+			return res.status(207).json(allResult);
+		}
+	} catch (err) {
+		handleError(res, err, txnId);
 	}
-
-	// let update = req.query.update || 'true';
-	// let insert = req.query.insert || 'true';
-	// if (typeof update == 'string' && _.lowerCase(update) == 'false') {
-	// 	update = false;
-	// } else {
-	// 	update = true;
-	// }
-	// if (typeof insert == 'string' && _.lowerCase(insert) == 'false') {
-	// 	insert = false;
-	// } else {
-	// 	insert = true;
-	// }
-	// let keys = req.body.keys;
-	// const allDocs = req.body.docs;
-	// if (!keys || !Array.isArray(keys) || keys.length == 0) {
-	// 	keys = ['_id'];
-	// }
-	// const idIndex = keys.indexOf('_id');
-	// if (idIndex > -1) {
-	// 	keys = keys.splice(idIndex, 1);
-	// }
-	// if (!allDocs || allDocs.length == 0) {
-	// 	return res.status(400).json({
-	// 		message: 'Invalid Request, No documents to updated',
-	// 	});
-	// }
-
-	// if (!specialFields.hasPermissionForPUT(req, (req.user && req.user.appPermissions ? req.user.appPermissions : [])) && !specialFields.hasPermissionForPOST(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
-	// 	return res.status(403).json({
-	// 		message: 'You don\'t have permission to update records',
-	// 	});
-	// }
-
-
-
-	// const id = req.query.id;
-	// if (!id) {
-	// 	return res.status(400).json({
-	// 		message: 'Invalid IDs',
-	// 	});
-	// }
-	// if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
-	// 	return res.status(403).json({
-	// 		message: 'You don\'t have permission to update records',
-	// 	});
-	// }
-
-	// let txnId = req.get(global.txnIdHeader);
-
-	// try {
-	// 	await crud.connect();
-	// 	const status = await table.create(req.body);
-	// 	logger.debug(`[${txnId}] Update status - ${JSON.stringify(status)}`);
-
-	// 	const docs = await table.list();
-	// 	return res.status(200).json(docs);
-	// } catch (e) {
-	// 	handleError(e, txnId);
-	// }
-
 });
 
 router.put('/utils/bulkUpdate', (req, res) => {
