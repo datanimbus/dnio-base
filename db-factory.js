@@ -199,7 +199,9 @@ async function init() {
 		logger.trace(`Data Storage Connector document :: ${JSON.stringify(dataStorageConnectorDetails)}`);
 
 
-		serviceDoc.connectors.data.type = dataStorageConnectorDetails.type;
+		if (serviceDoc.connectors && serviceDoc.connectors.data) {
+			serviceDoc.connectors.data.type = dataStorageConnectorDetails.type;
+		}
 
 		if (dataStorageConnectorDetails?.type === 'MONGODB' && dataStorageConnectorDetails?.options.default) {
 			serviceDoc.connectors.data.values = { "connectionString": config.mongoUrl, "database": config.namespace + '-' + serviceDoc.app }
