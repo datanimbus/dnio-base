@@ -267,7 +267,9 @@ function genrateCode(config) {
 	code.push('async function validateDateFields(req, newData, oldData) {');
 	code.push('\tlet txnId = req.headers[\'txnid\'];');
 	code.push('\tconst errors = {};');
-	parseSchemaForDateFields(schema);
+	if (!config.simpleDate) {
+		parseSchemaForDateFields(schema);
+	}
 	code.push('\treturn Object.keys(errors).length > 0 ? errors : null;');
 	code.push('}');
 	code.push('');
