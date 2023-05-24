@@ -239,7 +239,7 @@ function getCreateDefinition(defArr) {
 		if (el == '_id') {
 			attribute['type'] = 'string';
 		}
-		if (attribute['type'] === 'Object' && !attribute['properties']['schemaFree']) {
+		if (attribute['type'] === 'Object' && attribute['properties'] && !attribute['properties']['schemaFree']) {
 			definition['properties'][el] = getCreateDefinition(attribute.definition);
 		}
 		else if (attribute['type'] === 'User') {
@@ -297,7 +297,7 @@ function getMathKeyList(defArr, key) {
 	defArr.forEach(attribute => {
 		let _k = attribute.key;
 		let newKey = key == '' ? _k : key + '.' + _k;
-		if (attribute['type'] === 'Object' && !attribute['properties']['schemaFree']) {
+		if (attribute['type'] === 'Object' && attribute['properties'] && !attribute['properties']['schemaFree']) {
 			list = list.concat(getMathKeyList(attribute['definition'], newKey));
 		} else if (attribute['type'] === 'Number') {
 			list.push(newKey);

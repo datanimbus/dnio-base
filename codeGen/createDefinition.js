@@ -134,7 +134,7 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 				processSchema(attribute['definition'], mongoSchema[key]['type'][0], newNestedKey, specialFields);
 			} else if (attribute['type'] === 'Object') {
 				mongoSchema[key] = {};
-				if (attribute['properties']['schemaFree']) {
+				if (attribute['properties'] && attribute['properties']['schemaFree']) {
 					return;
 				}
 				if (attribute['properties'] && (attribute['properties']['geoType'] || attribute['properties']['relatedTo'] || attribute['properties']['fileType'] || attribute['properties']['password'] || attribute['properties']['dateType'])) {

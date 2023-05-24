@@ -408,7 +408,7 @@ function genrateCode(config) {
 					code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
 					code.push('\t\t}');
 					code.push('\t}');
-				} else if (def.type == 'Object' && !def.properties.schemaFree) {
+				} else if (def.type == 'Object' && def.properties && !def.properties.schemaFree) {
 					parseSchemaForRelation(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].properties.relatedTo || def.definition[0].type == 'User') {
@@ -482,7 +482,7 @@ function genrateCode(config) {
 					code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
 					code.push('\t\t}');
 					code.push('\t}');
-				} else if (def.type == 'Object' && !def.properties.schemaFree) {
+				} else if (def.type == 'Object' && def.properties && !def.properties.schemaFree) {
 					parseSchemaForExpand(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].properties.relatedTo) {
@@ -535,7 +535,7 @@ function genrateCode(config) {
 					code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
 					code.push('\t\t}');
 					code.push('\t}');
-				} else if (def.type == 'Object' && !def.properties.schemaFree) {
+				} else if (def.type == 'Object' && def.properties && !def.properties.schemaFree) {
 					parseSchemaForCascadeRelation(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].properties.relatedTo) {
@@ -579,7 +579,7 @@ function genrateCode(config) {
 			let key = def.key;
 			let path = parentKey ? parentKey + '.' + key : key;
 			if (key != '_id' && def.properties) {
-				if (def.type == 'Object' && !def.properties.geoType && !def.properties.relatedTo && !def.properties.schemaFree) {
+				if (def.type == 'Object' && def.properties && !def.properties.geoType && !def.properties.relatedTo && !def.properties.schemaFree) {
 					textPaths = textPaths.concat(createIndex(def.definition, path));
 				} else if (def.type == 'Array') {
 					// No index for Array
@@ -618,7 +618,7 @@ function genrateCode(config) {
 			let key = def.key;
 			let path = parentKey ? parentKey + '.' + key : key;
 			if (key != '_id' && def.properties) {
-				if (def.type == 'Object' && !def.properties.schemaFree) {
+				if (def.type == 'Object' && def.properties && !def.properties.schemaFree) {
 					parseSchemaForUnique(def.definition, path);
 				} else if (def.type == 'Array') {
 					// code.push(`\t if((_.get(newData,'${path}')||[]).length !== (_.get(newData,'${path}')||[]).length) {`);
@@ -724,7 +724,7 @@ function genrateCode(config) {
 					code.push(`\t\t\t\t\terrors['${path}'] = e.message ? e.message : e;`);
 					code.push('\t\t\t\t}');
 					code.push('\t\t\t}');
-				} else if (def.type == 'Object' && !def.properties.schemaFree) {
+				} else if (def.type == 'Object' && def.properties && !def.properties.schemaFree) {
 					parseSchemaForFilter(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].properties.relatedTo) {
@@ -776,7 +776,7 @@ function genrateCode(config) {
 					code.push(`\t\t\t\t\terrors['data.new.${path}'] = e.message ? e.message : e;`);
 					code.push('\t\t\t\t}');
 					code.push('\t\t\t}');
-				} else if (def.type == 'Object' && !def.properties.schemaFree) {
+				} else if (def.type == 'Object' && def.properties && !def.properties.schemaFree) {
 					parseSchemaForWorkflowFilter(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].properties.relatedTo) {
@@ -839,7 +839,7 @@ function genrateCode(config) {
 						code.push('\t\t}');
 						code.push('\t}');
 					}
-				} else if (def.type == 'Object' && !def.properties.schemaFree) {
+				} else if (def.type == 'Object' && def.properties && !def.properties.schemaFree) {
 					parseSchemaForEncryption(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].properties.password) {
@@ -937,7 +937,7 @@ function genrateCode(config) {
 						code.push('\t\t}');
 						code.push('\t}');
 					}
-				} else if (def.type == 'Object' && !def.properties.schemaFree) {
+				} else if (def.type == 'Object' && def.properties && !def.properties.schemaFree) {
 					parseSchemaForDecryption(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].properties.password) {
@@ -1022,7 +1022,7 @@ function genrateCode(config) {
 					code.push('\t} catch (e) {');
 					code.push(`\t\terrors['${path}'] = e.message ? e.message : e;`);
 					code.push('\t}');
-				} else if (def.type == 'Object' && !def.properties.schemaFree) {
+				} else if (def.type == 'Object' && def.properties && !def.properties.schemaFree) {
 					parseSchemaForBoolean(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].type == 'Boolean') {
@@ -1078,7 +1078,7 @@ function genrateCode(config) {
 					code.push(`\t\t\t// errors['${path}'] = e.message ? e.message : e;`);
 					code.push('\t\t}');
 					code.push('\t}');
-				} else if (def.type == 'Object' && !def.properties.schemaFree) {
+				} else if (def.type == 'Object' && def.properties && !def.properties.schemaFree) {
 					parseSchemaForGeojson(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].type == 'Geojson' || def.definition[0].properties.geoType) {
@@ -1146,7 +1146,7 @@ function genrateCode(config) {
 					code.push(`\t\t\terrors['${path}'] = e.message ? e.message : e;`);
 					code.push('\t\t}');
 					code.push('\t}');
-				} else if (def.type == 'Object' && !def.properties.schemaFree) {
+				} else if (def.type == 'Object' && def.properties && !def.properties.schemaFree) {
 					parseSchemaForDateFields(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0]['properties'] && def.definition[0]['properties']['dateType']) {
