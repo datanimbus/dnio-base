@@ -67,6 +67,7 @@ e.mongoAuthorOptions = {
 	useNewUrlParser: true,
 	minPoolSize: process.env.MONGO_CONNECTION_MIN_POOL_SIZE || 1,
 	maxPoolSize: process.env.MONGO_CONNECTION_MAX_POOL_SIZE || 5,
+	maxIdleTimeMS:process.env.MONGO_CONNECTION_MAX_IDLE_TIME || 60000,
 	dbName: process.env.MONGO_AUTHOR_DBNAME || 'datastackConfig',
 };
 e.mongoAppCenterOptions = {
@@ -74,6 +75,7 @@ e.mongoAppCenterOptions = {
 	useNewUrlParser: true,
 	minPoolSize: process.env.MONGO_CONNECTION_MIN_POOL_SIZE || 1,
 	maxPoolSize: process.env.MONGO_CONNECTION_MAX_POOL_SIZE || 5,
+	maxIdleTimeMS:process.env.MONGO_CONNECTION_MAX_IDLE_TIME || 60000,
 	dbName: null
 };
 e.mongoLogsOptions = {
@@ -81,6 +83,7 @@ e.mongoLogsOptions = {
 	useNewUrlParser: true,
 	minPoolSize: process.env.MONGO_CONNECTION_MIN_POOL_SIZE || 1,
 	maxPoolSize: process.env.MONGO_CONNECTION_MAX_POOL_SIZE || 5,
+	maxIdleTimeMS:process.env.MONGO_CONNECTION_MAX_IDLE_TIME || 60000,
 	dbName: process.env.MONGO_LOGS_DBNAME || 'datastackLogs'
 };
 
