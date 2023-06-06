@@ -74,7 +74,7 @@ function expandSchemaWithSystemGlobalDef(schema, simpleDate) {
 				}
 			}
 			if (attribute['definition'] && !(attribute['properties'] && attribute['properties']['dateType']))
-				attribute['definition'] = expandSchemaWithSystemGlobalDef(attribute['definition']);
+				attribute['definition'] = expandSchemaWithSystemGlobalDef(attribute['definition'], simpleDate);
 		}
 		return attribute;
 	});
