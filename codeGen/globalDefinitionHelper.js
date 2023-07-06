@@ -61,10 +61,10 @@ function expandSchemaWithGlobalDef(schema) {
 	return schema;
 }
 
-function expandSchemaWithSystemGlobalDef(schema) {
+function expandSchemaWithSystemGlobalDef(schema, simpleDate) {
 	schema = schema.map(attribute => {
 		if (attribute.key !== 'properties' && attribute.key !== '_id') {
-			if (mongooseDataType.indexOf(attribute['type']) == -1 || (attribute['properties'] && attribute['properties']['dateType'])) {
+			if (mongooseDataType.indexOf(attribute['type']) == -1 || (attribute['properties'] && attribute['properties']['dateType'] && !simpleDate)) {
 				let sysDef = systemGlobalSchema[attribute['type']];
 				if (sysDef) {
 					sysDef.key = attribute.key;
@@ -74,15 +74,15 @@ function expandSchemaWithSystemGlobalDef(schema) {
 				}
 			}
 			if (attribute['definition'] && !(attribute['properties'] && attribute['properties']['dateType']))
-				attribute['definition'] = expandSchemaWithSystemGlobalDef(attribute['definition']);
+				attribute['definition'] = expandSchemaWithSystemGlobalDef(attribute['definition'], simpleDate);
 		}
 		return attribute;
 	});
 	return schema;
 }
 
-module.exports = (definition) => {
-	definition = expandSchemaWithGlobalDef(definition);
-	definition = expandSchemaWithSystemGlobalDef(definition);
+module.exports = (serviceDocument) => {
+	let definition = expandSchemaWithGlobalDef(serviceDocument['definition']);
+	definition = expandSchemaWithSystemGlobalDef(serviceDocument['definition'], serviceDocument.simpleDate);
 	return definition;
 };

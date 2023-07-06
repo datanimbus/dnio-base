@@ -23,7 +23,7 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 		if (attribute['properties'] && (attribute['properties']['fileType'])) {
 			specialFields['fileFields'].push(nestedKey);
 		}
-		if (attribute['type'] === 'Object') {
+		if (attribute['type'] === 'Object' && !attribute['properties']['schemaFree']) {
 			processSchema(attribute['definition'], mongoSchema, nestedKey, specialFields);
 		}
 		else if (attribute['type'] === 'User') {
@@ -63,7 +63,7 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 				specialFields['precisionFields'].push({ field: nestedKey, precision: attribute['properties']['precision'] });
 			}
 			if (attribute['properties'] && attribute['properties']['dateType']) {
-				specialFields['dateFields'].push({ field: nestedKey, dateType: attribute['properties']['dateType'], defaultTimezone:  attribute['properties']['defaultTimezone'] });
+				specialFields['dateFields'].push({ field: nestedKey, dateType: attribute['properties']['dateType'], defaultTimezone: attribute['properties']['defaultTimezone'] });
 			}
 			// if (attribute['properties'] && (attribute['properties']['password'])) {
 			// 	specialFields['secureFields'].push(nestedKey);
@@ -134,11 +134,13 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 				processSchema(attribute['definition'], mongoSchema[key]['type'][0], newNestedKey, specialFields);
 			} else if (attribute['type'] === 'Object') {
 				mongoSchema[key] = {};
+				if (attribute['properties'] && attribute['properties']['schemaFree']) {
+					return;
+				}
 				if (attribute['properties'] && (attribute['properties']['geoType'] || attribute['properties']['relatedTo'] || attribute['properties']['fileType'] || attribute['properties']['password'] || attribute['properties']['dateType'])) {
 					mongoSchema[key]['type'] = {};
 					processSchema(attribute['definition'], mongoSchema[key]['type'], newNestedKey, specialFields);
-				}
-				else {
+				} else {
 					processSchema(attribute['definition'], mongoSchema[key], newNestedKey, specialFields);
 				}
 			}
@@ -258,8 +260,8 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 				if (attribute['type'] == 'Number' && attribute['properties'] && (attribute['properties']['precision'] || attribute['properties']['precision'] === 0)) {
 					specialFields['precisionFields'].push({ field: newNestedKey, precision: attribute['properties']['precision'] });
 				}
-				if (attribute['properties']  && attribute['properties']['dateType']) {
-					specialFields['dateFields'].push({ field: newNestedKey, dateType: attribute['properties']['dateType'], defaultTimezone:  attribute['properties']['defaultTimezone']});
+				if (attribute['properties'] && attribute['properties']['dateType']) {
+					specialFields['dateFields'].push({ field: newNestedKey, dateType: attribute['properties']['dateType'], defaultTimezone: attribute['properties']['defaultTimezone'] });
 				}
 				if (attribute['properties'] && attribute['properties']['createOnly']) {
 					specialFields['createOnlyFields'].push(newNestedKey);
@@ -284,7 +286,7 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 					const functionBody = '_id = value && value._id ?_.trim(value._id) : null;\n return !_.isEmpty(_id);';
 					mongoSchema[key]['validate'] = [{ validator: new Function('value', functionBody), msg: key + '._id is empty.' }];
 				}
-				if (attribute['properties'] && attribute['properties']['default']  && (attribute['properties']['relatedTo'] || attribute['type'] === 'User')) {
+				if (attribute['properties'] && attribute['properties']['default'] && (attribute['properties']['relatedTo'] || attribute['type'] === 'User')) {
 					mongoSchema[key]['default'] = { '_id': attribute['properties']['default'] };
 				}
 			}

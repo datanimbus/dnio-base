@@ -46,7 +46,7 @@ function generateServiceDefinition(serviceDocument) {
 		}) + ';\nmodule.exports.definition=definition;', 'utf-8');
 	} else {
 		logger.info(`Service ${serviceDocument._id}/${serviceDocument.name} is schema validated.`);
-		serviceDocument['definition'] = globalDefHelper(serviceDocument['definition']);
+		serviceDocument['definition'] = globalDefHelper(serviceDocument);
 		serviceDocument['definitionWithId'] = JSON.parse(JSON.stringify(serviceDocument['definition']));
 		serviceDocument['definition'] = serviceDocument['definition'].filter(attr => attr.key != '_id');
 		let definition = generateDefinition(serviceDocument);
