@@ -1,7 +1,14 @@
 node_modules
+.vscode
+.idea
+.eslintrc.yml
+.gitignore
+.dockerignore
+.huskyrc
+.git
+VERSION
+LICENSE
 README.md
 Dockerfile
-.gitignore
-.git
 *.zip
 package-lock.json
