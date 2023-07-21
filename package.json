@@ -32,7 +32,7 @@
         "mustache": "^4.2.0",
         "node-cache": "^5.1.0",
         "node-cron": "^3.0.0",
-        "pprof": "^3.0.0",
+        "pprof": "^3.3.0",
         "request": "^2.83.2",
         "request-promise": "^4.2.6",
         "shorthash": "0.0.2",
