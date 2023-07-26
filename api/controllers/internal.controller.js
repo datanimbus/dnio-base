@@ -8,38 +8,30 @@ const logger = log4js.getLogger(global.loggerName);
 router.get('/hasAccess', async (req, res) => {
 	try {
 		let type = req.query.type.split(',');
-		let permission = false;
+		let counter = 0;
 
 		if (type.includes('GET')) {
 			if (specialFields.hasPermissionForGET(req, (req?.user?.appPermissions || []))) {
-				permission = true;
-			} else {
-				permission = false;
+				counter += 1;
 			}
 		}
 		if (type.includes('PUT')) {
 			if (specialFields.hasPermissionForPUT(req, (req?.user?.appPermissions || []))) {
-				permission = true;
-			} else {
-				permission = false;
+				counter += 1;
 			}
 		}
 		if (type.includes('POST')) {
 			if (specialFields.hasPermissionForPOST(req, (req?.user?.appPermissions || []))) {
-				permission = true;
-			} else {
-				permission = false;
+				counter += 1;
 			}
 		}
 		if (type.includes('DELETE')) {
 			if (specialFields.hasPermissionForDELETE(req, (req?.user?.appPermissions || []))) {
-				permission = true;
-			} else {
-				permission = false;
+				counter += 1;
 			}
 		}
 
-		return res.status(permission ? 200 : 400).json({ permission });
+		return res.status(counter == type.length ? 200 : 400).json({ permission: counter == type.length ? true : false });
 	} catch (err) {
 		logger.error(err);
 		res.status(500).json({
