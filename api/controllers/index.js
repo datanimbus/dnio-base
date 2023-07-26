@@ -17,6 +17,7 @@ if (serviceDoc && serviceDoc.connectors && serviceDoc.connectors.data && service
 	// router.use('/utils/health', require('./health.controller'));
 	router.use('/utils/workflow', require('./workflow.controller'));
 	router.use('/utils/sec', require('./security.controller'));
+	router.use('/utils/internal', require('./internal.controller'));
 }
 
 module.exports = router;
