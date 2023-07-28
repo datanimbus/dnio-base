@@ -31,7 +31,7 @@ router.get('/hasAccess', async (req, res) => {
 			}
 		}
 
-		return res.status(counter == type.length ? 200 : 400).json({ permission: counter == type.length ? true : false });
+		return res.status(200).json({ permission: counter == type.length ? true : false });
 	} catch (err) {
 		logger.error(err);
 		res.status(500).json({
