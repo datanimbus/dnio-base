@@ -663,6 +663,8 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
 	let txnId = req.get('txnId');
+	let select = '';
+
 	try {
 		let id = req.params.id;
 		logger.debug(`[${txnId}] Get request received for ${id}`);
@@ -674,7 +676,14 @@ router.get('/:id', async (req, res) => {
 			});
 		}
 
-		let doc = await model.findById(id).lean();
+		if (req.query.select && req.query.select.trim()) {
+			select = req.query.select.split(',').join(' ');
+		}
+
+		let doc = await model
+			.findById(id)
+			.select(select)
+			.lean();
 		logger.trace(`[${txnId}] Document from DB ${JSON.stringify(doc)}`);
 		if (!doc) {
 			return res.status(404).json({
