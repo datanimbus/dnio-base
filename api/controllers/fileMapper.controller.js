@@ -84,8 +84,16 @@ router.post('/:fileId/create', (req, res) => {
 		const startTime = Date.now();
 		let endTime;
 		try {
+
+			if (fileId !== req.params.fileId) {
+				return res.status(400).json({ message: "FileId in Url and body does not match." });
+			}
 			let fileTransferDocumentId = await fileTransfersModel.collection.findOne({ fileId: fileId });
-			fileTransferDocumentId = fileTransferDocumentId._id;
+
+			if (!fileTransferDocumentId) {
+				return res.status(404).json({ message: "File not found." });
+			}
+			fileTransferDocumentId = fileTransferDocumentId?._id;
 
 			await fileTransfersModel.findOneAndUpdate({ _id: fileTransferDocumentId }, { $set: { status: 'Importing' } });
 			logger.info(`[${txnId}] File mapper :: Creation process :: Started`);
