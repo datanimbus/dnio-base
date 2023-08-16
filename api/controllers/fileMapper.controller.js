@@ -148,12 +148,22 @@ router.put('/:fileId/mapping', (req, res) => {
 		const startTime = Date.now();
 		let endTime;
 
+		if (req.params.fileId !== fileId) {
+			return res.status(400).json({ message: 'FileId in Url and body does not match.' });
+		}
+
 		let headerMapping = data.headerMapping;
 		let atleastOneMappingPresent = Object.keys(headerMapping).filter(key => headerMapping[key] != null).length > 0;
 		logger.debug(`[${txnId}] [${fileId}] File mapper ::  At least one mapping present :: ${atleastOneMappingPresent}`);
 		if (!atleastOneMappingPresent && !serviceDetails.schemaFree) throw Error('At least one field must be mapped');
 
 		try {
+			let fileTransferDocument = await mongoose.model('fileTransfers').collection.findOne({ fileId: fileId });
+			if (!fileTransferDocument) {
+				endTime = Date.now();
+				return res.status(404).json({ message: `File not found.` });
+			}
+
 			logger.info(`[${txnId}] [${fileId}] File mapper :: Validation process :: Started`);
 			logger.debug(`[${txnId}] [${fileId}] File mapper :: File name :: ${fileName}`);
 			res.status(202).json({ message: 'Validation Process Started...' });
