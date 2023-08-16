@@ -86,12 +86,12 @@ router.post('/:fileId/create', (req, res) => {
 		try {
 
 			if (fileId !== req.params.fileId) {
-				return res.status(400).json({ message: "FileId in Url and body does not match." });
+				return res.status(400).json({ message: 'FileId in Url and body does not match.' });
 			}
 			let fileTransferDocumentId = await fileTransfersModel.collection.findOne({ fileId: fileId });
 
 			if (!fileTransferDocumentId) {
-				return res.status(404).json({ message: "File not found." });
+				return res.status(404).json({ message: 'File not found.' });
 			}
 			fileTransferDocumentId = fileTransferDocumentId?._id;
 
@@ -161,7 +161,7 @@ router.put('/:fileId/mapping', (req, res) => {
 			let fileTransferDocument = await mongoose.model('fileTransfers').collection.findOne({ fileId: fileId });
 			if (!fileTransferDocument) {
 				endTime = Date.now();
-				return res.status(404).json({ message: `File not found.` });
+				return res.status(404).json({ message: 'File not found.' });
 			}
 
 			logger.info(`[${txnId}] [${fileId}] File mapper :: Validation process :: Started`);

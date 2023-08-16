@@ -28,6 +28,7 @@ async function init() {
 	return informSM().then(() => GetKeys()).then(() => {
 		// global.runInit = false;
 	}).catch(err => {
+		logger.error(err);
 		global.runInit = false;
 	});
 }

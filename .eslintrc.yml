@@ -3,7 +3,7 @@ env:
   node: true
 extends: 'eslint:recommended'
 parserOptions:
-  ecmaVersion: 2017
+  ecmaVersion: latest
   sourceType: module
 ignorePatterns:
   - "special-fields.utils.js"

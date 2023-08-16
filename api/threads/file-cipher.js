@@ -1,3 +1,4 @@
+/* eslint-disable no-async-promise-executor */
 const { workerData, parentPort } = require('worker_threads');
 const crypto = require('crypto');
 const fs = require('fs');
