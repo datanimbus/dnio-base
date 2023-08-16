@@ -70,6 +70,11 @@ router.get('/users', async (req, res) => {
 		let txnId = req.get(global.txnIdHeader);
 		let filter = req.query.filter ? req.query.filter : {};
 		filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
+
+		if (filter.serviceId && filter.serviceId !== config.serviceId) {
+			return res.status(400).json({ "message": "Service Id in filter is not for this data service." })
+		}
+		
 		let wfData = await workflowModel.aggregate([
 			{ $match: filter },
 			{
