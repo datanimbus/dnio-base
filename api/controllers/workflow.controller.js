@@ -50,7 +50,7 @@ router.get('/count', async (req, res) => {
 			filter = crudderUtils.parseFilter(filter);
 		}
 		if (filter.serviceId && filter.serviceId !== config.serviceId) {
-			return res.status(400).json({ "message": "Service Id in filter is not for this data service." })
+			return res.status(400).json({ 'message': 'Service Id in filter is not for this data service.' });
 		}
 		if (errors && Object.keys(errors).length > 0) {
 			logger.warn('Error while fetching relation: ', JSON.stringify(errors));
@@ -72,7 +72,7 @@ router.get('/users', async (req, res) => {
 		filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
 
 		if (filter.serviceId && filter.serviceId !== config.serviceId) {
-			return res.status(400).json({ "message": "Service Id in filter is not for this data service." })
+			return res.status(400).json({ 'message': 'Service Id in filter is not for this data service.' });
 		}
 		
 		let wfData = await workflowModel.aggregate([
@@ -165,7 +165,7 @@ router.get('/', async (req, res) => {
 			logger.warn('Error while fetching relation: ', JSON.stringify(errors));
 		}
 		if (filter.serviceId && filter.serviceId !== config.serviceId) {
-			return res.status(400).json({ "message": "Service Id in filter is not for this data service." })
+			return res.status(400).json({ 'message': 'Service Id in filter is not for this data service.' });
 		}
 		if (req.query.countOnly) {
 			const count = await workflowModel.countDocuments(filter);
