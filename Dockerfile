@@ -8,8 +8,8 @@ RUN apk update
 RUN apk upgrade
 
 COPY package.json /tmp/app
-
-RUN set -ex; apk add --no-cache --virtual .fetch-deps curl tar git ;
+RUN apk add g++ make py3-pip
+RUN set -ex; apk add --no-cache --virtual .fetch-deps curl tar git;
 
 RUN npm install -g npm
 RUN npm install --production --no-audit
