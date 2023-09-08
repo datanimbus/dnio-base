@@ -74,7 +74,7 @@ router.get('/users', async (req, res) => {
 		if (filter.serviceId && filter.serviceId !== config.serviceId) {
 			return res.status(400).json({ 'message': 'Service Id in filter is not for this data service.' });
 		}
-		
+
 		let wfData = await workflowModel.aggregate([
 			{ $match: filter },
 			{
@@ -430,13 +430,12 @@ async function discard(req, res) {
 
 async function submit(req, res) {
 	try {
-		const id = req.body.ids[0];
+		const ids = req.body.ids;
 		const newData = req.body.data;
-		const doc = await workflowModel.findOne({ $and: [{ _id: id }, { status: { $nin: ['Approved', 'Rejected'] } }] });
-		if (!doc) {
+		const docs = await workflowModel.find({ $and: [{ _id: { $in: ids } }, { status: { $nin: ['Approved', 'Rejected'] } }] });
+		if (_.isEmpty(docs)) {
 			return res.status(400).json({ message: 'Submit Failed' });
 		}
-		doc.status = 'Pending';
 		const remarks = req.body.remarks;
 		const attachments = req.body.attachments || [];
 		const event = {
@@ -447,20 +446,24 @@ async function submit(req, res) {
 			attachments: attachments,
 			timestamp: Date.now()
 		};
-		let wfData = doc.data && doc.data.new ? doc.data.new : null;
-		if (newData && wfData && !_.isEqual(JSON.parse(JSON.stringify(newData)), JSON.parse(JSON.stringify(wfData)))) {
-			event.action = 'Save & Submit';
-			doc.data.new = newData;
-		}
-		if (!doc.audit) {
-			doc.audit = [];
-		}
-		doc.audit.push(event);
-		doc.requestedBy = req.user._id;
-		doc.markModified('audit');
-		doc._req = req;
-		doc._isEncrypted = true;
-		await doc.save();
+		docs.forEach(async doc => {
+			doc.status = 'Pending';
+
+			let wfData = doc.data && doc.data.new ? doc.data.new : null;
+			if (newData && wfData && !_.isEqual(JSON.parse(JSON.stringify(newData)), JSON.parse(JSON.stringify(wfData)))) {
+				event.action = 'Save & Submit';
+				doc.data.new = newData;
+			}
+			if (!doc.audit) {
+				doc.audit = [];
+			}
+			doc.audit.push(event);
+			doc.requestedBy = req.user._id;
+			doc.markModified('audit');
+			doc._req = req;
+			doc._isEncrypted = true;
+			await doc.save();
+		});
 		return res.status(200).json({ results: [{ status: 200, message: 'Submission Successful' }] });
 	} catch (err) {
 		logger.error(err);
