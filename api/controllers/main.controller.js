@@ -401,6 +401,7 @@ router.delete('/utils/bulkDelete', async (req, res) => {
 					null,
 					doc.toObject()
 				);
+				wfItem.audit[0].remarks = req.body.remarks;
 				const wfDoc = new workflowModel(wfItem);
 				wfDoc._req = req;
 				let status = await wfDoc.save();
