@@ -164,7 +164,7 @@ function getWorkflowItem(req, operation, _id, status, newDoc, oldDoc) {
 		serviceId: config.serviceId,
 		documentId: _id,
 		operation: operation,
-		requestedBy: req.headers[global.userHeader],
+		requestedBy: req.headers[global.userHeader] || req.user._id || 'UNAUTHENTICATED',
 		app: config.app,
 		audit,
 		status: status,
