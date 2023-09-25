@@ -156,7 +156,6 @@ async function initConfigVariables(serviceDoc, reinitLogger) {
 
 	config.fileAttachmentAttributes = parseSchemaToFindFileAttachmentAttributes([], serviceDoc.definition);
 	logger.debug(`File attachment attributes : ${config.fileAttachmentAttributes}`);
-	logger.debug(`ML_FILE_PARSER : ${config.ML_FILE_PARSER}`);
 
 	config.connectors = {
 		data: {},

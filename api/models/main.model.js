@@ -262,19 +262,6 @@ schema.post('save', function (error, doc, next) {
 
 schema.post('save', function (doc, next) {
 	const req = doc._req;
-	const txnId = req.headers[global.txnIdHeader] || req.headers['txnid'] || req.headers['TxnId'];
-	if (config.ML_FILE_PARSER) {
-		let data = doc.toObject();
-		logger.debug(`[${txnId}] Adding item to file parser queue.`);
-		mlFileParserUtil.addFileParserQueueItem(txnId, data);
-	} else {
-		logger.debug(`[${txnId}] Skipping file parser.`);
-	}
-	next();
-});
-
-schema.post('save', function (doc, next) {
-	const req = doc._req;
 	const newData = doc.toObject();
 	const oldData = doc._oldDoc ? JSON.parse(JSON.stringify(doc._oldDoc)) : null;
 	const webHookData = {};
