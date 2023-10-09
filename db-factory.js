@@ -25,8 +25,8 @@ async function setIsTransactionAllowed() {
 async function establishingAppCenterDBConnections() {
 	try {
 		if (config.connectors.data.type === 'MONGODB') {
-			logger.info(`Appcenter DB : ${config.mongoAppCenterOptions.dbName}`);
-			await mongoose.connect(config.mongoUrl, config.mongoAppCenterOptions);
+			logger.info(`Appcenter DB : ${config.connectors.data.values.database || config.mongoAppCenterOptions.dbName}`);
+			await mongoose.connect(config.connectors.data.values.connectionString || config.mongoUrl, config.mongoAppCenterOptions);
 			logger.info(`Connected to appcenter db : ${config.serviceDB}`);
 			mongoose.connection.on('connecting', () => { logger.info(` *** ${config.serviceDB} CONNECTING *** `); });
 			mongoose.connection.on('disconnected', () => { logger.error(` *** ${config.serviceDB} LOST CONNECTION *** `); });
@@ -244,7 +244,7 @@ async function init() {
 		// GENERATE THE CODE
 		require('./codeGen').init(serviceDoc);
 		// CONNECT TO APPCENTER DB
-		if (serviceDoc.connectors.data.type === 'MSSQL') {
+		if (serviceDoc?.connectors?.data?.type !== 'MONGODB') {
 			logger.info('Skipped Mongoose Model Init');
 		} else {
 			await establishingAppCenterDBConnections();
