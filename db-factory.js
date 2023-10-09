@@ -244,7 +244,7 @@ async function init() {
 		// GENERATE THE CODE
 		require('./codeGen').init(serviceDoc);
 		// CONNECT TO APPCENTER DB
-		if (serviceDoc.connectors.data.type === 'MSSQL') {
+		if (serviceDoc?.connectors?.data?.type !== 'MONGODB') {
 			logger.info('Skipped Mongoose Model Init');
 		} else {
 			await establishingAppCenterDBConnections();
