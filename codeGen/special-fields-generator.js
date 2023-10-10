@@ -137,10 +137,14 @@ function genrateCode(config) {
 	code.push('\t\t\tif (!flag) {');
 	code.push('\t\t\t\tif (typeof filter[key] == \'object\' && filter[key]) {');
 	code.push('\t\t\t\t\tif (Array.isArray(filter[key])) {');
-	code.push('\t\t\t\t\t\tconst promiseArr = filter[key].map(async (item, i) => {');
-	code.push('\t\t\t\t\t\t\treturn await patchRelationInFilter(req, item, errors);');
-	code.push('\t\t\t\t\t\t});');
-	code.push('\t\t\t\t\t\ttempFilter[key] = (await Promise.all(promiseArr)).filter(e => e ? Object.keys(e).length : 0);');
+	code.push('\t\t\t\t\t\tif (filter[key][0] && typeof filter[key][0] == \'object\') {');
+	code.push('\t\t\t\t\t\t\tconst promiseArr = filter[key].map(async (item, i) => {');
+	code.push('\t\t\t\t\t\t\t\treturn await patchRelationInFilter(req, item, errors);');
+	code.push('\t\t\t\t\t\t\t});');
+	code.push('\t\t\t\t\t\t\ttempFilter[key] = (await Promise.all(promiseArr)).filter(e => e ? Object.keys(e).length : 0);');
+	code.push('\t\t\t\t\t\t} else {');
+	code.push('\t\t\t\t\t\t\ttempFilter[key] = filter[key]');
+	code.push('\t\t\t\t\t\t}');
 	code.push('\t\t\t\t\t} else {');
 	code.push('\t\t\t\t\t\ttempFilter[key] = await patchRelationInFilter(req, filter[key], errors);');
 	code.push('\t\t\t\t\t}');
