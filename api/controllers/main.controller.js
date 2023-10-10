@@ -1631,7 +1631,7 @@ function handleError(res, err, txnId) {
 	} else {
 		message = err.message;
 	}
-	if (!res.closed) {
+	if (!res.headersSent) {
 		res.status(500).json({ message });
 	}
 	// throw new Error(message);
