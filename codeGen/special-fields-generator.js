@@ -49,8 +49,19 @@ function genrateCode(config) {
 	code.push('function mongooseUniquePlugin() {');
 	code.push('\treturn function (schema) {');
 	const textPaths = createIndex(schema);
-	if (uniqueIndexes.length > 0)
-		code.push(`\t\tschema.${uniqueIndexes.join('.')};`);
+	if (uniqueIndexes.length > 0) {
+		// let tempCode = 'schema.index({';
+		// let combinedKey = uniqueIndexes.map((path) => {
+		// 	return `${path}: 1`;
+		// }).join(',');
+		// tempCode += combinedKey;
+		// tempCode += '}, { unique: true, sparse: true, collation: { locale: \'en\', strength: 2 }, name: \'unique_1\' })';
+		// code.push(tempCode);
+		// code.push(`\t\tschema.${uniqueIndexes.join('.')};`);
+		uniqueIndexes.forEach(line=>{
+			code.push(line);	
+		});
+	}
 	createTextSearchIndex(textPaths);
 	code.push('\t}');
 	code.push('}');
@@ -593,7 +604,8 @@ function genrateCode(config) {
 							path = path + '._id';
 						}
 						// code.push(`\t\tschema.index({ '${path}': 1 }, { unique: '${path} field should be unique', sparse: true, collation: { locale: 'en', strength: 2 } });`);
-						uniqueIndexes.push(`index({ '${path}': 1 }, { unique: true, sparse: true, collation: { locale: 'en', strength: 2 }, name: '${path}_1' })`)
+						uniqueIndexes.push(`\t\tschema.index({ '${path}': 1 }, { unique: true, sparse: true, collation: { locale: 'en', strength: 2 }, name: '${path}_1' });`);
+						// uniqueIndexes.push(path);
 					}
 					if (def.properties.geoType) {
 						code.push(`\t\tschema.index({ '${path}.geometry': '2dsphere' }, { name: '${path}_geoJson' });`);
@@ -1351,16 +1363,16 @@ function genrateCode(config) {
 		code.push('\t}');
 		roles.forEach(role => {
 			if (role.enableFilter && role.rule && role.rule.length > 0) {
-				code.push(`\tif (_.intersection(['${role.id}'], (req.user && req.user.appPermissions ? req.user.appPermissions : [])).length > 0) {`)
+				code.push(`\tif (_.intersection(['${role.id}'], (req.user && req.user.appPermissions ? req.user.appPermissions : [])).length > 0) {`);
 				role.rule.forEach(rule => {
 					if (!_.isEmpty(rule.filter)) {
 						code = code.concat(getFilterGenratorCode(rule.filter));
 					}
 				});
-				code.push(`\t\tif (filter && !_.isEmpty(filter)) {`);
-				code.push(`\t\t\tallFilters.push(filter);`);
-				code.push(`\t\t}`);
-				code.push(`\t}`)
+				code.push('\t\tif (filter && !_.isEmpty(filter)) {');
+				code.push('\t\t\tallFilters.push(filter);');
+				code.push('\t\t}');
+				code.push('\t}');
 			}
 		});
 		function parseObject(filter, rule, parentKeys) {
@@ -1400,9 +1412,10 @@ function genrateCode(config) {
 						const keys = JSON.parse(JSON.stringify(parentKeys));
 						paths = paths.concat(parseObject(filter, rule[key], keys));
 					}
-				} else {
-
 				}
+				//  else {
+
+				// }
 			});
 			return paths;
 		}
@@ -1416,9 +1429,9 @@ function genrateCode(config) {
 			// tempCode.push(`if (_.isEmpty(filterInner)) {`);
 			// tempCode.push(`\treturn null;`);
 			// tempCode.push(`}`);
-			tempCode.push(`if (!filterInner) {`);
-			tempCode.push(`\tfilterInner = {};`);
-			tempCode.push(`}`);
+			tempCode.push('if (!filterInner) {');
+			tempCode.push('\tfilterInner = {};');
+			tempCode.push('}');
 			tempCode.push(`const docs = await commonUtils.getServiceDocsUsingFilter(req, '${dataService}', filterInner, '${field}', true);`);
 			tempCode.push(`return docs.map(doc => _.get(doc, '${field}'));`);
 			return tempCode;
@@ -1448,38 +1461,38 @@ function genrateCode(config) {
 					tempCode.push(`\tif (var_${id} && var_${id}.statusCode && var_${id}.statusCode == 200) {`);
 					tempCode.push(`\t\tif (!var_${id}.body || _.isEmpty(var_${id}.body)) {`);
 					tempCode.push(`\t\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, 'NO_VALUE');`);
-					tempCode.push(`\t\t} else {`);
+					tempCode.push('\t\t} else {');
 					tempCode.push(`\t\t\tconst var_${id}Body = _.get(var_${id}.body, field_${id});`);
 					tempCode.push(`\t\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, { $in: var_${id}Body });`);
-					tempCode.push(`\t\t}`);
-					tempCode.push(`\t} else {`);
+					tempCode.push('\t\t}');
+					tempCode.push('\t} else {');
 					tempCode.push(`\t\tthrow var_${id}.body;`);
-					tempCode.push(`\t}`);
+					tempCode.push('\t}');
 				} else if (item.type === 'Service') {
 					const id = _.camelCase(uuid());
 					const variableName = 'var_' + id;
 					const functionName = 'function_' + id;
 					tempCode.push(`\tasync function ${functionName}(req) {`);
 					tempCode.push(`\t\t${convertServiceBlock(item.dynamic).join('\n')}`);
-					tempCode.push(`\t}`);
+					tempCode.push('\t}');
 					tempCode.push(`\tconst ${variableName} = await ${functionName}(req);`);
 					tempCode.push(`\tif (!${variableName} || _.isEmpty(${variableName})) {`);
 					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, 'NO_VALUE');`);
-					tempCode.push(`\t} else {`);
+					tempCode.push('\t} else {');
 					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, { $in: ${variableName} });`);
-					tempCode.push(`\t}`);
+					tempCode.push('\t}');
 				} else {
 					tempCode.push(`\tlet var_${_.camelCase(item.path)} = _.get(req.user, '${item.dynamic}');`);
 					tempCode.push(`\tif (!var_${_.camelCase(item.path)} || _.isEmpty(var_${_.camelCase(item.path)})) {`);
 					tempCode.push(`\t\tvar_${_.camelCase(item.path)} = {};`);
-					tempCode.push(`\t}`);
+					tempCode.push('\t}');
 					tempCode.push(`\tif (var_${_.camelCase(item.path)}.type == 'Boolean') {`);
 					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, var_${_.camelCase(item.path)}.value);`);
 					tempCode.push(`\t} else if(var_${_.camelCase(item.path)}.type == 'Date') {`);
 					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, (getDateRangeObject(var_${_.camelCase(item.path)}.value) || 'NO_VALUE'));`);
-					tempCode.push(`\t} else {`);
+					tempCode.push('\t} else {');
 					tempCode.push(`\t\t_.set(${filterVarName}, ${JSON.stringify(item.path)}, (var_${_.camelCase(item.path)}.value || 'NO_VALUE'));`);
-					tempCode.push(`\t}`);
+					tempCode.push('\t}');
 				}
 			});
 			return tempCode;
