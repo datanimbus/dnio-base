@@ -175,8 +175,8 @@ router.put('/utils/bulkUpdate', (req, res) => {
 
 router.post('/utils/bulkUpsert', async (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
-	let update = req.query.update || 'true';
-	let insert = req.query.insert || 'true';
+	let update = req.query.update || 'false';
+	let insert = req.query.insert || 'false';
 	if (typeof update == 'string' && _.lowerCase(update) == 'false') {
 		update = false;
 	} else {
