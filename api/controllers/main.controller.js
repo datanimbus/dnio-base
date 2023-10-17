@@ -285,9 +285,9 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 			}
 		});
 		let allResult = await Promise.all(promises);
-		if (allResult.every((e) => e._id)) {
+		if (allResult.every((e) => e._id || e._workflow)) {
 			return res.status(200).json(allResult);
-		} else if (allResult.every((e) => !e._id)) {
+		} else if (allResult.every((e) => !e._id && !e._workflow)) {
 			return res.status(400).json(allResult);
 		} else {
 			return res.status(207).json(allResult);
