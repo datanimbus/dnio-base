@@ -257,7 +257,7 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 			if (_.isEmpty(tempFilter)) {
 				if (!insert) {
 					return {
-						message: 'Insert flag was set to false',
+						message: 'Cannot update without a filter/key',
 					};
 				} else {
 					return await insertOperation(data);
@@ -268,7 +268,7 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 				if (dbDoc && !_.isEmpty(dbDoc)) {
 					if (!update) {
 						return {
-							message: 'Update flag was set to false',
+							message: 'Document already exists',
 						};
 					} else {
 						return await updateOperation(data, dbDoc);
@@ -276,7 +276,7 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 				} else {
 					if (!insert) {
 						return {
-							message: 'Insert flag was set to false',
+							message: 'Document not found',
 						};
 					} else {
 						return await insertOperation(data);
