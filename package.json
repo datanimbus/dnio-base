@@ -14,7 +14,7 @@
         "@appveen/data.stack-utils": "https://github.com/appveen/data.stack-utils.git",
         "@appveen/ds-auth-cache": "^1.0.8",
         "@appveen/rest-crud": "^0.0.4",
-        "@appveen/utils": "^2.1.13",
+        "@appveen/utils": "^2.2.1",
         "archiver": "^5.3.1",
         "async": "^3.2.4",
         "bluebird": "^3.7.2",
