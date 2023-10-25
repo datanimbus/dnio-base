@@ -614,7 +614,22 @@ async function revert(req, res) {
 async function approve(req, res) {
 	try {
 		const ids = req.body.ids;
-		const docs = await workflowModel.find({ _id: ids, status: { $nin: ['Approved', 'Rejected'] } });
+		let filter;
+		try {
+			filter = JSON.parse(req.body.filter);
+		} catch (err) {
+			filter = req.body.filter;
+		}
+		let docs;
+		if (ids) {
+			docs = await workflowModel.find({ _id: ids, status: { $nin: ['Approved', 'Rejected'] } });
+		} else if (filter) {
+			filter.status = { $nin: ['Approved', 'Rejected'] };
+			docs = await workflowModel.find(filter);
+		} else {
+			return res.status(400).json({ message: 'No ids or filter available to find the workflow items' });
+		}
+		
 		if (!docs || docs.length == 0) {
 			return res.status(400).json({ message: 'No Documents To Approve' });
 		}
@@ -771,7 +786,24 @@ async function approve(req, res) {
 async function reject(req, res) {
 	try {
 		const ids = req.body.ids;
-		const docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.user._id } }] });
+		let filter;
+		try {
+			filter = JSON.parse(req.body.filter);
+		} catch (err) {
+			filter = req.body.filter;
+		}
+
+		let docs;
+		if (ids) {
+			docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.user._id } }] });
+		} else if (filter) {
+			filter.status = { "$in": ["Pending"] };
+			filter.requestedBy = { "$ne": req.user._id };
+			docs = await workflowModel.find(obj);
+		} else {
+			return res.status(400).json({ message: 'No ids or filter available to find the workflow items' });
+		}
+		
 		if (!docs || docs.length == 0) {
 			return res.status(400).json({ message: 'No Documents To Reject' });
 		}
