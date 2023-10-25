@@ -614,11 +614,10 @@ async function revert(req, res) {
 async function approve(req, res) {
 	try {
 		const ids = req.body.ids;
-		let filter;
+		let filter = req.body.filter || req.query.filter;
 		try {
-			filter = JSON.parse(req.body.filter || req.query.filter);
+			filter = JSON.parse(filter);
 		} catch (err) {
-			filter = req.body.filter;
 		}
 		let docs;
 		if (ids) {
@@ -786,11 +785,10 @@ async function approve(req, res) {
 async function reject(req, res) {
 	try {
 		const ids = req.body.ids;
-		let filter;
+		let filter = req.body.filter || req.query.filter;
 		try {
-			filter = JSON.parse(req.body.filter || req.query.filter);
+			filter = JSON.parse(filter);
 		} catch (err) {
-			filter = req.body.filter;
 		}
 
 		let docs;
