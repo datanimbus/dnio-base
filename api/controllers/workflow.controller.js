@@ -616,7 +616,7 @@ async function approve(req, res) {
 		const ids = req.body.ids;
 		let filter;
 		try {
-			filter = JSON.parse(req.body.filter);
+			filter = JSON.parse(req.body.filter || req.query.filter);
 		} catch (err) {
 			filter = req.body.filter;
 		}
@@ -788,7 +788,7 @@ async function reject(req, res) {
 		const ids = req.body.ids;
 		let filter;
 		try {
-			filter = JSON.parse(req.body.filter);
+			filter = JSON.parse(req.body.filter || req.query.filter);
 		} catch (err) {
 			filter = req.body.filter;
 		}
@@ -799,7 +799,7 @@ async function reject(req, res) {
 		} else if (filter) {
 			filter.status = { "$in": ["Pending"] };
 			filter.requestedBy = { "$ne": req.user._id };
-			docs = await workflowModel.find(obj);
+			docs = await workflowModel.find(filter);
 		} else {
 			return res.status(400).json({ message: 'No ids or filter available to find the workflow items' });
 		}
