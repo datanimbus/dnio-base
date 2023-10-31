@@ -7,6 +7,7 @@ if (serviceDoc && serviceDoc.connectors && serviceDoc.connectors.data && service
 } else {
 	router.use('/', require('./main.controller'));
 	router.use('/utils', require('./utils.controller'));
+	router.use('/utils/many', require('./main.controller.many'));
 	router.use('/utils/callback', require('./callback.controller'));
 	router.use('/utils/dedupe', require('./dedupe.controller'));
 	router.use('/utils/experienceHook', require('./experienceHook.controller'));

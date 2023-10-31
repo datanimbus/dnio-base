@@ -79,12 +79,8 @@ function metadataPlugin() {
 		// 	}
 		// });
 		schema.index({ '_expireAt': 1 }, { expireAfterSeconds: 0 });
-		schema.index({
-			'_metadata.lastUpdated': 1
-		});
-		schema.index({
-			'_metadata.createdAt': 1
-		});
+		schema.index({ '_metadata.lastUpdated': 1 }, { sparse: true });
+		schema.index({ '_metadata.createdAt': 1 }, { sparse: true });
 		schema.pre('save', function (next) {
 			const self = this;
 			if (!self._metadata) {
@@ -107,6 +103,33 @@ function metadataPlugin() {
 			self._wasNew = self.isNew;
 			self._metadata.lastUpdated = new Date();
 			self.markModified('_metadata');
+			next();
+		});
+
+		schema.pre('insertMany', function (next, docs) {
+			if (docs && docs.length > 0) {
+				docs.forEach((doc) => {
+					if (!doc._metadata) {
+						doc._metadata = {};
+					}
+					doc._metadata.deleted = false;
+					if (!doc._metadata.version) {
+						doc._metadata.version = {};
+					}
+					if (doc._metadata.version) {
+						doc._metadata.version.release = process.env.RELEASE || 'dev';
+					}
+					if (!doc._metadata.version.document) {
+						doc._metadata.version.document = 0;
+					}
+					doc._metadata.version.document++;
+					if (doc.isNew) {
+						doc._metadata.createdAt = new Date();
+					}
+					doc._wasNew = true;
+					doc._metadata.lastUpdated = new Date();
+				});
+			}
 			next();
 		});
 	};

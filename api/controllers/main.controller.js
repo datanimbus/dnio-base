@@ -91,86 +91,87 @@ router.get('/utils/bulkShow', async (req, res) => {
 	}
 });
 
-router.put('/utils/bulkUpdate', (req, res) => {
-	async function execute() {
-		const id = req.query.id;
-		if (!id) {
-			return res.status(400).json({
-				message: 'Invalid IDs',
-			});
-		}
-		if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
-			return res.status(403).json({
-				message: 'You don\'t have permission to update records',
-			});
-		}
-		if (req.query.txn == true) {
-			return transactionUtils.transferToTransaction(req, res);
-		}
-		try {
-			addExpireAt(req);
-		} catch (err) {
-			return res.status(400).json({ message: err.message });
-		}
-
-		let txnId = req.get(global.txnIdHeader);
-		const workflowModel = mongoose.model('workflow');
-		try {
-			const ids = id.split(',');
-			const filter = {
-				_id: {
-					$in: ids,
-				},
-				'_metadata.deleted': false,
-			};
-			const docs = await model.find(filter);
-			const promises = docs.map(async (doc) => {
-				doc._req = req;
-				doc._oldDoc = doc.toObject();
-				const payload = doc.toObject();
-				_.mergeWith(payload, req.body, mergeCustomizer);
-				const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
-				if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
-					const wfItem = workflowUtils.getWorkflowItem(
-						req,
-						'PUT',
-						doc._id,
-						'Pending',
-						payload,
-						doc.toObject()
-					);
-					const wfDoc = new workflowModel(wfItem);
-					wfDoc._req = req;
-					let status = await wfDoc.save();
-					doc._metadata.workflow = status._id;
-					return await model.findByIdAndUpdate(doc._id, {
-						'_metadata.workflow': status._id,
-					});
-				} else {
-					_.mergeWith(doc, req.body, mergeCustomizer);
-					return new Promise((resolve) => {
-						doc.save().then(resolve).catch(resolve);
-					});
-				}
-			});
-			const allResult = await Promise.all(promises);
-			if (allResult.every((e) => e._id)) {
-				return res.status(200).json(allResult);
-			} else if (allResult.every((e) => !e._id)) {
-				return res.status(400).json(allResult);
-			} else {
-				return res.status(207).json(allResult);
-			}
-		} catch (e) {
-			handleError(e, txnId);
-		}
-	}
-	execute().catch((err) => {
-		logger.error(err);
-		res.status(400).json({
-			message: err.message,
+router.put('/utils/bulkUpdate', async (req, res) => {
+	const id = req.query.id;
+	const ids = (id || '').split(',');
+	const userFilter = req.query.filter;
+	if ((!ids || ids.length == 0) && (!userFilter || _.isEmpty(userFilter))) {
+		return res.status(400).json({
+			message: 'Invalid Request, Not sure which all records to update',
 		});
-	});
+	}
+	if (!specialFields.hasPermissionForPUT(req, req.user.appPermissions)) {
+		return res.status(403).json({
+			message: 'You don\'t have permission to update records',
+		});
+	}
+	if (req.query.txn == true) {
+		return transactionUtils.transferToTransaction(req, res);
+	}
+	try {
+		addExpireAt(req);
+	} catch (err) {
+		return res.status(400).json({ message: err.message });
+	}
+
+	let txnId = req.get(global.txnIdHeader);
+	const workflowModel = mongoose.model('workflow');
+	try {
+		let filter = {
+			'_metadata.deleted': false,
+		};
+		if (ids && ids.length > 0) {
+			filter['_id'] = {
+				$in: ids,
+			};
+		} else {
+			filter = _.merge(filter, userFilter);
+		}
+		const docs = await model.find(filter);
+		const promises = docs.map(async (doc) => {
+			doc._req = req;
+			doc._oldDoc = doc.toObject();
+			const payload = doc.toObject();
+			_.mergeWith(payload, req.body, mergeCustomizer);
+			const hasSkipReview = workflowUtils.hasAdminAccess(req, req.user.appPermissions);
+			if (workflowUtils.isWorkflowEnabled() && !hasSkipReview) {
+				const wfItem = workflowUtils.getWorkflowItem(
+					req,
+					'PUT',
+					doc._id,
+					'Pending',
+					payload,
+					doc.toObject()
+				);
+				const wfDoc = new workflowModel(wfItem);
+				wfDoc._req = req;
+				let status = await wfDoc.save();
+				doc._metadata.workflow = status._id;
+				return await model.findByIdAndUpdate(doc._id, {
+					'_metadata.workflow': status._id,
+				});
+			} else {
+				_.mergeWith(doc, req.body, mergeCustomizer);
+				return new Promise((resolve) => {
+					doc.save().then(resolve).catch(resolve);
+				});
+			}
+		});
+		const allResult = await Promise.all(promises);
+		if (allResult.every((e) => e._id)) {
+			return res.status(200).json(allResult);
+		} else if (allResult.every((e) => !e._id)) {
+			return res.status(400).json(allResult);
+		} else {
+			return res.status(207).json(allResult);
+		}
+	} catch (err) {
+		logger.error(err);
+		handleError(res, err, txnId);
+		// res.status(400).json({
+		// 	message: err.message,
+		// });
+	}
 });
 
 router.post('/utils/bulkUpsert', async (req, res) => {
@@ -369,9 +370,6 @@ router.delete('/utils/bulkDelete', async (req, res) => {
 	const workflowModel = mongoose.model('workflow');
 	try {
 		let filter = {
-			_id: {
-				$in: ids,
-			},
 			'_metadata.deleted': false,
 		};
 		if (ids && ids.length > 0) {
