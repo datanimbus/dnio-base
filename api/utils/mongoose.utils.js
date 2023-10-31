@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 const _ = require('lodash');
+const counterUtils = require('@appveen/utils').counter;
+
+const config = require('../../config');
 
 function MakeSchema(definition, options) {
 	if (definition) {
@@ -108,7 +111,10 @@ function metadataPlugin() {
 
 		schema.pre('insertMany', function (next, docs) {
 			if (docs && docs.length > 0) {
-				docs.forEach((doc) => {
+				let promises = docs.map(async (doc) => {
+					if (!doc._id) {
+						doc._id = await counterUtils.generateId(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER);
+					}
 					if (!doc._metadata) {
 						doc._metadata = {};
 					}
@@ -128,6 +134,12 @@ function metadataPlugin() {
 					}
 					doc._wasNew = true;
 					doc._metadata.lastUpdated = new Date();
+					return doc;
+				});
+				Promise.all(promises).then(() => {
+					next();
+				}).catch(err => {
+					next(err);
 				});
 			}
 			next();
