@@ -141,8 +141,9 @@ function metadataPlugin() {
 				}).catch(err => {
 					next(err);
 				});
+			} else {
+				next();
 			}
-			next();
 		});
 	};
 }
