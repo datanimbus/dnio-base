@@ -42,45 +42,51 @@ async function establishingAppCenterDBConnections() {
 			await setIsTransactionAllowed();
 		}
 	} catch (e) {
+		logger.error('Error connecting to Appcenter DB');
 		logger.error(e.message);
 	}
 }
 
 async function establishAuthorAndLogsDBConnections() {
-	let promises = [];
-	logger.debug(`Author DB :: ${config.mongoAuthorOptions.dbName}`);
-	const authorDB = mongoose.createConnection(config.mongoAuthorUrl, config.mongoAuthorOptions);
-	authorDB.on('connecting', () => { logger.info(` *** ${config.authorDB} CONNECTING *** `); });
-	authorDB.on('disconnected', () => { logger.error(` *** ${config.authorDB} LOST CONNECTION *** `); });
-	authorDB.on('reconnect', () => { logger.info(` *** ${config.authorDB} RECONNECTED *** `); });
-	authorDB.on('connected', () => {
-		logger.info(`Connected to author db : ${config.authorDB}`);
-		promises.push(Promise.resolve('Connected to AuthorDB'));
-	});
-	authorDB.on('error', () => {
-		logger.info(`Error connecting to author db : ${config.authorDB}`);
-		promises.push(Promise.resolve('Error connecting to AuthorDB'));
-	});
-	authorDB.on('reconnectFailed', () => { logger.error(` *** ${config.authorDB} FAILED TO RECONNECT *** `); });
-	global.authorDB = authorDB;
+	try {
+		let promises = [];
+		logger.debug(`Author DB :: ${config.mongoAuthorOptions.dbName}`);
+		const authorDB = mongoose.createConnection(config.mongoAuthorUrl, config.mongoAuthorOptions);
+		authorDB.on('connecting', () => { logger.info(` *** ${config.authorDB} CONNECTING *** `); });
+		authorDB.on('disconnected', () => { logger.error(` *** ${config.authorDB} LOST CONNECTION *** `); });
+		authorDB.on('reconnect', () => { logger.info(` *** ${config.authorDB} RECONNECTED *** `); });
+		authorDB.on('connected', () => {
+			logger.info(`Connected to author db : ${config.authorDB}`);
+			promises.push(Promise.resolve('Connected to AuthorDB'));
+		});
+		authorDB.on('error', () => {
+			logger.info(`Error connecting to author db : ${config.authorDB}`);
+			promises.push(Promise.resolve('Error connecting to AuthorDB'));
+		});
+		authorDB.on('reconnectFailed', () => { logger.error(` *** ${config.authorDB} FAILED TO RECONNECT *** `); });
+		global.authorDB = authorDB;
 
-	logger.debug(`Logs DB :: ${config.mongoLogsOptions.dbName}`);
-	const logsDB = mongoose.createConnection(config.mongoLogUrl, config.mongoLogsOptions);
-	logsDB.on('connecting', () => { logger.info(` *** ${config.logsDB} CONNECTING *** `); });
-	logsDB.on('disconnected', () => { logger.error(` *** ${config.logsDB} LOST CONNECTION *** `); });
-	logsDB.on('reconnect', () => { logger.info(` *** ${config.logsDB} RECONNECTED *** `); });
-	logsDB.on('connected', () => {
-		logger.info(`Connected to logs db : ${config.logsDB}`);
-		promises.push(Promise.resolve('Connected to LogsDB'));
-	});
-	logsDB.on('error', () => {
-		logger.info(`Error connecting to logs db : ${config.logsDB}`);
-		promises.push(Promise.resolve('Error connecting to LogsDB'));
-	});
-	logsDB.on('reconnectFailed', () => { logger.error(` *** ${config.logsDB} FAILED TO RECONNECT *** `); });
-	global.logsDB = logsDB;
+		logger.debug(`Logs DB :: ${config.mongoLogsOptions.dbName}`);
+		const logsDB = mongoose.createConnection(config.mongoLogUrl, config.mongoLogsOptions);
+		logsDB.on('connecting', () => { logger.info(` *** ${config.logsDB} CONNECTING *** `); });
+		logsDB.on('disconnected', () => { logger.error(` *** ${config.logsDB} LOST CONNECTION *** `); });
+		logsDB.on('reconnect', () => { logger.info(` *** ${config.logsDB} RECONNECTED *** `); });
+		logsDB.on('connected', () => {
+			logger.info(`Connected to logs db : ${config.logsDB}`);
+			promises.push(Promise.resolve('Connected to LogsDB'));
+		});
+		logsDB.on('error', () => {
+			logger.info(`Error connecting to logs db : ${config.logsDB}`);
+			promises.push(Promise.resolve('Error connecting to LogsDB'));
+		});
+		logsDB.on('reconnectFailed', () => { logger.error(` *** ${config.logsDB} FAILED TO RECONNECT *** `); });
+		global.logsDB = logsDB;
 
-	await Promise.all(promises);
+		await Promise.all(promises);
+	} catch (err) {
+		logger.error('Error connecting to Author or Logs DB');
+		logger.error(err.message);
+	}
 }
 
 async function fetchServiceDetails(serviceID) {
