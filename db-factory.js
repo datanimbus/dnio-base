@@ -33,6 +33,7 @@ async function establishingAppCenterDBConnections() {
 			mongoose.connection.on('reconnect', () => { logger.info(` *** ${config.serviceDB} RECONNECTED *** `); });
 			mongoose.connection.on('connected', () => { logger.info(`Connected to ${config.serviceDB} DB`); });
 			mongoose.connection.on('reconnectFailed', () => { logger.error(` *** ${config.serviceDB} FAILED TO RECONNECT *** `); });
+			mongoose.connection.on('error', () => { logger.error(` *** ${config.serviceDB} FAILED TO CONNECT *** `); });
 
 			global.gfsBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}` });
 			global.gfsBucketExport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.exportedFile` });
@@ -56,6 +57,10 @@ async function establishAuthorAndLogsDBConnections() {
 		logger.info(`Connected to author db : ${config.authorDB}`);
 		promises.push(Promise.resolve('Connected to AuthorDB'));
 	});
+	authorDB.on('error', () => {
+		logger.info(`Error connecting to author db : ${config.authorDB}`);
+		promises.push(Promise.resolve('Error connecting to AuthorDB'));
+	});
 	authorDB.on('reconnectFailed', () => { logger.error(` *** ${config.authorDB} FAILED TO RECONNECT *** `); });
 	global.authorDB = authorDB;
 
@@ -67,6 +72,10 @@ async function establishAuthorAndLogsDBConnections() {
 	logsDB.on('connected', () => {
 		logger.info(`Connected to logs db : ${config.logsDB}`);
 		promises.push(Promise.resolve('Connected to LogsDB'));
+	});
+	logsDB.on('error', () => {
+		logger.info(`Error connecting to logs db : ${config.logsDB}`);
+		promises.push(Promise.resolve('Error connecting to LogsDB'));
 	});
 	logsDB.on('reconnectFailed', () => { logger.error(` *** ${config.logsDB} FAILED TO RECONNECT *** `); });
 	global.logsDB = logsDB;
