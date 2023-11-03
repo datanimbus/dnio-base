@@ -390,7 +390,16 @@ schema.post('remove', function (doc) {
 	});
 });
 
-mongoose.model(config.serviceId, schema, config.serviceCollection);
+let mainmodel = mongoose.model(config.serviceId, schema, config.serviceCollection);
+
+mainmodel.on('index', error => {
+	if (error) {
+		logger.error('Error while creating index');
+		logger.error(error.message);
+	} else {
+		logger.debug('Index created');
+	}
+  });
 
 function getDiff(a, b, oldData, newData) {
 	if (a === null || b === null) {
