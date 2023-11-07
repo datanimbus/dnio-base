@@ -22,6 +22,7 @@ const workflowModel = mongoose.model('workflow');
  * @deprecated
  */
 router.get('/count', async (req, res) => {
+	let txnId = req.get('txnId');
 	try {
 		let filter = {};
 		let errors = {};
@@ -52,6 +53,7 @@ router.get('/count', async (req, res) => {
 		if (filter.serviceId && filter.serviceId !== config.serviceId) {
 			return res.status(400).json({ 'message': 'Service Id in filter is not for this data service.' });
 		}
+		logger.trace(`[${txnId}] Final WF filter ${JSON.stringify(filter)}`);
 		if (errors && Object.keys(errors).length > 0) {
 			logger.warn('Error while fetching relation: ', JSON.stringify(errors));
 		}
