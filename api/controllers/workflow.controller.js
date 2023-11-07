@@ -134,6 +134,7 @@ router.get('/serviceList', async (req, res) => {
 });
 
 router.get('/', async (req, res) => {
+	let txnId = req.get('txnId');
 	try {
 		let filter = {};
 		let errors = {};
@@ -167,6 +168,7 @@ router.get('/', async (req, res) => {
 		if (filter.serviceId && filter.serviceId !== config.serviceId) {
 			return res.status(400).json({ 'message': 'Service Id in filter is not for this data service.' });
 		}
+		logger.trace(`[${txnId}] Final WF filter ${JSON.stringify(filter)}`);
 		if (req.query.countOnly) {
 			const count = await workflowModel.countDocuments(filter);
 			return res.status(200).json(count);
@@ -189,6 +191,10 @@ router.get('/', async (req, res) => {
 		} else {
 			sort = '-_metadata.lastUpdated';
 		}
+		logger.trace(`[${txnId}] Final WF Sorter ${JSON.stringify(sort)}`);
+		logger.trace(`[${txnId}] Final WF Select ${JSON.stringify(select)}`);
+		logger.trace(`[${txnId}] Final WF Skip ${JSON.stringify(skip)}`);
+		logger.trace(`[${txnId}] Final WF Limit ${JSON.stringify(count)}`);
 		let docs = await workflowModel.find(filter).select(select).sort(sort).skip(skip).limit(count).lean();
 
 		docs = await decryptAndExpandWFItems(docs, req);
@@ -629,7 +635,7 @@ async function approve(req, res) {
 		} else {
 			return res.status(400).json({ message: 'No ids or filter available to find the workflow items' });
 		}
-		
+
 		if (!docs || docs.length == 0) {
 			return res.status(400).json({ message: 'No Documents To Approve' });
 		}
@@ -797,13 +803,13 @@ async function reject(req, res) {
 		if (ids) {
 			docs = await workflowModel.find({ $and: [{ _id: ids }, { status: { $in: ['Pending'] } }, { requestedBy: { $ne: req.user._id } }] });
 		} else if (filter) {
-			filter.status = { "$in": ["Pending"] };
-			filter.requestedBy = { "$ne": req.user._id };
+			filter.status = { $in: ['Pending'] };
+			filter.requestedBy = { $ne: req.user._id };
 			docs = await workflowModel.find(filter);
 		} else {
 			return res.status(400).json({ message: 'No ids or filter available to find the workflow items' });
 		}
-		
+
 		if (!docs || docs.length == 0) {
 			return res.status(400).json({ message: 'No Documents To Reject' });
 		}
