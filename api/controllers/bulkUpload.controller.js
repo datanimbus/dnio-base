@@ -14,7 +14,7 @@ var options = {
 };
 const helperUtil = require('../helpers/util.js');
 const _ = require('lodash');
-const XLSX = require('xlsx');
+const Excel = require("exceljs");
 const request = require('request');
 const envConfig = require('../../config.js');
 // const isDev = process.env.DEV;
@@ -467,16 +467,42 @@ function processValidation(arr, batch, model, serviceDetail, validData, errorDat
 	}, Promise.resolve());
 }
 
-function getSheetData(ws, isHeaderProvided) {
-	if (!ws['!ref']) return [];
-	let sheetArr = null;
-	if (isHeaderProvided) {
-		sheetArr = XLSX.utils.sheet_to_json(ws, { dateNF: 'YYYY-MM-DD HH:MM:SS' });
-	} else {
-		sheetArr = XLSX.utils.sheet_to_json(ws, {
+function sheet_to_json(ws, isHeaderProvided) {
+	const json = [];
 
+	if (isHeaderProvided) {
+		const headerRow = ws.getRow(1);
+		ws.eachRow({ includeEmpty: true }, function (row, rowNumber) {
+			if (rowNumber === 1) {
+				return;
+			}
+			const rowJson = {};
+
+			row.eachCell(function (cell, colNumber) {
+				rowJson[headerRow.getCell(colNumber).value] = cell.value;
+			});
+
+			json.push(rowJson);
+		});
+	} else {
+		ws.eachRow({ includeEmpty: true }, function (row, rowNumber) {
+			const rowJson = {};
+
+			row.eachCell(function (cell, colNumber) {
+				rowJson[cell.address] = cell.value;
+			});
+
+			json.push(rowJson);
 		});
 	}
+	return json;
+}
+
+
+function getSheetData(ws, isHeaderProvided) {
+	if (ws.columnCount < 1 || ws.rowCount < 1) return [];
+	let sheetArr = null;
+	sheetArr = sheet_to_json(ws, isHeaderProvided);
 	return sheetArr;
 }
 
@@ -519,9 +545,12 @@ e.validateData = (_req, _res) => {
 	let preHookSize = helperUtil.getPreHooks().length;
 	let resultData = {};    
 	getSheetDataFromGridFS(fileId)
-		.then((bufferData)=> {
-			let wb = XLSX.read(bufferData, { type: 'buffer', cellDates: true, cellNF: false, cellText: true, dateNF: 'YYYY-MM-DD HH:MM:SS' });
-			let ws = wb.Sheets[wb.SheetNames[0]];
+		.then(async (bufferData)=> {
+			let wb = new Excel.Workbook();
+			wb = await wb.xlsx.load(bufferData);
+			let sheetId = wb.worksheets[0].name;
+			let ws = wb.getWorksheet(sheetId);
+
 			let sheetData = getSheetData(ws, isHeaderProvided);
 			let mappedSchemaData = substituteMappingSheetToSchema(sheetData, headerMapping);
 			return mongoose.connection.db.collection('complex.fileTransfers').update({fileId: fileId }, {$set: {isHeaderProvided, headerMapping, status: 'Validating'}})
