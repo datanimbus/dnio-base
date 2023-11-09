@@ -1,4 +1,4 @@
-const XLSX = require('xlsx');
+const Excel = require("exceljs");
 const log4js = require('log4js');
 
 const logger = log4js.getLogger(global.loggerName);
@@ -60,16 +60,19 @@ function readStreamFromGridFS(fileId) {
  * @param {boolean} isHeaderProvided Flag for headers in file
  */
 function getSheetData(bufferData, isHeaderProvided) {
-	return new Promise((resolve, reject) => {
+	return new Promise(async (resolve, reject) => {
 		try {
-			const wb = XLSX.read(bufferData, { type: 'buffer', cellDates: true, cellNF: false, cellText: true, dateNF: 'YYYY-MM-DD HH:MM:SS' });
-			const ws = wb.Sheets[wb.SheetNames[0]];
-			if (!ws['!ref']) return resolve([]);
+			let wb = new Excel.Workbook();
+			wb = await wb.xlsx.load(bufferData);
+			let sheetId = wb.worksheets[0].name;
+			let ws = wb.getWorksheet(sheetId);
+
+			if (ws.columnCount < 1 || ws.rowCount < 1) return resolve();
 			let sheetArr = [];
 			if (isHeaderProvided) {
-				sheetArr = XLSX.utils.sheet_to_json(ws, { dateNF: 'YYYY-MM-DD HH:MM:SS' });
+				sheetArr = sheet_to_json(ws, true);
 			} else {
-				sheetArr = XLSX.utils.sheet_to_json(ws, {});
+				sheetArr = sheet_to_json(worksheet, false);
 			}
 			return resolve(sheetArr);
 		} catch (e) {
@@ -77,6 +80,39 @@ function getSheetData(bufferData, isHeaderProvided) {
 		}
 	});
 }
+
+
+function sheet_to_json(ws, isHeaderProvided) {
+	const json = [];
+
+	if (isHeaderProvided) {
+		const headerRow = ws.getRow(1);
+		ws.eachRow({ includeEmpty: true }, function (row, rowNumber) {
+			if (rowNumber === 1) {
+				return;
+			}
+			const rowJson = {};
+
+			row.eachCell(function (cell, colNumber) {
+				rowJson[headerRow.getCell(colNumber).value] = cell.value;
+			});
+
+			json.push(rowJson);
+		});
+	} else {
+		ws.eachRow({ includeEmpty: true }, function (row, rowNumber) {
+			const rowJson = {};
+
+			row.eachCell(function (cell, colNumber) {
+				rowJson[cell.address] = cell.value;
+			});
+
+			json.push(rowJson);
+		});
+	}
+	return json;
+}
+
 
 /**
  * 
