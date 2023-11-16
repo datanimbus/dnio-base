@@ -58,7 +58,10 @@ function MakeSchema(definition, options) {
  * 
  * @param {*} [options]
  */
-function metadataPlugin() {
+function metadataPlugin(options) {
+	if (!options) {
+		options = {};
+	}
 	return function (schema) {
 		// schema.add({
 		// 	_expireAt: {
@@ -112,7 +115,7 @@ function metadataPlugin() {
 		schema.pre('insertMany', function (next, docs) {
 			if (docs && docs.length > 0) {
 				let promises = docs.map(async (doc) => {
-					if (!doc._id) {
+					if (!doc._id && !options.skipGenerateId) {
 						doc._id = await counterUtils.generateId(config.ID_PREFIX, config.serviceCollection, config.ID_SUFFIX, config.ID_PADDING, config.ID_COUNTER);
 					}
 					if (!doc._metadata) {
