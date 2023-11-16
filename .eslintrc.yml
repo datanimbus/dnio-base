@@ -3,11 +3,15 @@ env:
   node: true
 extends: 'eslint:recommended'
 parserOptions:
-  ecmaVersion: 2017
+  ecmaVersion: 2020
   sourceType: module
 ignorePatterns:
   - "special-fields.utils.js"
 rules:
+  no-unused-vars:
+    - error
+    - varsIgnorePattern: '^_'
+      argsIgnorePattern: '^_'
   camelcase: error
   indent:
     - error

@@ -218,13 +218,13 @@ async function init() {
 		}
 
 		if (dataStorageConnectorDetails?.type === 'MONGODB' && dataStorageConnectorDetails?.options.default) {
-			serviceDoc.connectors.data.values = { "connectionString": config.mongoUrl, "database": config.namespace + '-' + serviceDoc.app }
+			serviceDoc.connectors.data.values = { 'connectionString': config.mongoUrl, 'database': config.namespace + '-' + serviceDoc.app };
 		} else {
 			serviceDoc.connectors.data.values = dataStorageConnectorDetails.values;
 		}
 
 		if (serviceDoc.connectors.data.options && serviceDoc.connectors.data.options.tableName)
-			dataStorageConnectorDetails.options["tableName"] = serviceDoc.connectors.data.options.tableName;
+			dataStorageConnectorDetails.options['tableName'] = serviceDoc.connectors.data.options.tableName;
 		serviceDoc.connectors.data.options = dataStorageConnectorDetails.options;
 
 
@@ -292,12 +292,12 @@ async function initForWorker(additionalLoggerIdentifier) {
 		serviceDoc.connectors.data.type = dataStorageConnectorDetails.type;
 
 		if (dataStorageConnectorDetails?.type === 'MONGODB' && dataStorageConnectorDetails?.options.default) {
-			serviceDoc.connectors.data.values = { "connectionString": config.mongoUrl, "database": config.namespace + '-' + serviceDoc.app }
+			serviceDoc.connectors.data.values = { 'connectionString': config.mongoUrl, 'database': config.namespace + '-' + serviceDoc.app };
 		} else {
 			serviceDoc.connectors.data.values = dataStorageConnectorDetails.values;
 		}
 
-		if (serviceDoc.connectors.data.options && serviceDoc.connectors.data.options.tableName) dataStorageConnectorDetails.options["tableName"] = serviceDoc.connectors.data.options.tableName
+		if (serviceDoc.connectors.data.options && serviceDoc.connectors.data.options.tableName) dataStorageConnectorDetails.options['tableName'] = serviceDoc.connectors.data.options.tableName;
 		serviceDoc.connectors.data.options = dataStorageConnectorDetails.options;
 
 

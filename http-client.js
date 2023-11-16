@@ -1,4 +1,4 @@
-const request = require('request-promise');
+const got = require('got');
 const sh = require('shorthash');
 const crypto = require('crypto');
 /**
@@ -34,8 +34,15 @@ function httpRequest(options) {
 	if (!options.method) {
 		options.method = 'GET';
 	}
-	options.json = true;
-	options['resolveWithFullResponse'] = true;
+	options.responseType = 'json';
+	if (options.body) {
+		options.json = options.body;
+	} else {
+		delete options.json;
+	}
+	options.searchParams = options.qs;
+	delete options.body;
+	delete options.qs;
 	if (!options['headers']) {
 		options['headers'] = {};
 	}
@@ -44,7 +51,7 @@ function httpRequest(options) {
 		options['headers']['USER'] = `${process.env.SERVICE_ID || 'BASE'}`;
 	}
 
-	return request(options);
+	return got(options);
 }
 
 module.exports.httpRequest = httpRequest;

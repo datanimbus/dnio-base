@@ -6,7 +6,7 @@ const action = workerData.action;
 const text = workerData.text;
 const encryptionKey = workerData.encryptionKey;
 const appEncryptionKey = workerData.appEncryptionKey;
-const SECRET = '34857057658800771270426551038148';
+// const SECRET = '34857057658800771270426551038148';
 
 let resultData;
 try {

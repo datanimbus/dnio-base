@@ -7,7 +7,6 @@ const config = require('../../config');
 const definition = require('../helpers/service.definition').definition;
 const mongooseUtils = require('../utils/mongoose.utils');
 const hooksUtils = require('../utils/hooks.utils');
-const mlFileParserUtil = require('../utils/ml.fileparser.utils');
 const specialFields = require('../utils/special-fields.utils');
 const { removeNullForUniqueAttribute } = require('../utils/common.utils');
 const serviceData = require('../../service.json');
@@ -399,7 +398,7 @@ mainmodel.on('index', error => {
 	} else {
 		logger.debug('Index created');
 	}
-  });
+});
 
 function getDiff(a, b, oldData, newData) {
 	if (a === null || b === null) {

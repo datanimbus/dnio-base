@@ -455,48 +455,48 @@ function handleError(res, err, txnId) {
 }
 
 
-function addExpireAt(req) {
-	let expireAt = null;
-	if (req.query.expireAt) {
-		expireAt = req.query.expireAt;
-		if (!isNaN(expireAt)) {
-			expireAt = parseInt(req.query.expireAt);
-		}
-		expireAt = new Date(expireAt);
-	} else if (req.query.expireAfter) {
-		let expireAfter = req.query.expireAfter;
-		let addTime = 0;
-		let time = {
-			s: 1000,
-			m: 60000,
-			h: 3600000
-		};
-		let timeUnit = expireAfter.charAt(expireAfter.length - 1);
-		if (!isNaN(timeUnit)) addTime = parseInt(expireAfter) * 1000;
-		else {
-			let timeVal = expireAfter.substr(0, expireAfter.length - 1);
-			if (time[timeUnit] && !isNaN(timeVal)) {
-				addTime = parseInt(timeVal) * time[timeUnit];
-			} else {
-				throw new Error('expireAfter value invalid');
-			}
-		}
-		expireAt = new Date().getTime() + addTime;
-		expireAt = new Date(expireAt);
-	}
-	if (expireAt) {
-		if (isNaN(expireAt.getTime())) {
-			throw new Error('expire value invalid');
-		}
-		if (Array.isArray(req.body)) {
-			let expString = expireAt.toISOString();
-			req.body = req.body.map(_d => {
-				_d['_expireAt'] = expString;
-			});
-		} else {
-			req.body['_expireAt'] = expireAt.toISOString();
-		}
-	}
-}
+// function addExpireAt(req) {
+// 	let expireAt = null;
+// 	if (req.query.expireAt) {
+// 		expireAt = req.query.expireAt;
+// 		if (!isNaN(expireAt)) {
+// 			expireAt = parseInt(req.query.expireAt);
+// 		}
+// 		expireAt = new Date(expireAt);
+// 	} else if (req.query.expireAfter) {
+// 		let expireAfter = req.query.expireAfter;
+// 		let addTime = 0;
+// 		let time = {
+// 			s: 1000,
+// 			m: 60000,
+// 			h: 3600000
+// 		};
+// 		let timeUnit = expireAfter.charAt(expireAfter.length - 1);
+// 		if (!isNaN(timeUnit)) addTime = parseInt(expireAfter) * 1000;
+// 		else {
+// 			let timeVal = expireAfter.substr(0, expireAfter.length - 1);
+// 			if (time[timeUnit] && !isNaN(timeVal)) {
+// 				addTime = parseInt(timeVal) * time[timeUnit];
+// 			} else {
+// 				throw new Error('expireAfter value invalid');
+// 			}
+// 		}
+// 		expireAt = new Date().getTime() + addTime;
+// 		expireAt = new Date(expireAt);
+// 	}
+// 	if (expireAt) {
+// 		if (isNaN(expireAt.getTime())) {
+// 			throw new Error('expire value invalid');
+// 		}
+// 		if (Array.isArray(req.body)) {
+// 			let expString = expireAt.toISOString();
+// 			req.body = req.body.map(_d => {
+// 				_d['_expireAt'] = expString;
+// 			});
+// 		} else {
+// 			req.body['_expireAt'] = expireAt.toISOString();
+// 		}
+// 	}
+// }
 
 module.exports = router;

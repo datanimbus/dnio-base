@@ -1,4 +1,4 @@
-const request = require('request');
+const request = require('../utils/got-request-wrapper');
 const mongoose = require('mongoose');
 const log4js = require('log4js');
 const crypto = require('crypto');

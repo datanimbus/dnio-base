@@ -14,8 +14,8 @@ var options = {
 };
 const helperUtil = require('../helpers/util.js');
 const _ = require('lodash');
-const Excel = require("exceljs");
-const request = require('request');
+const Excel = require('exceljs');
+const request = require('../utils/got-request-wrapper.js');
 const envConfig = require('../../config.js');
 // const isDev = process.env.DEV;
 const serviceId = process.env.SERVICE_ID || 'SRVC2006';
@@ -467,7 +467,7 @@ function processValidation(arr, batch, model, serviceDetail, validData, errorDat
 	}, Promise.resolve());
 }
 
-function sheet_to_json(ws, isHeaderProvided) {
+function sheettojson(ws, isHeaderProvided) {
 	const json = [];
 
 	if (isHeaderProvided) {
@@ -485,10 +485,10 @@ function sheet_to_json(ws, isHeaderProvided) {
 			json.push(rowJson);
 		});
 	} else {
-		ws.eachRow({ includeEmpty: true }, function (row, rowNumber) {
+		ws.eachRow({ includeEmpty: true }, function (row, _rowNumber) {
 			const rowJson = {};
 
-			row.eachCell(function (cell, colNumber) {
+			row.eachCell(function (cell, _colNumber) {
 				rowJson[cell.address] = cell.value;
 			});
 
@@ -502,7 +502,7 @@ function sheet_to_json(ws, isHeaderProvided) {
 function getSheetData(ws, isHeaderProvided) {
 	if (ws.columnCount < 1 || ws.rowCount < 1) return [];
 	let sheetArr = null;
-	sheetArr = sheet_to_json(ws, isHeaderProvided);
+	sheetArr = sheettojson(ws, isHeaderProvided);
 	return sheetArr;
 }
 

@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const request = require('request');
+const request = require('../utils/got-request-wrapper');
 const log4js = require('log4js');
 
 let commonUtils = require('./common.utils');

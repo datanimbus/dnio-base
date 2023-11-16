@@ -1,4 +1,4 @@
-const request = require('request');
+const request = require('../utils/got-request-wrapper');
 
 const config = require('../../config');
 
@@ -82,12 +82,18 @@ function transferToTransaction(req, res) {
 	} else {
 		throw new Error('INVALID_HTTP_METHOD_FOR_TRANSACTION');
 	}
-	return request(config.baseUrlCOMMON, {
+	return request.post(config.baseUrlCOMMON, {
 		method: 'POST',
 		body: payload,
 		json: true,
 		headers: req.headers
-	}).pipe(res);
+	}, function (err, reqRes) {
+		if (err) {
+			res.status(500).json(err);
+		} else {
+			res.status(reqRes.statusCode).json(reqRes.body);
+		}
+	});
 }
 
 

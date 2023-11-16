@@ -1,4 +1,5 @@
-const Excel = require("exceljs");
+/* eslint-disable no-async-promise-executor */
+// const Excel = require('exceljs');
 const log4js = require('log4js');
 const fastcsv = require('fast-csv');
 
@@ -60,7 +61,7 @@ function readStreamFromGridFS(fileId) {
  * @param {*} bufferData The GridFS data
  * @param {boolean} isHeaderProvided Flag for headers in file
  */
-function getSheetData(bufferData, isHeaderProvided) {
+function getSheetData(bufferData, _isHeaderProvided) {
 	return new Promise(async (resolve, reject) => {
 		try {
 			let sheetArr = [];
@@ -75,36 +76,36 @@ function getSheetData(bufferData, isHeaderProvided) {
 }
 
 
-function sheet_to_json(ws, isHeaderProvided) {
-	const json = [];
+// function sheettojson(ws, isHeaderProvided) {
+// 	const json = [];
 
-	if (isHeaderProvided) {
-		const headerRow = ws.getRow(1);
-		ws.eachRow({ includeEmpty: true }, function (row, rowNumber) {
-			if (rowNumber === 1) {
-				return;
-			}
-			const rowJson = {};
+// 	if (isHeaderProvided) {
+// 		const headerRow = ws.getRow(1);
+// 		ws.eachRow({ includeEmpty: true }, function (row, rowNumber) {
+// 			if (rowNumber === 1) {
+// 				return;
+// 			}
+// 			const rowJson = {};
 
-			row.eachCell(function (cell, colNumber) {
-				rowJson[headerRow.getCell(colNumber).value] = cell.value;
-			});
+// 			row.eachCell(function (cell, colNumber) {
+// 				rowJson[headerRow.getCell(colNumber).value] = cell.value;
+// 			});
 
-			json.push(rowJson);
-		});
-	} else {
-		ws.eachRow({ includeEmpty: true }, function (row, rowNumber) {
-			const rowJson = {};
+// 			json.push(rowJson);
+// 		});
+// 	} else {
+// 		ws.eachRow({ includeEmpty: true }, function (row, _rowNumber) {
+// 			const rowJson = {};
 
-			row.eachCell(function (cell, colNumber) {
-				rowJson[cell.address] = cell.value;
-			});
+// 			row.eachCell(function (cell, _colNumber) {
+// 				rowJson[cell.address] = cell.value;
+// 			});
 
-			json.push(rowJson);
-		});
-	}
-	return json;
-}
+// 			json.push(rowJson);
+// 		});
+// 	}
+// 	return json;
+// }
 
 
 /**
