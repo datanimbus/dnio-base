@@ -1,5 +1,6 @@
 const Excel = require("exceljs");
 const log4js = require('log4js');
+const fastcsv = require('fast-csv');
 
 const logger = log4js.getLogger(global.loggerName);
 /**
@@ -62,19 +63,11 @@ function readStreamFromGridFS(fileId) {
 function getSheetData(bufferData, isHeaderProvided) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			let wb = new Excel.Workbook();
-			wb = await wb.xlsx.load(bufferData);
-			let sheetId = wb.worksheets[0].name;
-			let ws = wb.getWorksheet(sheetId);
-
-			if (ws.columnCount < 1 || ws.rowCount < 1) return resolve();
 			let sheetArr = [];
-			if (isHeaderProvided) {
-				sheetArr = sheet_to_json(ws, true);
-			} else {
-				sheetArr = sheet_to_json(worksheet, false);
-			}
-			return resolve(sheetArr);
+			fastcsv.parseString(bufferData.toString(), { headers: true })
+				.on('data', data => sheetArr.push(data))
+				.on('error', error => reject(error))
+				.on('end', () => resolve(sheetArr));
 		} catch (e) {
 			reject(e);
 		}
