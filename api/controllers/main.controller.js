@@ -350,7 +350,7 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 
 router.delete('/utils/bulkDelete', async (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
-	const ids = req.query.ids || req.body.ids;
+	let ids = req.query.ids || req.body.ids;
 	const userFilter = req.query.filter || req.body.filter;
 	if ((!ids || ids.length == 0) && (!userFilter || _.isEmpty(userFilter))) {
 		return res.status(400).json({
@@ -362,6 +362,11 @@ router.delete('/utils/bulkDelete', async (req, res) => {
 			message: 'You don\'t have permission to delete records',
 		});
 	}
+
+	if (ids) {
+		ids = ids.split(',');
+	}
+
 	if (req.query.txn == true) {
 		return transactionUtils.transferToTransaction(req, res);
 	}
@@ -377,7 +382,7 @@ router.delete('/utils/bulkDelete', async (req, res) => {
 				$in: ids,
 			};
 		} else {
-			filter = _.merge(filter, userFilter);
+			filter = _.merge(filter, JSON.parse(userFilter));
 		}
 		if (!serviceData.schemaFree) {
 			const dynamicFilter = await specialFields.getDynamicFilter(req);
