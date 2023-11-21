@@ -30,8 +30,16 @@ router.put('/update', async (req, res) => {
 	}
 
 	const txnId = req.get(global.txnIdHeader);
-	const id = req.query.id;
-	const ids = (id || '').split(',');
+	let ids = req.query.ids;
+	if (ids && typeof ids == 'string') {
+		ids = _.trim(ids);
+		if (ids) {
+			ids = ids.split(',');
+		}
+	}
+	if (_.isArray(ids) && ids.length == 0) {
+		ids = null;
+	}
 	const payload = req.body;
 	let userFilter = req.query.filter;
 	let errors = {};
@@ -106,7 +114,16 @@ router.delete('/delete', async (req, res) => {
 	}
 
 	const txnId = req.get(global.txnIdHeader);
-	const ids = req.query.ids || req.body.ids;
+	let ids = req.query.ids || req.body.ids;
+	if (ids && typeof ids == 'string') {
+		ids = _.trim(ids);
+		if (ids) {
+			ids = ids.split(',');
+		}
+	}
+	if (_.isArray(ids) && ids.length == 0) {
+		ids = null;
+	}
 	let userFilter = req.query.filter || req.body.filter;
 	let errors = {};
 	try {
