@@ -39,6 +39,7 @@ router.put('/update', async (req, res) => {
 		if (userFilter) {
 			userFilter = JSON.parse(decodeURIComponent(userFilter));
 			const tempFilter = await specialFields.patchRelationInFilter(req, userFilter, errors);
+			logger.debug('Filter After Patching Relation:', tempFilter);
 			if (Array.isArray(tempFilter) && tempFilter.length > 0) {
 				userFilter = tempFilter[0];
 			} else if (tempFilter) {
@@ -48,7 +49,7 @@ router.put('/update', async (req, res) => {
 				logger.error('Error while fetching relation: ', JSON.stringify(errors));
 			}
 			userFilter = modifySecureFieldsFilter(userFilter, specialFields.secureFields, false);
-
+			logger.debug('Filter After Patching Secure Fields:', userFilter);
 		}
 	} catch (e) {
 		logger.error(e);
@@ -56,6 +57,7 @@ router.put('/update', async (req, res) => {
 	}
 	if (userFilter) {
 		userFilter = crudderUtils.parseFilter(userFilter);
+		logger.debug('Filter After Parsing:', userFilter);
 	}
 
 	if ((!ids || ids.length == 0) && (!userFilter || _.isEmpty(userFilter))) {
@@ -87,6 +89,7 @@ router.put('/update', async (req, res) => {
 		if (!payload._metadata.lastUpdated) {
 			payload._metadata.lastUpdated = new Date();
 		}
+		logger.debug('Final Filter:', filter);
 		const status = await model.updateMany(filter, { $set: payload });
 		return res.status(200).json(status);
 	} catch (err) {
@@ -110,6 +113,7 @@ router.delete('/delete', async (req, res) => {
 		if (userFilter) {
 			userFilter = JSON.parse(decodeURIComponent(userFilter));
 			const tempFilter = await specialFields.patchRelationInFilter(req, userFilter, errors);
+			logger.debug('Filter After Patching Relation:', tempFilter);
 			if (Array.isArray(tempFilter) && tempFilter.length > 0) {
 				userFilter = tempFilter[0];
 			} else if (tempFilter) {
@@ -119,7 +123,7 @@ router.delete('/delete', async (req, res) => {
 				logger.error('Error while fetching relation: ', JSON.stringify(errors));
 			}
 			userFilter = modifySecureFieldsFilter(userFilter, specialFields.secureFields, false);
-
+			logger.debug('Filter After Patching Secure Fields:', userFilter);
 		}
 	} catch (e) {
 		logger.error(e);
@@ -127,6 +131,7 @@ router.delete('/delete', async (req, res) => {
 	}
 	if (userFilter) {
 		userFilter = crudderUtils.parseFilter(userFilter);
+		logger.debug('Filter After Parsing:', userFilter);
 	}
 
 	if ((!ids || ids.length == 0) && (!userFilter || _.isEmpty(userFilter))) {
@@ -151,7 +156,7 @@ router.delete('/delete', async (req, res) => {
 			const docs = await model.find(filter).lean();
 			await softDeletedModel.insertMany(docs);
 		}
-
+		logger.debug('Final Filter:', filter);
 		const result = await model.deleteMany(filter);
 		return res.status(200).json(result);
 	} catch (e) {
