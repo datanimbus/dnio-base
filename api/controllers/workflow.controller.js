@@ -400,12 +400,11 @@ router.get('/group/:app', async (req, res) => {
 
 async function discard(req, res) {
 	try {
-		const id = req.body.ids[0];
-		const doc = await workflowModel.findOne({ $and: [{ _id: id }, { status: { $in: ['Draft', 'Rework'] } }] });
-		if (!doc) {
+		const ids = req.body.ids;
+		const docs = await workflowModel.find({ $and: [{ _id: { $in: ids } }, { status: { $in: ['Draft', 'Rework'] } }] });
+		if (_.isEmpty(docs)) {
 			return res.status(400).json({ message: 'Discard Failed' });
 		}
-		doc.status = 'Discarded';
 		const remarks = req.body.remarks;
 		const attachments = req.body.attachments || [];
 		const event = {
@@ -416,19 +415,22 @@ async function discard(req, res) {
 			attachments: attachments,
 			timestamp: Date.now()
 		};
-		if (!doc.audit) {
-			doc.audit = [];
-		}
-		doc.respondedBy = req.user._id;
-		doc.audit.push(event);
-		doc.markModified('audit');
-		doc._req = req;
-		doc._isEncrypted = true;
-		const savedDoc = await doc.save();
-		if (savedDoc.operation == 'PUT') {
-			const status = await serviceModel.findOneAndUpdate({ _id: savedDoc.documentId }, { '_metadata.workflow': null }, { new: true });
-			logger.debug('Unlocked Document', status);
-		}
+		docs.forEach(async doc => {
+			doc.status = 'Discarded';
+			if (!doc.audit) {
+				doc.audit = [];
+			}
+			doc.respondedBy = req.user._id;
+			doc.audit.push(event);
+			doc.markModified('audit');
+			doc._req = req;
+			doc._isEncrypted = true;
+			const savedDoc = await doc.save();
+			if (savedDoc.operation == 'PUT') {
+				const status = await serviceModel.findOneAndUpdate({ _id: savedDoc.documentId }, { '_metadata.workflow': null }, { new: true });
+				logger.debug('Unlocked Document', status);
+			}
+		})
 		return res.status(200).json({ results: [{ status: 200, message: 'Discard Successful' }] });
 	} catch (err) {
 		logger.error(err);
