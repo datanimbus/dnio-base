@@ -68,7 +68,13 @@ router.get('/utils/bulkShow', async (req, res) => {
 				message: 'You don\'t have permission to fetch records',
 			});
 		}
-		const ids = req.query.id ? req.query.id.split(',') : [];
+		let ids = req.query.ids || req.query.id;
+		if (ids && _.trim(ids)) {
+			ids = ids.split(',');
+		} else {
+			ids = [];
+		}
+
 		const filter = {
 			_id: {
 				$in: ids,
@@ -92,7 +98,7 @@ router.get('/utils/bulkShow', async (req, res) => {
 });
 
 router.put('/utils/bulkUpdate', async (req, res) => {
-	const id = req.query.id;
+	const id = req.query.ids || req.query.id;
 	const ids = (id || '').split(',');
 	const userFilter = req.query.filter;
 	if ((!ids || ids.length == 0) && (!userFilter || _.isEmpty(userFilter))) {
@@ -350,7 +356,7 @@ router.post('/utils/bulkUpsert', async (req, res) => {
 
 router.delete('/utils/bulkDelete', async (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
-	let ids = req.query.ids || req.body.ids;
+	let ids = req.query.ids || req.body.ids || req.query.id || req.body.id;
 	const userFilter = req.query.filter || req.body.filter;
 	if ((!ids || ids.length == 0) && (!userFilter || _.isEmpty(userFilter))) {
 		return res.status(400).json({
