@@ -451,7 +451,7 @@ async function discard(req, res) {
 		});
 		await Promise.all(promises);
 		if (results.every(e => e.status == 200)) {
-			return res.status(200).json({ results });
+			return res.json({ results });
 		}
 		if (results.every(e => e.status != 200)) {
 			return res.status(400).json({ results });
