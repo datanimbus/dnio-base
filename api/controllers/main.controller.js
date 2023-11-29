@@ -369,7 +369,7 @@ router.delete('/utils/bulkDelete', async (req, res) => {
 		});
 	}
 
-	if (ids) {
+	if (ids && typeof ids === 'string') {
 		ids = ids.split(',');
 	}
 
