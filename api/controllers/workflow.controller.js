@@ -451,12 +451,12 @@ async function discard(req, res) {
 		});
 		await Promise.all(promises);
 		if (results.every(e => e.status == 200)) {
-			return res.json({ results });
+			return res.status(200).json({ results });
 		}
 		if (results.every(e => e.status != 200)) {
-			return res.status(400).json({ results });
+			return res.json({ results });
 		}
-		return res.status(207).json({ results });
+		return res.json({ results });
 	} catch (err) {
 		logger.error(err);
 		return res.status(400).json({ message: err.message });
