@@ -133,7 +133,7 @@ async function initConfigVariables(serviceDoc, reinitLogger) {
 	config.appNamespace = (config.namespace + '-' + serviceDoc.app).toLowerCase();
 	config.serviceName = serviceDoc.name;
 	if (config.isK8sEnv()) {
-		config.servicePort = 80;
+		config.servicePort = process.env.PORT || 8000;
 	} else {
 		config.servicePort = serviceDoc.port;
 	}
