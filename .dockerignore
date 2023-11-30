@@ -1,4 +1,6 @@
 node_modules
+uploads
+output
 .vscode
 .idea
 .eslintrc.yml
@@ -12,3 +14,7 @@ README.md
 Dockerfile
 *.zip
 package-lock.json
+test.js
+service.json
+globalDef.json
+envVars.json

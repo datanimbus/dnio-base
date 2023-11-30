@@ -18,29 +18,22 @@ RUN npm audit fix --production
 
 RUN rm -rf /usr/local/lib/node_modules/npm/node_modules/node-gyp/test
 
-COPY app.js /tmp/app
-
-COPY config.js /tmp/app
-
-COPY init.env.js /tmp/app
-
-COPY db-factory.js /tmp/app
-
-COPY http-client.js /tmp/app
-
-COPY init.js /tmp/app
-
-COPY initializeRuntime.js /tmp/app
-
-COPY queue.js /tmp/app
-
-COPY api /tmp/app/api
-
-COPY views /tmp/app/views
-
-COPY codeGen /tmp/app/codeGen
+# COPY app.js /tmp/app
+# COPY config.js /tmp/app
+# COPY init.env.js /tmp/app
+# COPY db-factory.js /tmp/app
+# COPY http-client.js /tmp/app
+# COPY init.js /tmp/app
+# COPY initializeRuntime.js /tmp/app
+# COPY queue.js /tmp/app
+# COPY api /tmp/app/api
+# COPY views /tmp/app/views
+# COPY codeGen /tmp/app/codeGen
 
 RUN mkdir /tmp/app/output
+RUN mkdir /tmp/app/uploads
+
+COPY . .
 
 ENV IMAGE_TAG=__image_tag__
 
