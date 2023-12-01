@@ -163,11 +163,19 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 			if (attribute['properties']) {
 				Object.keys(attribute['properties']).forEach(keyOfObj => {
 					if (mongooseFields.indexOf(keyOfObj) > -1) {
-						if (keyOfObj == 'default' && attribute['properties']['dateType']) {
-							let dateValue = { "rawData": attribute['properties'][keyOfObj] };
-							let defaultDate = commonUtils.getFormattedDate(null, dateValue, attribute['properties']['defaultTimezone'], []);
-
-							mongoSchema[key][keyOfObj] = defaultDate;
+						if (keyOfObj == 'default') {
+							if (attribute['properties']['dateType']) {
+								if (attribute['properties'][keyOfObj]) {
+									let dateValue = { "rawData": attribute['properties'][keyOfObj] };
+									let defaultDate = commonUtils.getFormattedDate(null, dateValue, attribute['properties']['defaultTimezone'], []);
+		
+									mongoSchema[key][keyOfObj] = defaultDate;
+								}
+							} else if (attribute['properties']['type'] == 'Boolean') {
+								mongoSchema[key][keyOfObj] = attribute['properties'][keyOfObj] || false;
+							} else {
+								mongoSchema[key][keyOfObj] = attribute['properties'][keyOfObj];
+							}
 						} else {
 							mongoSchema[key][keyOfObj] = attribute['properties'][keyOfObj];
 						}
