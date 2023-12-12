@@ -30,10 +30,11 @@ RUN rm -rf /usr/local/lib/node_modules/npm/node_modules/node-gyp/test
 # COPY views /tmp/app/views
 # COPY codeGen /tmp/app/codeGen
 
+COPY . .
+
 RUN mkdir /tmp/app/output
 RUN mkdir /tmp/app/uploads
-
-COPY . .
+RUN touch envVars.json
 
 ENV IMAGE_TAG=__image_tag__
 
