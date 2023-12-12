@@ -834,6 +834,7 @@ function genrateCode(config) {
 						code.push(`\tif (${_.camelCase(path)}New && ${_.camelCase(path)}New != ${_.camelCase(path)}Old) {`);
 						code.push('\t\ttry {');
 						code.push(`\t\t\tconst doc = await commonUtils.encryptText(req, ${_.camelCase(path)}New);`);
+						code.push(`\t\t\tlogger.trace('Encrypted doc :: ', JSON.stringify(doc));`);
 						code.push('\t\t\tif (doc && doc.value) {');
 						code.push(`\t\t\t\t_.set(newData, '${path}', doc.value);`);
 						code.push('\t\t\t}');
@@ -847,6 +848,7 @@ function genrateCode(config) {
 						code.push(`\tif (${_.camelCase(path + '.value')}New && ${_.camelCase(path + '.value')}New != ${_.camelCase(path + '.value')}Old) {`);
 						code.push('\t\ttry {');
 						code.push(`\t\t\tconst doc = await commonUtils.encryptText(req, ${_.camelCase(path + '.value')}New);`);
+						code.push(`\t\t\tlogger.trace('Encrypted doc :: ', JSON.stringify(doc));`);
 						code.push('\t\t\tif (doc) {');
 						code.push(`\t\t\t\t_.set(newData, '${path}', doc);`);
 						code.push('\t\t\t}');
@@ -867,6 +869,7 @@ function genrateCode(config) {
 							code.push('\t\t\ttry {');
 							code.push(`\t\t\t\tif (item && !${_.camelCase(path)}Old.find(e => e == item)) {`);
 							code.push('\t\t\t\t\tconst doc = await commonUtils.encryptText(req, item);');
+							code.push(`\t\t\t\t\tlogger.trace('Encrypted doc :: ', JSON.stringify(doc));`);
 							code.push('\t\t\t\t\tif (doc && doc.value) {');
 							code.push('\t\t\t\t\t\treturn doc.value;');
 							code.push('\t\t\t\t\t}');
