@@ -229,11 +229,6 @@ router.get('/', async (req, res) => {
 
 router.put('/action', async (req, res) => {
 	try {
-		if (!specialFields.hasPermissionForPUT(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
-			return res.status(403).json({
-				message: 'You don\'t have permission to update records',
-			});
-		}
 		if (!req.body.action) {
 			return res.status(400).json({ message: 'Action is required.' });
 		} else if (req.body.action == 'Discard') {
