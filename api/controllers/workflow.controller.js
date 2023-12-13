@@ -27,6 +27,12 @@ router.get('/count', async (req, res) => {
 		let filter = {};
 		let errors = {};
 		try {
+			if (!specialFields.hasPermissionForGET(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+				return res.status(403).json({
+					message: 'You don\'t have permission to fetch records',
+				});
+			}
+
 			if (req.query.filter) {
 				filter = JSON.parse(req.query.filter);
 				const tempFilter = await specialFields.patchRelationInWorkflowFilter(
@@ -69,6 +75,12 @@ router.get('/count', async (req, res) => {
 
 router.get('/users', async (req, res) => {
 	try {
+		if (!specialFields.hasPermissionForGET(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+			return res.status(403).json({
+				message: 'You don\'t have permission to fetch records',
+			});
+		}
+
 		let txnId = req.get(global.txnIdHeader);
 		let filter = req.query.filter ? req.query.filter : {};
 		filter = typeof filter === 'string' ? JSON.parse(filter) : filter;
@@ -141,6 +153,12 @@ router.get('/', async (req, res) => {
 		let filter = {};
 		let errors = {};
 		try {
+			if (!specialFields.hasPermissionForGET(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+				return res.status(403).json({
+					message: 'You don\'t have permission to fetch records',
+				});
+			}
+
 			if (req.query.filter) {
 				filter = JSON.parse(req.query.filter);
 				const tempFilter = await specialFields.patchRelationInWorkflowFilter(
@@ -242,6 +260,11 @@ router.put('/action', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
 	try {
+		if (!specialFields.hasPermissionForGET(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+			return res.status(403).json({
+				message: 'You don\'t have permission to fetch records',
+			});
+		}
 		let doc = await workflowModel.findById(req.params.id).lean();
 		if (!doc) {
 			return res.status(404).json({
@@ -260,6 +283,11 @@ router.get('/:id', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
 	try {
+		if (!specialFields.hasPermissionForPUT(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+			return res.status(403).json({
+				message: 'You don\'t have permission to update records',
+			});
+		}
 		const id = req.params.id;
 		const payload = req.body;
 		const audit = payload.audit;
@@ -349,6 +377,11 @@ function getUsersNameFromMap(userMap, userIds) {
 
 router.get('/group/:app', async (req, res) => {
 	try {
+		if (!specialFields.hasPermissionForGET(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+			return res.status(403).json({
+				message: 'You don\'t have permission to fetch records',
+			});
+		}
 		let app = req.params.app;
 		let filter = req.query.filter;
 		try {
