@@ -644,7 +644,11 @@ router.get('/', async (req, res) => {
 			.lean();
 
 		if (!serviceData.schemaFree) {
-			docs.forEach(doc => specialFields.filterByPermission(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []), doc));
+			docs.forEach((doc) => specialFields.filterByPermission(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []), doc));
+			docs.forEach((doc) => {
+				delete doc._metadata._id;
+				delete doc._metadata.version._id;
+			});
 			if (req.query.expand == true || req.query.expand == 'true') {
 				let promises = docs.map((e) =>
 					specialFields.expandDocument(req, e, null, true)
@@ -658,9 +662,7 @@ router.get('/', async (req, res) => {
 				specialFields.secureFields[0] &&
 				(req.query.decrypt == true || req.query.decrypt == 'true')
 			) {
-				let promises = docs.map((e) =>
-					specialFields.decryptSecureFields(req, e, null)
-				);
+				let promises = docs.map((e) => specialFields.decryptSecureFields(req, e, null));
 				await Promise.all(promises);
 				promises = null;
 			}
@@ -716,6 +718,8 @@ router.get('/:id', async (req, res) => {
 				await specialFields.decryptSecureFields(req, doc, null);
 			}
 		}
+		delete doc._metadata._id;
+		delete doc._metadata.version._id;
 		res.status(200).json(doc);
 	} catch (e) {
 		handleError(res, e, txnId);
@@ -856,6 +860,10 @@ router.post('/', async (req, res) => {
 					}
 				});
 				promises = await Promise.all(promises);
+				promises.forEach((doc) => {
+					delete doc._metadata._id;
+					delete doc._metadata.version._id;
+				});
 			} else {
 				if (!serviceData.schemaFree && serviceData.stateModel && serviceData.stateModel.enabled && !hasSkipReview) {
 					if (!_.get(payload, serviceData.stateModel.attribute)) {
@@ -870,6 +878,8 @@ router.post('/', async (req, res) => {
 				const doc = new model(payload);
 				doc._req = req;
 				promises = (await doc.save()).toObject();
+				delete promises._metadata._id;
+				delete promises._metadata.version._id;
 			}
 			res.status(200).json(promises);
 		}
@@ -1058,6 +1068,8 @@ router.put('/:id', async (req, res) => {
 			}
 			status = await doc.save();
 			logger.debug(`[${txnId}] Update status - ${status}`);
+			delete status._metadata._id;
+			delete status._metadata.version._id;
 			return res.status(200).json(status);
 		}
 	} catch (e) {
