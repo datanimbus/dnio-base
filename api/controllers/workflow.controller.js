@@ -218,6 +218,10 @@ router.get('/', async (req, res) => {
 		let docs = await workflowModel.find(filter).select(select).sort(sort).skip(skip).limit(count).lean();
 
 		docs = await decryptAndExpandWFItems(docs, req);
+		docs.forEach((doc) => {
+			delete doc._metadata?._id;
+			delete doc._metadata?.version?._id;
+		});
 		res.status(200).json(docs);
 	} catch (err) {
 		logger.error(err);
@@ -272,6 +276,8 @@ router.get('/:id', async (req, res) => {
 			});
 		}
 		doc = await decryptAndExpandWFItems(doc, req);
+		delete doc._metadata?._id;
+		delete doc._metadata?.version?._id;
 		res.status(200).json(doc);
 	} catch (err) {
 		logger.error(err);

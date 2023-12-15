@@ -77,6 +77,10 @@ router.get('/', (req, res) => {
 				sort = req.query.sort.split(',').join(' ');
 			}
 			const docs = await model.find(filter).select(select).sort(sort).skip(skip).limit(count).lean();
+			docs.forEach((doc) => {
+				delete doc._metadata?._id;
+				delete doc._metadata?.version?._id;
+			});
 			res.status(200).json(docs);
 		} catch (e) {
 			if (typeof e === 'string') {
