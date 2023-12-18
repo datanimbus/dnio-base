@@ -49,6 +49,7 @@ try {
 // }
 
 function encrypt(plainText, secret) {
+	console.log('Encrypting plain text :: ', plainText);
 	const key = crypto.createHash('sha256').update(secret).digest('base64').substring(0, 32);
 	const iv = crypto.randomBytes(IV_LENGTH);
 	const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
@@ -60,6 +61,7 @@ function encrypt(plainText, secret) {
 	} catch (e) {
 		cipherText = null;
 	}
+	console.log('Encrypted Cipher Text :: ', cipherText)
 	return cipherText;
 }
 
