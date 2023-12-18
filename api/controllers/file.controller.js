@@ -166,6 +166,11 @@ router.get('/download/:id', (req, res) => {
 					});
 
 					readstream.pipe(res);
+
+					readstream.on('close', async function () {
+						logger.info('file closed');
+						return res.end();
+					});
 				}
 			} else if (storage === 'AZBLOB') {
 				return await downloadFileFromAzure(id, txnId, res, encryptionKey);
