@@ -136,6 +136,16 @@ e.baseUrlGW = get('gw');
 
 e.RBAC_JWT_KEY = process.env.RBAC_JWT_KEY || 'u?5k167v13w5fhjhuiweuyqi67621gqwdjavnbcvadjhgqyuqagsduyqtw87e187etqiasjdbabnvczmxcnkzn';
 
+e.ODP_RULES = parseBoolean(process.env.ODP_RULES || 'false');
+
+function parseBoolean(val) {
+	if (typeof val === 'boolean') return val;
+	else if (typeof val === 'string') {
+		return val.toLowerCase() === 'true';
+	} else {
+		return false;
+	}
+}
 
 function get(_service) {
 	if (e.isK8sEnv()) {

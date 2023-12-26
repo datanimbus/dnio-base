@@ -580,6 +580,8 @@ router.get('/', async (req, res) => {
 		let sort = '';
 		if (req.query.count && +req.query.count > 0) {
 			count = +req.query.count;
+		} else if (req.query.count == -1 && config.ODP_RULES) {
+			count = -1;
 		}
 
 		if (req.query.page && +req.query.page > 0) {
@@ -639,13 +641,20 @@ router.get('/', async (req, res) => {
 		logger.trace(`[${txnId}] Final Skip ${JSON.stringify(skip)}`);
 		logger.trace(`[${txnId}] Final Limit ${JSON.stringify(count)}`);
 
-		let docs = await model
-			.find(filter)
-			.select(select)
-			.sort(sort)
-			.skip(skip)
-			.limit(count)
-			.lean();
+		let query = model.find(filter);
+		if (select) {
+			query = query.select(select);
+		}
+		if (sort) {
+			query = query.sort(sort);
+		}
+		if (count > 0) {
+			if (skip) {
+				query = query.skip(skip);
+			}
+			query = query.sort(count);
+		}
+		let docs = await query.lean();
 
 		if (!serviceData.schemaFree) {
 			docs.forEach((doc) => specialFields.filterByPermission(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []), doc));
