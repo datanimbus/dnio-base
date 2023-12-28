@@ -652,7 +652,7 @@ router.get('/', async (req, res) => {
 			if (skip) {
 				query = query.skip(skip);
 			}
-			query = query.sort(count);
+			query = query.limit(count);
 		}
 		let docs = await query.lean();
 
