@@ -223,6 +223,13 @@ async function init() {
 			serviceDoc.connectors.data.values = dataStorageConnectorDetails.values;
 		}
 
+		if (serviceDoc.connectors.data.values.tls) {
+			logger.debug('Found TLS Enabled');
+			logger.debug(`Creating certificate with name :: ${serviceDoc.connectors.data.values.certName}`);
+			logger.trace(`Creating certificate with Content :: ${serviceDoc.connectors.data.values.cert}`);
+			fs.writeFileSync(serviceDoc.connectors.data.values.certName, serviceDoc.connectors.data.values.cert);
+		}
+
 		if (serviceDoc.connectors.data.options && serviceDoc.connectors.data.options.tableName)
 			dataStorageConnectorDetails.options['tableName'] = serviceDoc.connectors.data.options.tableName;
 		serviceDoc.connectors.data.options = dataStorageConnectorDetails.options;
