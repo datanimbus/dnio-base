@@ -743,6 +743,7 @@ router.post('/', async (req, res) => {
 	let txnId = req.get(global.txnIdHeader);
 	let id = req.params.id;
 	let payload = req.body;
+	let upsert = req.query.upsert || false;
 
 	const errors = await specialFields.validateDateFields(req, payload, null);
 	if (errors && !_.isEmpty(errors)) {
@@ -780,12 +781,21 @@ router.post('/', async (req, res) => {
 	} catch (err) {
 		return res.status(400).json({ message: err.message });
 	}
-
-	if (!specialFields.hasPermissionForPOST(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
-		logger.error(`[${txnId}] User does not have permission to create records ${(req.user && req.user.appPermissions ? req.user.appPermissions : [])}`);
-		return res.status(403).json({
-			message: 'You don\'t have permission to create records',
-		});
+	if (upsert) {
+		if (!specialFields.hasPermissionForPOST(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))
+			&& !specialFields.hasPermissionForPUT(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+			logger.error(`[${txnId}] User does not have permission to Create/Upsert records ${(req.user && req.user.appPermissions ? req.user.appPermissions : [])}`);
+			return res.status(403).json({
+				message: 'You don\'t have permission to Create/Upsert records',
+			});
+		}
+	} else {
+		if (!specialFields.hasPermissionForPOST(req, (req.user && req.user.appPermissions ? req.user.appPermissions : []))) {
+			logger.error(`[${txnId}] User does not have permission to create records ${(req.user && req.user.appPermissions ? req.user.appPermissions : [])}`);
+			return res.status(403).json({
+				message: 'You don\'t have permission to create records',
+			});
+		}
 	}
 
 	const workflowModel = mongoose.model('workflow');
@@ -860,10 +870,15 @@ router.post('/', async (req, res) => {
 							return { message: 'Record is not in initial state.' };
 						}
 					}
-
-					logger.debug('Creating model');
-					const doc = new model(data);
-					logger.debug('Creating model - DONE');
+					let doc;
+					if (data._id) {
+						doc = await model.findOne({ _id: data._id });
+					}
+					if (doc) {
+						_.mergeWith(doc, data, mergeCustomizer);
+					} else {
+						doc = new model(data);
+					}
 					doc._req = req;
 					try {
 						return (await doc.save()).toObject();
@@ -887,8 +902,15 @@ router.post('/', async (req, res) => {
 						throw new Error('Record is not in initial state.');
 					}
 				}
-
-				const doc = new model(payload);
+				let doc;
+				if (payload._id) {
+					doc = await model.findOne({ _id: payload._id });
+				}
+				if (doc) {
+					_.mergeWith(doc, payload, mergeCustomizer);
+				} else {
+					doc = new model(payload);
+				}
 				doc._req = req;
 				promises = (await doc.save()).toObject();
 				delete promises._metadata?._id;
