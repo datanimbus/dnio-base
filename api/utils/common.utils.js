@@ -298,12 +298,9 @@ async function decryptFile(file, encryptionKey) {
  * @param {*} data The data to encrypt
  */
 async function encryptText(req, data) {
-	logger.trace('CommonUtils Encrypt text');
 	data = data.toString();
-	logger.trace('Data :: ', data);
 	try {
 		const res = await secUtils.encryptText(data);
-		logger.trace('value = res.body.data :: ', res.body.data);
 		return {
 			value: res.body.data,
 			checksum: secUtils.md5(data)
