@@ -69,15 +69,11 @@ try {
 // }
 
 function encrypt(plainText, secret) {
-	logger.trace('Encrypting plain text :: ', plainText);
-	logger.trace('Encryption secret :: ', secret);
 	let cipherText;
 	try {
 		const key = crypto.createHash('sha256').update(secret).digest('base64').substring(0, 32);
 		const iv = crypto.randomBytes(IV_LENGTH);
-		logger.trace('Encrypting key and iv :: ', key, iv);
 		const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-		logger.trace('Encryption cipher :: ', cipher);
 
 		cipherText = cipher.update(plainText, 'utf8', 'hex');
 		cipherText += cipher.final('hex');
@@ -86,7 +82,6 @@ function encrypt(plainText, secret) {
 		logger.error('Error encrypting text :: ', e);
 		cipherText = null;
 	}
-	logger.trace('Encrypted Cipher Text :: ', cipherText);
 	return cipherText;
 }
 
