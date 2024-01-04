@@ -166,7 +166,7 @@ function processSchema(schemaArr, mongoSchema, nestedKey, specialFields) {
 						if (keyOfObj == 'default') {
 							if (attribute['properties']['dateType']) {
 								if (attribute['properties'][keyOfObj]) {
-									let dateValue = { "rawData": attribute['properties'][keyOfObj] };
+									let dateValue = { 'rawData': attribute['properties'][keyOfObj] };
 									let defaultDate = commonUtils.getFormattedDate(null, dateValue, attribute['properties']['defaultTimezone'], []);
 		
 									mongoSchema[key][keyOfObj] = defaultDate;
