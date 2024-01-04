@@ -105,6 +105,22 @@ if (serviceData.schemaFree) {
 		const oldDoc = this._oldDoc;
 		const req = this._req;
 		try {
+			const errors = await specialFields.fixPrecision(req, newDoc, oldDoc);
+			if (errors) {
+				next(errors);
+			} else {
+				next();
+			}
+		} catch (e) {
+			next(e);
+		}
+	});
+
+	schema.pre('save', async function (next) {
+		const newDoc = this;
+		const oldDoc = this._oldDoc;
+		const req = this._req;
+		try {
 			const errors = await specialFields.enrichGeojson(req, newDoc, oldDoc);
 			if (errors) {
 				next(errors);
