@@ -41,12 +41,6 @@ if (serviceData.schemaFree) {
 		next();
 	});
 
-	schema.pre('save', function (next) {
-		let self = this;
-		specialFields.precisionFields.forEach(_k => checkPrecissionForAttribute(self, _k));
-		next();
-	});
-
 	schema.pre('save', function (next, req) {
 		let self = this;
 		if (self._metadata && self._metadata.version) {
@@ -96,6 +90,22 @@ if (serviceData.schemaFree) {
 		const req = this._req;
 		try {
 			const errors = await specialFields.encryptSecureFields(req, newDoc, oldDoc);
+			if (errors) {
+				next(errors);
+			} else {
+				next();
+			}
+		} catch (e) {
+			next(e);
+		}
+	});
+
+	schema.pre('save', async function (next) {
+		const newDoc = this;
+		const oldDoc = this._oldDoc;
+		const req = this._req;
+		try {
+			const errors = await specialFields.fixPrecision(req, newDoc, oldDoc);
 			if (errors) {
 				next(errors);
 			} else {

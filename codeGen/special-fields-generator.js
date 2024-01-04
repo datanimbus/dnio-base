@@ -242,6 +242,19 @@ function genrateCode(config) {
 	code.push('\treturn Object.keys(errors).length > 0 ? errors : null;');
 	code.push('}');
 	code.push('');
+	/**------------------------ FIX Precision ----------------------- */
+	code.push('/**');
+	code.push(' * @param {*} req The Incoming Request Object');
+	code.push(' * @param {*} newData The New Document Object');
+	code.push(' * @param {*} oldData The Old Document Object');
+	code.push(' * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths');
+	code.push(' */');
+	code.push('function fixPrecision(req, newData, oldData) {');
+	code.push('\tconst errors = {};');
+	parseSchemaForPrecision(schema);
+	code.push('\treturn Object.keys(errors).length > 0 ? errors : null;');
+	code.push('}');
+	code.push('');
 	/**------------------------ FIX BOOLEAN ----------------------- */
 	code.push('/**');
 	code.push(' * @param {*} req The Incoming Request Object');
@@ -389,6 +402,7 @@ function genrateCode(config) {
 	code.push('module.exports.decryptSecureFields = decryptSecureFields;');
 	code.push('module.exports.patchRelationInFilter = patchRelationInFilter;');
 	code.push('module.exports.patchRelationInWorkflowFilter = patchRelationInWorkflowFilter;');
+	code.push('module.exports.fixPrecision = fixPrecision;');
 	code.push('module.exports.fixBoolean = fixBoolean;');
 	code.push('module.exports.enrichGeojson = enrichGeojson;');
 	code.push('module.exports.validateDateFields = validateDateFields;');
@@ -1011,6 +1025,50 @@ function genrateCode(config) {
 						code.push('\t\tpromises = await Promise.all(promises);');
 						code.push('\t\tpromises = null;');
 						code.push('\t}');
+					}
+				}
+			}
+		});
+	}
+
+	function parseSchemaForPrecision(schema, parentKey) {
+		schema.forEach(def => {
+			let key = def.key;
+			const path = parentKey ? parentKey + '.' + key : key;
+			if (key != '_id' && def) {
+				if (def.type == 'Number') {
+					code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}')`);
+					code.push('\ttry {');
+					code.push(`\t\t\t${_.camelCase(path)} = ${_.camelCase(path)}.toFixed(${def.properties.precision});`);
+					code.push(`\t\t\t_.set(newData, '${path}', ${_.camelCase(path)});`);
+					code.push('\t} catch (e) {');
+					code.push(`\t\terrors['${path}'] = e.message ? e.message : e;`);
+					code.push('\t}');
+				} else if (def.type == 'Object' && def.properties && !def.properties.schemaFree) {
+					parseSchemaForPrecision(def.definition, path);
+				} else if (def.type == 'Array') {
+					if (def.definition[0].type == 'Number') {
+						code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}') || [];`);
+						code.push(`\tif (${_.camelCase(path)} && Array.isArray(${_.camelCase(path)}) && ${_.camelCase(path)}.length > 0) {`);
+						code.push(`\t\t${_.camelCase(path)} = ${_.camelCase(path)}.map((item, i) => {`);
+						code.push('\t\t\ttry {');
+						code.push(`\t\t\t\t\titem = item.toFixed(${def.definition[0].properties.precision});`);
+						code.push('\t\t\t\t\treturn item;');
+						code.push('\t\t\t} catch (e) {');
+						code.push(`\t\t\t\terrors['${path}.' + i] = e.message ? e.message : e;`);
+						code.push('\t\t\t\treturn false;');
+						code.push('\t\t\t}');
+						code.push('\t\t});');
+						code.push(`\t\t_.set(newData, '${path}', ${_.camelCase(path)});`);
+						code.push('\t}');
+					} else if (def.definition[0].type == 'Object') {
+						code.push(`\tlet ${_.camelCase(path)} = _.get(newData, '${path}') || [];`);
+						code.push(`\tif (${_.camelCase(path)} && Array.isArray(${_.camelCase(path)}) && ${_.camelCase(path)}.length > 0) {`);
+						code.push(`\t\t${_.camelCase(path)}.forEach((newData, i) => {`);
+						parseSchemaForPrecision(def.definition[0].definition, '');
+						code.push('\t\t});');
+						code.push('\t}');
+						code.push(`\t_.set(newData, '${path}', ${_.camelCase(path)});`);
 					}
 				}
 			}

@@ -991,15 +991,6 @@ function removeNullForUniqueAttribute(obj, key) {
 	}, obj);
 }
 
-function checkPrecissionForAttribute(obj, key) {
-	let val = _.get(obj, key.field);
-	if (typeof val == 'object') {
-		Object.keys(val).forEach(k => val[k] = val[k].toFixed(key.precision));
-	} else {
-		val = val.toFixed(key.precision);
-	}
-	_.set(obj, key.field, val);
-}
 
 e.getDocumentIds = getDocumentIds;
 e.getServiceDoc = getServiceDoc;
@@ -1018,7 +1009,6 @@ e.mergeCustomizer = mergeCustomizer;
 e.getDiff = getDiff;
 e.modifySecureFieldsFilter = modifySecureFieldsFilter;
 e.removeNullForUniqueAttribute = removeNullForUniqueAttribute;
-e.checkPrecissionForAttribute = checkPrecissionForAttribute;
 e.upsertDocument = upsertDocument;
 
 module.exports = e;
