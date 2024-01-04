@@ -8,7 +8,7 @@ const definition = require('../helpers/service.definition').definition;
 const mongooseUtils = require('../utils/mongoose.utils');
 const hooksUtils = require('../utils/hooks.utils');
 const specialFields = require('../utils/special-fields.utils');
-const { removeNullForUniqueAttribute } = require('../utils/common.utils');
+const { removeNullForUniqueAttribute, checkPrecissionForAttribute } = require('../utils/common.utils');
 const serviceData = require('../../service.json');
 const helperUtil = require('../utils/common.utils');
 const workflowUtils = require('../utils/workflow.utils');
@@ -38,6 +38,12 @@ if (serviceData.schemaFree) {
 	schema.pre('save', function (next) {
 		let self = this;
 		specialFields.uniqueFields.forEach(_k => removeNullForUniqueAttribute(self, _k.key));
+		next();
+	});
+
+	schema.pre('save', function (next) {
+		let self = this;
+		specialFields.precisionFields.forEach(_k => checkPrecissionForAttribute(self, _k));
 		next();
 	});
 
