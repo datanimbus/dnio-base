@@ -514,25 +514,64 @@ async function submit(req, res) {
 			attachments: attachments,
 			timestamp: Date.now()
 		};
-		docs.forEach(async doc => {
-			doc.status = 'Pending';
 
-			let wfData = doc.data && doc.data.new ? doc.data.new : null;
-			if (newData && wfData && !_.isEqual(JSON.parse(JSON.stringify(newData)), JSON.parse(JSON.stringify(wfData)))) {
-				event.action = 'Save & Submit';
-				doc.data.new = newData;
+		const results = [];
+		const promises = docs.map(async doc => {
+			try{
+				doc.status = 'Pending';
+
+				let wfData = doc.data && doc.data.new ? doc.data.new : null;
+				if (newData && wfData && !_.isEqual(JSON.parse(JSON.stringify(newData)), JSON.parse(JSON.stringify(wfData)))) {
+					event.action = 'Save & Submit';
+					doc.data.new = newData;
+				}
+				if (!doc.audit) {
+					doc.audit = [];
+				}
+				doc.audit.push(event);
+				doc.requestedBy = req.user._id;
+				doc.markModified('audit');
+				doc._req = req;
+				doc._isEncrypted = true;
+				await doc.save();
+				return results.push({ status: 200, message: 'WF Record discarded successfully', id: doc._id });
 			}
-			if (!doc.audit) {
-				doc.audit = [];
+			catch(err){
+				let error = err;
+				try {
+					if (typeof err === 'string') {
+						error = JSON.parse(err);
+					}
+				} catch (parseErr) {
+					logger.warn('Error was not a JSON String:', parseErr);
+					error = err;
+				}
+				const message = typeof error === 'object' && error.message ? error.message : JSON.stringify(error);
+				logger.error(error);
+				results.push({ status: error?.statusCode || 500, message: message, id: doc._id, errors: error });
 			}
-			doc.audit.push(event);
-			doc.requestedBy = req.user._id;
-			doc.markModified('audit');
-			doc._req = req;
-			doc._isEncrypted = true;
-			await doc.save();
 		});
-		return res.status(200).json({ results: [{ status: 200, message: 'Submission Successful' }] });
+		await Promise.all(promises);
+		return res.json({ results });
+		// docs.forEach(async doc => {
+		// 	doc.status = 'Pending';
+
+		// 	let wfData = doc.data && doc.data.new ? doc.data.new : null;
+		// 	if (newData && wfData && !_.isEqual(JSON.parse(JSON.stringify(newData)), JSON.parse(JSON.stringify(wfData)))) {
+		// 		event.action = 'Save & Submit';
+		// 		doc.data.new = newData;
+		// 	}
+		// 	if (!doc.audit) {
+		// 		doc.audit = [];
+		// 	}
+		// 	doc.audit.push(event);
+		// 	doc.requestedBy = req.user._id;
+		// 	doc.markModified('audit');
+		// 	doc._req = req;
+		// 	doc._isEncrypted = true;
+		// 	await doc.save();
+		// });
+		// return res.status(200).json({ results: [{ status: 200, message: 'Submission Successful' }] });
 	} catch (err) {
 		logger.error(err);
 		return res.status(400).json({ message: err.message });
