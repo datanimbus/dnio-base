@@ -520,21 +520,21 @@ async function submit(req, res) {
 			try{
 				doc.status = 'Pending';
 
-			let wfData = doc.data && doc.data.new ? doc.data.new : null;
-			if (newData && wfData && !_.isEqual(JSON.parse(JSON.stringify(newData)), JSON.parse(JSON.stringify(wfData)))) {
-				event.action = 'Save & Submit';
-				doc.data.new = newData;
-			}
-			if (!doc.audit) {
-				doc.audit = [];
-			}
-			doc.audit.push(event);
-			doc.requestedBy = req.user._id;
-			doc.markModified('audit');
-			doc._req = req;
-			doc._isEncrypted = true;
-			await doc.save();
-			return results.push({ status: 200, message: 'WF Record discarded successfully', id: doc._id });
+				let wfData = doc.data && doc.data.new ? doc.data.new : null;
+				if (newData && wfData && !_.isEqual(JSON.parse(JSON.stringify(newData)), JSON.parse(JSON.stringify(wfData)))) {
+					event.action = 'Save & Submit';
+					doc.data.new = newData;
+				}
+				if (!doc.audit) {
+					doc.audit = [];
+				}
+				doc.audit.push(event);
+				doc.requestedBy = req.user._id;
+				doc.markModified('audit');
+				doc._req = req;
+				doc._isEncrypted = true;
+				await doc.save();
+				return results.push({ status: 200, message: 'WF Record discarded successfully', id: doc._id });
 			}
 			catch(err){
 				let error = err;
