@@ -533,7 +533,7 @@ async function submit(req, res) {
 			doc._req = req;
 			doc._isEncrypted = true;
 			await doc.save();
-		})
+		});
 		await Promise.all(promises);
 		return res.json({ results });
 		// docs.forEach(async doc => {
