@@ -30,7 +30,7 @@ function validateCreateOnly(req, newData, oldData, forceRemove) {
 
 function mongooseUniquePlugin() {
 	return function (schema) {
-		schema.index({ "url": "text", "name": "text", "manufacturers": "text", "stock": "text", "introduction": "text", "benefits": "text", "label": "text" }, { name: 'text_search' });
+		schema.index({ "name": "text" }, { name: 'text_search' });
 	}
 }
 
@@ -105,10 +105,14 @@ async function patchRelationInFilter(req, filter, errors) {
 			if (!flag) {
 				if (typeof filter[key] == 'object' && filter[key]) {
 					if (Array.isArray(filter[key])) {
-						const promiseArr = filter[key].map(async (item, i) => {
-							return await patchRelationInFilter(req, item, errors);
-						});
-						tempFilter[key] = (await Promise.all(promiseArr)).filter(e => e ? Object.keys(e).length : 0);
+						if (filter[key][0] && typeof filter[key][0] == 'object') {
+							const promiseArr = filter[key].map(async (item, i) => {
+								return await patchRelationInFilter(req, item, errors);
+							});
+							tempFilter[key] = (await Promise.all(promiseArr)).filter(e => e ? Object.keys(e).length : 0);
+						} else {
+							tempFilter[key] = filter[key]
+						}
 					} else {
 						tempFilter[key] = await patchRelationInFilter(req, filter[key], errors);
 					}
@@ -193,6 +197,17 @@ async function decryptSecureFields(req, newData, oldData) {
  * @param {*} oldData The Old Document Object
  * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths
  */
+function fixPrecision(req, newData, oldData) {
+	const errors = {};
+	return Object.keys(errors).length > 0 ? errors : null;
+}
+
+/**
+ * @param {*} req The Incoming Request Object
+ * @param {*} newData The New Document Object
+ * @param {*} oldData The Old Document Object
+ * @returns {Promise<object>} Returns Promise of null if no validation error, else and error object with invalid paths
+ */
 function fixBoolean(req, newData, oldData) {
 	const errors = {};
 	const trueBooleanValues = global.trueBooleanValues;
@@ -223,70 +238,77 @@ async function validateDateFields(req, newData, oldData) {
 	return Object.keys(errors).length > 0 ? errors : null;
 }
 
-function hasPermissionForPOST(req, permissions) {
-	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
-		return true;
-	}
-	if (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {
-		return true;
-	}
-	if (_.intersection(['ADMIN_SRVC2005'], permissions).length > 0) {
-		return true;
-	}
-	if (_.intersection(["P1857467316"], permissions).length > 0) {
-		return true;
-	}
-	return false;
-}
-module.exports.hasPermissionForPOST = hasPermissionForPOST;
-function hasPermissionForPUT(req, permissions) {
-	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
-		return true;
-	}
-	if (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {
-		return true;
-	}
-	if (_.intersection(['ADMIN_SRVC2005'], permissions).length > 0) {
-		return true;
-	}
-	if (_.intersection(["P1857467316"], permissions).length > 0) {
-		return true;
-	}
-	return false;
-}
-module.exports.hasPermissionForPUT = hasPermissionForPUT;
-function hasPermissionForDELETE(req, permissions) {
-	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
-		return true;
-	}
-	if (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {
-		return true;
-	}
-	if (_.intersection(['ADMIN_SRVC2005'], permissions).length > 0) {
-		return true;
-	}
-	if (_.intersection(["P1857467316"], permissions).length > 0) {
-		return true;
-	}
-	return false;
-}
-module.exports.hasPermissionForDELETE = hasPermissionForDELETE;
 function hasPermissionForGET(req, permissions) {
+	logger.trace("Checking For GET", req.user, permissions);
 	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
 		return true;
 	}
 	if (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {
 		return true;
 	}
-	if (_.intersection(['ADMIN_SRVC2005'], permissions).length > 0) {
+	if (_.intersection(['ADMIN_SRVC2003'], permissions).length > 0) {
 		return true;
 	}
-	if (_.intersection(["P1857467316","P1120635501"], permissions).length > 0) {
+	if (_.intersection(["P8892223094","P8921364848"], permissions).length > 0) {
+		return true;
+	}
+	if (_.intersection(["C9508540034"], permissions).length > 0) {
 		return true;
 	}
 	return false;
 }
 module.exports.hasPermissionForGET = hasPermissionForGET;
+function hasPermissionForPUT(req, permissions) {
+	logger.trace("Checking For PUT", req.user, permissions);
+	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
+		return true;
+	}
+	if (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {
+		return true;
+	}
+	if (_.intersection(['ADMIN_SRVC2003'], permissions).length > 0) {
+		return true;
+	}
+	if (_.intersection(["P8892223094"], permissions).length > 0) {
+		return true;
+	}
+	return false;
+}
+module.exports.hasPermissionForPUT = hasPermissionForPUT;
+function hasPermissionForPOST(req, permissions) {
+	logger.trace("Checking For POST", req.user, permissions);
+	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
+		return true;
+	}
+	if (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {
+		return true;
+	}
+	if (_.intersection(['ADMIN_SRVC2003'], permissions).length > 0) {
+		return true;
+	}
+	if (_.intersection(["P8892223094"], permissions).length > 0) {
+		return true;
+	}
+	return false;
+}
+module.exports.hasPermissionForPOST = hasPermissionForPOST;
+function hasPermissionForDELETE(req, permissions) {
+	logger.trace("Checking For DELETE", req.user, permissions);
+	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
+		return true;
+	}
+	if (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {
+		return true;
+	}
+	if (_.intersection(['ADMIN_SRVC2003'], permissions).length > 0) {
+		return true;
+	}
+	if (_.intersection(["P8892223094"], permissions).length > 0) {
+		return true;
+	}
+	return false;
+}
+module.exports.hasPermissionForDELETE = hasPermissionForDELETE;
 
 function filterByPermission(req, permissions, data) {
 	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
@@ -295,44 +317,38 @@ function filterByPermission(req, permissions, data) {
 	if (req.user && req.user.apps && req.user.apps.indexOf(config.app) > -1) {
 		return data;
 	}
-	if (_.intersection(['ADMIN_SRVC2005'], permissions).length > 0) {
+	if (_.intersection(['ADMIN_SRVC2003'], permissions).length > 0) {
 		return data;
 	}
-	if (_.intersection([], permissions).length > 0) {
+	if (_.intersection(["C9508540034"], permissions).length > 0) {
 		return data;
-	}
-	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
-		_.unset(data, '_id');
-	}
-	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
-		_.unset(data, 'url');
-	}
-	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
-		_.unset(data, 'name');
-	}
-	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
-		_.unset(data, 'manufacturers');
-	}
-	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
-		_.unset(data, 'stock');
-	}
-	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
-		_.unset(data, 'introduction');
-	}
-	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
-		_.unset(data, 'benefits');
-	}
-	if (_.intersection(["P1857467316","P1120635501"], permissions).length == 0) {
-		_.unset(data, 'label');
 	}
 		return data;
 }
 
+const hasWFPermissionFor = {};
+hasWFPermissionFor['One'] = function(req, permissions) {
+	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
+		return true;
+	}
+	if (_.intersection(['ADMIN_SRVC2003'], permissions).length > 0) {
+		return true;
+	}
+	if (_.intersection(['C9508540034'], permissions).length > 0) {
+		return true;
+	}
+	return false;
+}
+module.exports.hasWFPermissionFor = hasWFPermissionFor;
+function getNextWFStep(req, currentStep) {
+	return null;
+}
+module.exports.getNextWFStep = getNextWFStep;
 
 async function getDynamicFilter(req, data) {
 	let filter;
 	let allFilters = [];
-	if (_.intersection(['ADMIN_SRVC2005'], (req.user && req.user.appPermissions ? req.user.appPermissions : [])).length > 0) {
+	if (_.intersection(['ADMIN_SRVC2003'], (req.user && req.user.appPermissions ? req.user.appPermissions : [])).length > 0) {
 		return null;
 	}
 	if (process.env.SKIP_AUTH == 'true' || process.env.SKIP_AUTH == 'TRUE') {
@@ -374,6 +390,7 @@ module.exports.encryptSecureFields = encryptSecureFields;
 module.exports.decryptSecureFields = decryptSecureFields;
 module.exports.patchRelationInFilter = patchRelationInFilter;
 module.exports.patchRelationInWorkflowFilter = patchRelationInWorkflowFilter;
+module.exports.fixPrecision = fixPrecision;
 module.exports.fixBoolean = fixBoolean;
 module.exports.enrichGeojson = enrichGeojson;
 module.exports.validateDateFields = validateDateFields;

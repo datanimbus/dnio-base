@@ -1,9 +1,9 @@
 swagger: '2.0'
 info:
-  version: '1'
-  title: sql-test API
-host: localhost:20014
-basePath: /Adam/sqlTest
+  version: '2'
+  title: TestWF1 API
+host: 'localhost:20013'
+basePath: /Adam/testWf1
 schemes:
   - http
 consumes:
@@ -16,8 +16,8 @@ paths:
   /:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of 'sql-test'
-      operationId: v1_srvc2005List
+      description: Retrieve a list of 'TestWF1'
+      operationId: v1_srvc2003List
       parameters:
         - name: page
           in: query
@@ -57,14 +57,14 @@ paths:
         '500':
           description: Internal server error
     post:
-      description: Create a new 'sql-test'
-      operationId: v1_srvc2005Create
+      description: Create a new 'TestWF1'
+      operationId: v1_srvc2003Create
       parameters:
         - name: data
           in: body
-          description: Payload to create a 'sql-test'
+          description: Payload to create a 'TestWF1'
           schema:
-            $ref: '#/definitions/sqlTest_create'
+            $ref: '#/definitions/testWf1_create'
         - name: authorization
           in: header
           type: string
@@ -91,14 +91,14 @@ paths:
   /utils/simulate:
     x-swagger-router-controller: controller
     post:
-      description: validate 'sql-test'
-      operationId: v1_srvc2005Simulate
+      description: validate 'TestWF1'
+      operationId: v1_srvc2003Simulate
       parameters:
         - name: data
           in: body
-          description: Payload to validate 'sql-test'
+          description: Payload to validate 'TestWF1'
           schema:
-            $ref: '#/definitions/sqlTest_update'
+            $ref: '#/definitions/testWf1_update'
         - name: authorization
           in: header
           type: string
@@ -133,8 +133,8 @@ paths:
   /utils/bulkShow:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of 'sql-test'
-      operationId: v1_srvc2005BulkShow
+      description: Retrieve a list of 'TestWF1'
+      operationId: v1_srvc2003BulkShow
       parameters:
         - name: id
           in: query
@@ -162,8 +162,8 @@ paths:
   /utils/securedFields:
     x-swagger-router-controller: controller
     get:
-      description: Retrieve a list of secured fields in 'sql-test'
-      operationId: v1_srvc2005SecuredFields
+      description: Retrieve a list of secured fields in 'TestWF1'
+      operationId: v1_srvc2003SecuredFields
       responses:
         '200':
           description: List of the entites
@@ -175,7 +175,7 @@ paths:
     x-swagger-router-controller: controller
     post:
       description: triggers the hook with data
-      operationId: v1_srvc2005Hook
+      operationId: v1_srvc2003Hook
       parameters:
         - name: url
           in: query
@@ -197,7 +197,7 @@ paths:
     x-swagger-router-controller: controller
     post:
       description: triggers the hook with data
-      operationId: v1_srvc2005ExperienceHook
+      operationId: v1_srvc2003ExperienceHook
       parameters:
         - name: name
           in: query
@@ -218,8 +218,8 @@ paths:
   /utils/bulkDelete:
     x-swagger-router-controller: controller
     delete:
-      description: Deletes a list of 'sqlTest'
-      operationId: v1_srvc2005BulkDelete
+      description: Deletes a list of 'testWf1'
+      operationId: v1_srvc2003BulkDelete
       parameters:
         - name: authorization
           in: header
@@ -245,8 +245,8 @@ paths:
   /utils/count:
     x-swagger-router-controller: controller
     get:
-      description: returns count of 'sql-test'
-      operationId: v1_srvc2005Count
+      description: returns count of 'TestWF1'
+      operationId: v1_srvc2003Count
       parameters:
         - &ref_0
           name: filter
@@ -271,11 +271,11 @@ paths:
           description: Bad parameters
         '500':
           description: Internal server error
-  /{id}:
+  '/{id}':
     x-swagger-router-controller: controller
     get:
-      description: Retrieve an existing 'sql-test'
-      operationId: v1_srvc2005Show
+      description: Retrieve an existing 'TestWF1'
+      operationId: v1_srvc2003Show
       parameters:
         - name: select
           in: query
@@ -297,7 +297,7 @@ paths:
           default: false
       responses:
         '200':
-          description: sql-test document
+          description: TestWF1 document
         '400':
           description: Bad parameters
         '404':
@@ -305,19 +305,19 @@ paths:
         '500':
           description: Internal server error
     put:
-      description: Update an existing 'sql-test'
-      operationId: v1_srvc2005Update
+      description: Update an existing 'TestWF1'
+      operationId: v1_srvc2003Update
       parameters:
         - name: data
           in: body
-          description: Payload to update a 'sql-test'
+          description: Payload to update a 'TestWF1'
           schema:
-            $ref: '#/definitions/sqlTest_update'
+            $ref: '#/definitions/testWf1_update'
         - name: id
           in: path
           type: string
           required: true
-          description: Id of the 'sql-test' to be updated
+          description: Id of the 'TestWF1' to be updated
         - name: authorization
           in: header
           type: string
@@ -344,14 +344,14 @@ paths:
         '500':
           description: Internal server error
     delete:
-      description: Delete an existing 'sql-test'
-      operationId: v1_srvc2005Destroy
+      description: Delete an existing 'TestWF1'
+      operationId: v1_srvc2003Destroy
       parameters:
         - name: id
           in: path
           type: string
           required: true
-          description: Id of the 'sql-test' to be deleted
+          description: Id of the 'TestWF1' to be deleted
         - name: authorization
           in: header
           type: string
@@ -365,7 +365,7 @@ paths:
           description: No records to list with the given parameter set.
         '500':
           description: Internal server error
-  /utils/export/download/{id}:
+  '/utils/export/download/{id}':
     x-swagger-router-controller: controller
     get:
       description: Download the file
@@ -379,7 +379,7 @@ paths:
           in: query
           type: string
           description: filename of file
-      operationId: v1_srvc2005ExportedFileDownload
+      operationId: v1_srvc2003ExportedFileDownload
       responses:
         '200':
           description: file download
@@ -387,10 +387,10 @@ paths:
           description: Bad parameters
         '500':
           description: Internal server error
-  /utils/fileMapper/{fileId}/count:
+  '/utils/fileMapper/{fileId}/count':
     x-swagger-router-controller: controller
     get:
-      description: returns count of 'sql-test'
+      description: returns count of 'TestWF1'
       operationId: fileMapperCount
       parameters:
         - *ref_0
@@ -411,8 +411,8 @@ paths:
   /utils/export:
     x-swagger-router-controller: controller
     post:
-      description: Retrieve a list of 'sql-test'
-      operationId: v1_srvc2005Export
+      description: Retrieve a list of 'TestWF1'
+      operationId: v1_srvc2003Export
       parameters:
         - name: filter
           in: body
@@ -454,7 +454,7 @@ paths:
     x-swagger-router-controller: controller
     get:
       description: Retrieve list of bulk actions'
-      operationId: v1_srvc2005ExportDetails
+      operationId: v1_srvc2003ExportDetails
       parameters:
         - name: page
           in: query
@@ -491,7 +491,7 @@ paths:
     x-swagger-router-controller: controller
     get:
       description: count of bulk actions'
-      operationId: v1_srvc2005ExportDetailsCount
+      operationId: v1_srvc2003ExportDetailsCount
       parameters:
         - name: page
           in: query
@@ -524,11 +524,11 @@ paths:
           description: Bad parameters
         '500':
           description: Internal server error
-  /utils/fileTransfers/{id}:
+  '/utils/fileTransfers/{id}':
     x-swagger-router-controller: controller
     delete:
       description: Deletes a file with file id
-      operationId: v1_srvc2005ExportDetailsDelete
+      operationId: v1_srvc2003ExportDetailsDelete
       parameters:
         - name: id
           in: path
@@ -546,7 +546,7 @@ paths:
           description: Bad parameters
         '500':
           description: Internal server error
-  /utils/fileTransfers/{fileId}/readStatus:
+  '/utils/fileTransfers/{fileId}/readStatus':
     x-swagger-router-controller: controller
     put:
       description: Updates File Read Status
@@ -600,63 +600,15 @@ paths:
         '500':
           description: Internal server error
 definitions:
-  sqlTest_create:
+  testWf1_create:
     properties:
-      url:
-        type:
-          - string
-          - 'null'
       name:
         type:
           - string
           - 'null'
-      manufacturers:
-        type:
-          - string
-          - 'null'
-      stock:
-        type:
-          - string
-          - 'null'
-      introduction:
-        type:
-          - string
-          - 'null'
-      benefits:
-        type:
-          - string
-          - 'null'
-      label:
-        type:
-          - string
-          - 'null'
-  sqlTest_update:
+  testWf1_update:
     properties:
-      url:
-        type:
-          - string
-          - 'null'
       name:
-        type:
-          - string
-          - 'null'
-      manufacturers:
-        type:
-          - string
-          - 'null'
-      stock:
-        type:
-          - string
-          - 'null'
-      introduction:
-        type:
-          - string
-          - 'null'
-      benefits:
-        type:
-          - string
-          - 'null'
-      label:
         type:
           - string
           - 'null'

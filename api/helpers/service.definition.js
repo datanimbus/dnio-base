@@ -1,24 +1,7 @@
 const _ = require('lodash');
  var definition = {
-    "url": {
-        "type": "String"
-    },
     "name": {
-        "type": "String"
-    },
-    "manufacturers": {
-        "type": "String"
-    },
-    "stock": {
-        "type": "String"
-    },
-    "introduction": {
-        "type": "String"
-    },
-    "benefits": {
-        "type": "String"
-    },
-    "label": {
+        "default": null,
         "type": "String"
     },
     "_id": {

@@ -517,7 +517,8 @@ async function submit(req, res) {
 
 		const results = [];
 		const promises = docs.map(async doc => {
-			doc.status = 'Pending';
+			try{
+				doc.status = 'Pending';
 
 			let wfData = doc.data && doc.data.new ? doc.data.new : null;
 			if (newData && wfData && !_.isEqual(JSON.parse(JSON.stringify(newData)), JSON.parse(JSON.stringify(wfData)))) {
@@ -533,6 +534,22 @@ async function submit(req, res) {
 			doc._req = req;
 			doc._isEncrypted = true;
 			await doc.save();
+			return results.push({ status: 200, message: 'WF Record discarded successfully', id: doc._id });
+			}
+			catch(err){
+				let error = err;
+				try {
+					if (typeof err === 'string') {
+						error = JSON.parse(err);
+					}
+				} catch (parseErr) {
+					logger.warn('Error was not a JSON String:', parseErr);
+					error = err;
+				}
+				const message = typeof error === 'object' && error.message ? error.message : JSON.stringify(error);
+				logger.error(error);
+				results.push({ status: error?.statusCode || 500, message: message, id: doc._id, errors: error });
+			}
 		});
 		await Promise.all(promises);
 		return res.json({ results });
