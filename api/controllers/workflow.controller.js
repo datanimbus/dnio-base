@@ -514,7 +514,9 @@ async function submit(req, res) {
 			attachments: attachments,
 			timestamp: Date.now()
 		};
-		docs.forEach(async doc => {
+
+		const results = [];
+		const promises = docs.map(async doc => {
 			doc.status = 'Pending';
 
 			let wfData = doc.data && doc.data.new ? doc.data.new : null;
@@ -531,8 +533,28 @@ async function submit(req, res) {
 			doc._req = req;
 			doc._isEncrypted = true;
 			await doc.save();
-		});
-		return res.status(200).json({ results: [{ status: 200, message: 'Submission Successful' }] });
+		})
+		await Promise.all(promises);
+		return res.json({ results });
+		// docs.forEach(async doc => {
+		// 	doc.status = 'Pending';
+
+		// 	let wfData = doc.data && doc.data.new ? doc.data.new : null;
+		// 	if (newData && wfData && !_.isEqual(JSON.parse(JSON.stringify(newData)), JSON.parse(JSON.stringify(wfData)))) {
+		// 		event.action = 'Save & Submit';
+		// 		doc.data.new = newData;
+		// 	}
+		// 	if (!doc.audit) {
+		// 		doc.audit = [];
+		// 	}
+		// 	doc.audit.push(event);
+		// 	doc.requestedBy = req.user._id;
+		// 	doc.markModified('audit');
+		// 	doc._req = req;
+		// 	doc._isEncrypted = true;
+		// 	await doc.save();
+		// });
+		// return res.status(200).json({ results: [{ status: 200, message: 'Submission Successful' }] });
 	} catch (err) {
 		logger.error(err);
 		return res.status(400).json({ message: err.message });
