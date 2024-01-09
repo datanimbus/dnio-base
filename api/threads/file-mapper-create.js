@@ -155,13 +155,14 @@ async function execute() {
 			return Promise.all(temp);
 		});
 	}, Promise.resolve());
-	const finalData = await model.aggregate([{
-		$facet: {
-			createdCount: [{ $match: { fileId: fileId, status: 'Created' } }, { $count: 'count' }],
-			updatedCount: [{ $match: { fileId: fileId, status: 'Updated' } }, { $count: 'count' }],
-			errorCount: [{ $match: { fileId: fileId, status: 'Error' } }, { $count: 'count' }]
-		}
-	}]);
+	let createdRecords = await model.count({ fileId, status: 'Created' });
+	let updatedRecords = await model.count({ fileId, status: 'Updated' });
+	let errorRecords = await model.count({ fileId, status: 'Error' });
+	const finalData =  {
+		createdCount: createdRecords,
+		updatedCount: updatedRecords,
+		errorCount: errorRecords
+	};
 	const result = {
 		createdCount: (finalData[0].createdCount).length > 0 ? finalData[0].createdCount[0].count : 0,
 		updatedCount: (finalData[0].updatedCount).length > 0 ? finalData[0].updatedCount[0].count : 0,

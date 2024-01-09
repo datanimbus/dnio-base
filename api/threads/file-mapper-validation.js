@@ -220,28 +220,38 @@ async function execute() {
 	endTime = Date.now();
 	logger.debug(`[${fileId}] File mapper validation :: SIMULATION :: ${endTime - startTime}ms`);
 	startTime = Date.now();
-	let finalData = await model.aggregate([
-		{
-			$facet: {
-				duplicateCount: [
-					{ $match: { fileId, status: 'Duplicate', conflict: false } },
-					{ $count: 'count' }
-				],
-				conflictCount: [
-					{ $match: { fileId, status: 'Duplicate', conflict: true } },
-					{ $count: 'count' }
-				],
-				validCount: [
-					{ $match: { fileId, status: 'Validated' } },
-					{ $count: 'count' }
-				],
-				errorCount: [
-					{ $match: { fileId, status: 'Error' } },
-					{ $count: 'count' }
-				]
-			}
-		}
-	]);
+	let duplicateRecords = await model.count({fileId, status: 'Duplicate', conflict: false});
+	let conflictRecords = await model.count({fileId, status: 'Duplicate', conflict: true});
+	let validRecords = await model.count({fileId, status: 'Validated'});
+	let errorRecords = await model.count({fileId, status: 'Error'});
+	// let finalData = await model.aggregate([
+	// 	{
+	// 		$facet: {
+	// 			duplicateCount: [
+	// 				{ $match: { fileId, status: 'Duplicate', conflict: false } },
+	// 				{ $count: 'count' }
+	// 			],
+	// 			conflictCount: [
+	// 				{ $match: { fileId, status: 'Duplicate', conflict: true } },
+	// 				{ $count: 'count' }
+	// 			],
+	// 			validCount: [
+	// 				{ $match: { fileId, status: 'Validated' } },
+	// 				{ $count: 'count' }
+	// 			],
+	// 			errorCount: [
+	// 				{ $match: { fileId, status: 'Error' } },
+	// 				{ $count: 'count' }
+	// 			]
+	// 		}
+	// 	}
+	// ]);
+	let finalData = { 
+		duplicateCount: duplicateRecords,
+		conflictCount: conflictRecords,
+		validCount: validRecords,
+		errorCount: errorRecords
+	};
 	endTime = Date.now();
 	logger.debug(`[${fileId}] File mapper validation :: $FACET :: ${endTime - startTime}ms`);
 	const validCount = (finalData[0].validCount).length > 0 ? finalData[0].validCount[0].count : 0;
