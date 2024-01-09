@@ -62,7 +62,9 @@ function genrateCode(config) {
 			code.push(line);	
 		});
 	}
-	createTextSearchIndex(textPaths);
+	if (config.enableSearchIndex) {
+		createTextSearchIndex(textPaths);
+	}
 	code.push('\t}');
 	code.push('}');
 	code.push('');
