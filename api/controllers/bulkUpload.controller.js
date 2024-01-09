@@ -4,9 +4,9 @@ const mongoose = require('mongoose');
 const log4js = require('log4js');
 let definition = require('../helpers/bulkCreate.definition.js').definition;
 const SMCrud = require('@appveen/swagger-mongoose-crud');
-const schema = new mongoose.Schema(definition, {timestamps: true});
+const schema = new mongoose.Schema(definition, { timestamps: true });
 
-schema.index({createdAt: 1},{expireAfterSeconds: 3600});
+schema.index({ createdAt: 1 }, { expireAfterSeconds: 3600 });
 const logger = log4js.getLogger(global.loggerName);
 var options = {
 	logger: logger,
@@ -162,7 +162,7 @@ function getConflictData(_dataArr, isHeaderProvided, model, validAfterConflict) 
 				if (duplicateIds.indexOf(_data.data._id) > -1) {
 					_data.status = 'Duplicate';
 					conflictArr.push(JSON.parse(JSON.stringify(_data)));
-				}else{
+				} else {
 					validAfterConflict.push(_data);
 				}
 			});
@@ -274,21 +274,21 @@ function getGeoDetails(geoKey, addr) {
 					geoObj.userInput = addr;
 					let aptLocation = null;
 					if (_.isEmpty(body.results[0]))
-						return resolve({key: geoKey, geoObj: {userInput: addr}});
+						return resolve({ key: geoKey, geoObj: { userInput: addr } });
 					else {
 						aptLocation = !_.isEmpty(body.results) && !_.isEmpty(body.results[0]) ? body.results[0] : null;
 						const typeMapping = {
-							'locality' : 'town',
-							'administrative_area_level_2' : 'district',
-							'administrative_area_level_1' : 'state',
-							'postal_code':'pincode',
+							'locality': 'town',
+							'administrative_area_level_2': 'district',
+							'administrative_area_level_1': 'state',
+							'postal_code': 'pincode',
 							'country': 'country'
 						};
-						if(aptLocation){
+						if (aptLocation) {
 							let addrComp = aptLocation.address_components;
-							Object.keys(typeMapping).forEach(_k=>{
-								let temp = addrComp.find(_c => _c.types && _c.types.indexOf(_k)>-1);
-								if(temp) geoObj[typeMapping[_k]] = temp.long_name;
+							Object.keys(typeMapping).forEach(_k => {
+								let temp = addrComp.find(_c => _c.types && _c.types.indexOf(_k) > -1);
+								if (temp) geoObj[typeMapping[_k]] = temp.long_name;
 							});
 							geoObj.geometry.coordinates = [aptLocation.geometry.location.lng, aptLocation.geometry.location.lat];
 						}
@@ -310,46 +310,46 @@ function getGeoDetails(geoKey, addr) {
 	});
 }
 
-function expandGeoJsonRecurssive(path, dataJson){
+function expandGeoJsonRecurssive(path, dataJson) {
 	let pathSplit = path.split('.');
 	let key = pathSplit.shift();
-	if(key && dataJson[key]){
-		if(Array.isArray(dataJson[key])){
-			let promises = dataJson[key].map(_d=>expandGeoJsonRecurssive(pathSplit.join('.'), _d));
+	if (key && dataJson[key]) {
+		if (Array.isArray(dataJson[key])) {
+			let promises = dataJson[key].map(_d => expandGeoJsonRecurssive(pathSplit.join('.'), _d));
 			return Promise.all(promises)
-				.then(_d=>{
+				.then(_d => {
 					dataJson[key] = _d;
 					return dataJson;
 				});
-		}else if(dataJson[key].constructor == {}.constructor){
+		} else if (dataJson[key].constructor == {}.constructor) {
 			return expandGeoJsonRecurssive(pathSplit.join('.'), dataJson[key])
-				.then(_d=>{
+				.then(_d => {
 					dataJson[key] = _d;
 					return dataJson;
 				});
-		}else{
+		} else {
 			return getGeoDetails(path, dataJson[key])
 				.then(_loc => {
 					dataJson[key] = _loc.geoObj;
 					return dataJson;
 				});
 		}
-	}else if(!key){
-		if(Array.isArray(dataJson)){
-			let promises = dataJson.map(_d=>{
+	} else if (!key) {
+		if (Array.isArray(dataJson)) {
+			let promises = dataJson.map(_d => {
 				return getGeoDetails(path, _d)
 					.then(_loc => {
 						return _loc.geoObj;
 					});
 			});
 			return Promise.all(promises);
-		}else{
+		} else {
 			return getGeoDetails(path, dataJson)
 				.then(_loc => {
 					return _loc.geoObj;
 				});
 		}
-	}else{
+	} else {
 		return Promise.resolve(dataJson);
 	}
 }
@@ -364,32 +364,32 @@ function enrichSchemaWithGeoDetails(schemaJson) {
 
 let geoJSONFields = 'location'.split(',').filter(_k => _k != '');
 
-function objectMapping(sheetJson, mapping){
+function objectMapping(sheetJson, mapping) {
 	let newDoc = {};
 	if (!mapping) return;
-	if(mapping && mapping.constructor == {}.constructor){
-		Object.keys(mapping).forEach(_k=>{
-			if(typeof mapping[_k] == 'string'){
+	if (mapping && mapping.constructor == {}.constructor) {
+		Object.keys(mapping).forEach(_k => {
+			if (typeof mapping[_k] == 'string') {
 				newDoc[_k] = sheetJson[mapping[_k]];
-			}else if(Array.isArray(mapping[_k])){
-				newDoc[_k] = mapping[_k].map(_o=>{
+			} else if (Array.isArray(mapping[_k])) {
+				newDoc[_k] = mapping[_k].map(_o => {
 					return objectMapping(sheetJson, _o);
 				});
-				newDoc[_k] = newDoc[_k].filter(_d=>_d);
-			}else{
+				newDoc[_k] = newDoc[_k].filter(_d => _d);
+			} else {
 				newDoc[_k] = objectMapping(sheetJson, mapping[_k]);
 			}
 		});
-	}else if(typeof mapping == 'string'){
+	} else if (typeof mapping == 'string') {
 		return sheetJson[mapping];
 	}
-	if(newDoc && Object.keys(JSON.parse(JSON.stringify(newDoc))).length>0){
+	if (newDoc && Object.keys(JSON.parse(JSON.stringify(newDoc))).length > 0) {
 		return newDoc;
-	}       
+	}
 	return;
 }
 
-function substituteMappingSheetToSchema(sheetArr, headerMapping){
+function substituteMappingSheetToSchema(sheetArr, headerMapping) {
 	return sheetArr.map(obj => objectMapping(obj, headerMapping));
 }
 
@@ -402,9 +402,9 @@ function enrichSchemaArray(schemaJson) {
 	}
 	return arrays.reduce((_p, _c) => {
 		return _p.then(() => {
-			return Promise.all(_c.map(ob=>enrichSchemaWithGeoDetails(ob)))
-				.then(_dArr=>{
-					_dArr.forEach(_d=>{
+			return Promise.all(_c.map(ob => enrichSchemaWithGeoDetails(ob)))
+				.then(_dArr => {
+					_dArr.forEach(_d => {
 						if (_d) enrichedSchemaArr.push(_d);
 					});
 				});
@@ -448,7 +448,7 @@ function fileMapperValidation(data, model, _sd, sNo, validData, errorData, inval
 		});
 }
 
-function processValidation(arr, batch, model, serviceDetail, validData, errorData, invalidSNo, _req){
+function processValidation(arr, batch, model, serviceDetail, validData, errorData, invalidSNo, _req) {
 	var arrays = [],
 		size = batch;
 	while (arr.length > 0) {
@@ -458,7 +458,7 @@ function processValidation(arr, batch, model, serviceDetail, validData, errorDat
 	return arrays.reduce((_p, _c, i) => {
 		return _p.then(() => {
 			if (errorData.length > 100) throw new Error('ERROR_MORE_THAN_100');
-			logger.debug('Running batch '+(i+1));
+			logger.debug('Running batch ' + (i + 1));
 			let validationPromiseArr = _c.map(obj => {
 				return fileMapperValidation(obj.data, model, serviceDetail, obj.sNo, validData, errorData, invalidSNo, _req);
 			});
@@ -506,13 +506,13 @@ function getSheetData(ws, isHeaderProvided) {
 	return sheetArr;
 }
 
-function getSheetDataFromGridFS(fileId){
+function getSheetDataFromGridFS(fileId) {
 	return new Promise((resolve, reject) => {
-		global.gfsBucketImport.find({ filename : fileId }).toArray(function (err, file) {
+		global.gfsBucketImport.find({ filename: fileId }).toArray(function (err, file) {
 			if (err) logger.error(err);
-			if(file[0]){
+			if (file[0]) {
 				let readstream = global.gfsBucketImport.openDownloadStream(file[0]._id);
-				readstream.on('error', function(err) { 
+				readstream.on('error', function (err) {
 					logger.error(err);
 					reject(err);
 				});
@@ -522,7 +522,7 @@ function getSheetDataFromGridFS(fileId){
 					var buf = Buffer.concat(bufs);
 					resolve(buf);
 				});
-			} else{
+			} else {
 				reject(new Error('Issue in getting data from GridFS - SM'));
 			}
 		});
@@ -543,9 +543,9 @@ e.validateData = (_req, _res) => {
 	let validAfterConflict = [];
 	let invalidSNo = JSON.parse(data.invalidSNo);
 	let preHookSize = helperUtil.getPreHooks().length;
-	let resultData = {};    
+	let resultData = {};
 	getSheetDataFromGridFS(fileId)
-		.then(async (bufferData)=> {
+		.then(async (bufferData) => {
 			let wb = new Excel.Workbook();
 			wb = await wb.xlsx.load(bufferData);
 			let sheetId = wb.worksheets[0].name;
@@ -553,9 +553,9 @@ e.validateData = (_req, _res) => {
 
 			let sheetData = getSheetData(ws, isHeaderProvided);
 			let mappedSchemaData = substituteMappingSheetToSchema(sheetData, headerMapping);
-			return mongoose.connection.db.collection('complex.fileTransfers').update({fileId: fileId }, {$set: {isHeaderProvided, headerMapping, status: 'Validating'}})
-				.then(()=>{
-					_res.status(202).json({message:'Validation Process Started...'});
+			return mongoose.connection.db.collection('complex.fileTransfers').update({ fileId: fileId }, { $set: { isHeaderProvided, headerMapping, status: 'Validating' } })
+				.then(() => {
+					_res.status(202).json({ message: 'Validation Process Started...' });
 					return mongoose.model('bulkCreate').remove({
 						'fileId': fileId
 					});
@@ -569,7 +569,7 @@ e.validateData = (_req, _res) => {
 						.then(schemaJSON => {
 							// validationData = schemaJSON;
 							let sNo = isHeaderProvided ? 1 : 0;
-							let serializedValidationData = schemaJSON.map(_obj=>{
+							let serializedValidationData = schemaJSON.map(_obj => {
 								sNo++;
 								let newObj = {};
 								newObj.data = JSON.parse(JSON.stringify(_obj));
@@ -578,7 +578,7 @@ e.validateData = (_req, _res) => {
 							});
 							let batch = 500;
 							const apiCalls = preHookSize + serviceDetail.relatedSchemas.outgoing.length;
-							if(apiCalls == 0) batch=2000;
+							if (apiCalls == 0) batch = 2000;
 							// if(apiCalls == 1) batch=1000;
 							return processValidation(serializedValidationData, batch, model, serviceDetail, validData, errorData, invalidSNo, _req);
 							// let validationPromiseArr = validationData.map(_obj => {
@@ -589,8 +589,8 @@ e.validateData = (_req, _res) => {
 						})
 						.then(() => {
 							logger.debug('Marking Errored Data');
-							errorData = errorData.slice(0,102);
-							if(errorData.length > 0){
+							errorData = errorData.slice(0, 102);
+							if (errorData.length > 0) {
 								let errorArr = [];
 								errorArr = errorData.map(_obj => {
 									_obj._id = mongoose.Types.ObjectId();
@@ -601,7 +601,7 @@ e.validateData = (_req, _res) => {
 								});
 								return crudder.model.insertMany(errorArr);
 							}
-							if (errorData.length > 100){ 
+							if (errorData.length > 100) {
 								throw new Error('File contains more than 100 errors, cannot process');
 							}
 						})
@@ -609,9 +609,9 @@ e.validateData = (_req, _res) => {
 							logger.debug('Marked Errored Data');
 							return getConflictData(JSON.parse(JSON.stringify(validData)), isHeaderProvided, model, validAfterConflict);
 						})
-						.then(conflictDataArr=>{
+						.then(conflictDataArr => {
 							conflictDataArrNew = conflictDataArr;
-							if(conflictDataArr.length>100){
+							if (conflictDataArr.length > 100) {
 								throw new Error('CONFLICT_MORE_THAN_100');
 							}
 							// conflictDataArrNew = conflictDataArr;
@@ -629,7 +629,7 @@ e.validateData = (_req, _res) => {
 						.then(() => {
 							logger.debug('Marked Validated Data');
 							logger.debug('Marking Conflicted Data');
-							if(conflictDataArrNew.length > 0){
+							if (conflictDataArrNew.length > 0) {
 								let conflictArr = [];
 								conflictArr = conflictDataArrNew.map(_obj => {
 									_obj._id = mongoose.Types.ObjectId();
@@ -640,33 +640,44 @@ e.validateData = (_req, _res) => {
 								});
 								return crudder.model.insertMany(conflictArr);
 							}
-						})  
-						.then(() => {
+						})
+						.then(async () => {
 							logger.debug('Marked Conflicted Data');
 							logger.debug('Fetching stats');
-							return crudder.model.aggregate([{
-								'$facet': {
-									'duplicate': [{ '$match': { 'fileId': fileId, 'status': 'Duplicate', 'conflict': false } }, { '$count': 'duplicate' }],
-									'conflicts': [{ '$match': { 'fileId': fileId, 'status': 'Duplicate', 'conflict': true} }, { '$count': 'conflicts' }],
-									'valid': [{ '$match': { 'fileId': fileId, 'status': 'Validated' } }, { '$count': 'valid' }],
-									'error': [{ '$match': { 'fileId': fileId, 'status': 'Error' } }, { '$count': 'error' }]
-								}
-							}]);
+
+							let duplicateRecords = await model.count({ fileId, status: 'Duplicate', conflict: false });
+							let conflictRecords = await model.count({ fileId, status: 'Duplicate', conflict: true });
+							let validRecords = await model.count({ fileId, status: 'Validated' });
+							let errorRecords = await model.count({ fileId, status: 'Error' });
+							return {
+								duplicate: duplicateRecords,
+								conflicts: conflictRecords,
+								valid: validRecords,
+								error: errorRecords
+							};
+							// return crudder.model.aggregate([{
+							// 	'$facet': {
+							// 		'duplicate': [{ '$match': { 'fileId': fileId, 'status': 'Duplicate', 'conflict': false } }, { '$count': 'duplicate' }],
+							// 		'conflicts': [{ '$match': { 'fileId': fileId, 'status': 'Duplicate', 'conflict': true} }, { '$count': 'conflicts' }],
+							// 		'valid': [{ '$match': { 'fileId': fileId, 'status': 'Validated' } }, { '$count': 'valid' }],
+							// 		'error': [{ '$match': { 'fileId': fileId, 'status': 'Error' } }, { '$count': 'error' }]
+							// 	}
+							// }]);
 						})
 						.then((finalData) => {
-							logger.debug('Stats '+JSON.stringify(finalData));
+							logger.debug('Stats ' + JSON.stringify(finalData));
 							let result = {
 								duplicate: (finalData[0].duplicate).length > 0 ? finalData[0].duplicate[0].duplicate : 0,
 								conflicts: (finalData[0].conflicts).length > 0 ? finalData[0].conflicts[0].conflicts : 0,
 								valid: (finalData[0].valid).length > 0 ? finalData[0].valid[0].valid : 0,
 								errorCount: (finalData[0].error).length > 0 ? finalData[0].error[0].error : 0,
 								status: 'Validated',
-								'_metadata.lastUpdated':  new Date()
+								'_metadata.lastUpdated': new Date()
 							};
 							resultData = result;
-							return mongoose.connection.db.collection('complex.fileTransfers').update({fileId: fileId }, {$set: result});
+							return mongoose.connection.db.collection('complex.fileTransfers').update({ fileId: fileId }, { $set: result });
 						})
-						.then(()=>{
+						.then(() => {
 							let socketData = JSON.parse(JSON.stringify(resultData));
 							socketData.fileId = fileId;
 							socketData.userId = _req.headers[global.userHeader];
@@ -677,7 +688,7 @@ e.validateData = (_req, _res) => {
 						.catch(err => {
 							logger.error(err);
 							let promise = Promise.resolve();
-							if(err.message == 'ERROR_MORE_THAN_100'){
+							if (err.message == 'ERROR_MORE_THAN_100') {
 								err.message = 'File contains more than 100 error, cannot process';
 								// errorData = errorData.slice(0,100);
 								let errorArr = errorData.map(_obj => {
@@ -689,7 +700,7 @@ e.validateData = (_req, _res) => {
 								});
 								promise = crudder.model.insertMany(errorArr);
 							}
-							if(err.message == 'CONFLICT_MORE_THAN_100'){
+							if (err.message == 'CONFLICT_MORE_THAN_100') {
 								err.message = 'File contains more than 100 conflicts, cannot process';
 								// conflictDataArrNew = conflictDataArrNew.slice(0,100);
 								let conflictArr = conflictDataArrNew.map(_obj => {
@@ -712,18 +723,28 @@ e.validateData = (_req, _res) => {
 							// socketData.fileName = fileName;
 							// logger.debug('socketData', socketData);
 							return promise
-								.then(()=>{
+								.then(async () => {
 									logger.debug('Fetching stats');
-									return crudder.model.aggregate([{
-										'$facet': {
-											'duplicate': [{ '$match': { 'fileId': fileId, 'status': 'Duplicate', 'conflict': false } }, { '$count': 'duplicate' }],
-											'conflicts': [{ '$match': { 'fileId': fileId, 'status': 'Duplicate', 'conflict': true} }, { '$count': 'conflicts' }],
-											'valid': [{ '$match': { 'fileId': fileId, 'status': 'Validated' } }, { '$count': 'valid' }],
-											'error': [{ '$match': { 'fileId': fileId, 'status': 'Error' } }, { '$count': 'error' }]
-										}
-									}]);
+									let duplicateRecords = await model.count({ fileId, status: 'Duplicate', conflict: false });
+									let conflictRecords = await model.count({ fileId, status: 'Duplicate', conflict: true });
+									let validRecords = await model.count({ fileId, status: 'Validated' });
+									let errorRecords = await model.count({ fileId, status: 'Error' });
+									return {
+										duplicate: duplicateRecords,
+										conflicts: conflictRecords,
+										valid: validRecords,
+										error: errorRecords
+									};
+									// return crudder.model.aggregate([{
+									// 	'$facet': {
+									// 		'duplicate': [{ '$match': { 'fileId': fileId, 'status': 'Duplicate', 'conflict': false } }, { '$count': 'duplicate' }],
+									// 		'conflicts': [{ '$match': { 'fileId': fileId, 'status': 'Duplicate', 'conflict': true } }, { '$count': 'conflicts' }],
+									// 		'valid': [{ '$match': { 'fileId': fileId, 'status': 'Validated' } }, { '$count': 'valid' }],
+									// 		'error': [{ '$match': { 'fileId': fileId, 'status': 'Error' } }, { '$count': 'error' }]
+									// 	}
+								// }]);
 								})
-								.then((finalData)=>{
+								.then((finalData) => {
 									let result = {
 										duplicate: (finalData[0].duplicate).length > 0 ? finalData[0].duplicate[0].duplicate : 0,
 										conflicts: (finalData[0].conflicts).length > 0 ? finalData[0].conflicts[0].conflicts : 0,
@@ -736,20 +757,20 @@ e.validateData = (_req, _res) => {
 									return mongoose.connection.db.collection('complex.fileTransfers').update({ fileId: fileId }, { $set: result });
 									// return mongoose.connection.db.collection('complex.fileTransfers').update({fileId: fileId }, {$set: {status:"Error", message:err.message, '_metadata.lastUpdated':  new Date()}})
 								})
-								.then(()=>{
+								.then(() => {
 									let socketData = JSON.parse(JSON.stringify(resultData));
 									socketData.fileId = fileId;
 									socketData.userId = _req.headers[global.userHeader];
 									socketData.fileName = fileName;
 									logger.debug('socketData', socketData);
 									return informGW(socketData);
-								});     
+								});
 						});
 				}).catch(err => new Error(err));
 		});
 };
 
-function castType(rawDoc){
+function castType(rawDoc) {
 	let model = mongoose.model('complex');
 	let doc = new model(rawDoc);
 	return doc.toObject();
@@ -760,7 +781,7 @@ e.enrichDataForWF = function (_req, _res) {
 	let count = _req.swagger.params.count.value;
 	let fileId = _req.swagger.params.fileId.value;
 	let filter = _req.swagger.params.filter.value;
-	filter = filter ? JSON.parse(filter) : {fileId};
+	filter = filter ? JSON.parse(filter) : { fileId };
 	let operation = _req.swagger.params.operation.value;
 	page = (page === 1) ? page = 0 : page = page * count;
 	return crudder.model.find(filter).skip(page).limit(count)
@@ -775,7 +796,7 @@ e.enrichDataForWF = function (_req, _res) {
 		.catch(err => {
 			logger.error(err.message);
 			_res.status(500).json(err.message);
-		});    
+		});
 };
 
 e.enrichData = function (_req, _res) {
@@ -798,7 +819,7 @@ e.enrichData = function (_req, _res) {
 		});
 };
 
-function createDocs(schemaData, model, errors, _req, fileId){
+function createDocs(schemaData, model, errors, _req, fileId) {
 	let createPromise = [];
 	schemaData.forEach(doc => {
 		createPromise.push(createDocPromise(_req, model, doc.data, doc.sNo, errors, fileId));
@@ -816,7 +837,7 @@ function createInBatch(_req, model, schemaData, errors, fileId) {
 	return arrays.reduce((_p, _c, _i) => {
 		return _p
 			.then(() => {
-				logger.debug('Running Batch ' + (_i+1));
+				logger.debug('Running Batch ' + (_i + 1));
 				return createDocs(_c, model, errors, _req, fileId);
 			})
 			.then(_d => {
@@ -828,7 +849,7 @@ function createInBatch(_req, model, schemaData, errors, fileId) {
 		});
 }
 
-function informGW(data){
+function informGW(data) {
 	var options = {
 		url: 'http://localhost:9080/gw/fileStatus/import',
 		method: 'PUT',
@@ -838,11 +859,11 @@ function informGW(data){
 		json: true,
 		body: data
 	};
-	logger.debug(JSON.stringify({options}));
+	logger.debug(JSON.stringify({ options }));
 	request.put(options, function (err, res, body) {
 		if (err) {
 			logger.error(err.message);
-		}else{
+		} else {
 			logger.debug(body);
 		}
 	});
@@ -859,9 +880,9 @@ e.bulkCreate = (_req, _res) => {
 	let updatePromise = [];
 	let errors = [];
 	let finalResult = {};
-	return mongoose.connection.db.collection('complex.fileTransfers').update({fileId: fileId }, {$set: {status: 'Importing'}})
-		.then(()=>{
-			_res.status(202).json({message: 'Creation Process started...'});
+	return mongoose.connection.db.collection('complex.fileTransfers').update({ fileId: fileId }, { $set: { status: 'Importing' } })
+		.then(() => {
+			_res.status(202).json({ message: 'Creation Process started...' });
 			return mongoose.model('bulkCreate').find({
 				fileId,
 				$or: [{ 'status': 'Validated' }, { 'sNo': { $in: create } }]
@@ -890,14 +911,22 @@ e.bulkCreate = (_req, _res) => {
 			});
 			return Promise.all(updatePromise);
 		})
-		.then(() => {
-			return crudder.model.aggregate([{
-				'$facet': {
-					'createdCount': [{ '$match': { 'fileId': fileId, 'status': 'Created' } }, { '$count': 'createdCount' }],
-					'updatedCount': [{ '$match': { 'fileId': fileId, 'status': 'Updated' } }, { '$count': 'updatedCount' }],
-					'errorCount': [{ '$match': { 'fileId': fileId, 'status': 'Error' } }, { '$count': 'errorCount' }]
-				}
-			}]);
+		.then(async () => {
+			let createdRecords = await model.count({ fileId, status: 'Created' });
+			let updatedRecords = await model.count({ fileId, status: 'Updated' });
+			let errorRecords = await model.count({ fileId, status: 'Error' });
+			return {
+				createdCount: createdRecords,
+				updatedCount: updatedRecords,
+				errorCount: errorRecords
+			};
+			// return crudder.model.aggregate([{
+			// 	'$facet': {
+			// 		'createdCount': [{ '$match': { 'fileId': fileId, 'status': 'Created' } }, { '$count': 'createdCount' }],
+			// 		'updatedCount': [{ '$match': { 'fileId': fileId, 'status': 'Updated' } }, { '$count': 'updatedCount' }],
+			// 		'errorCount': [{ '$match': { 'fileId': fileId, 'status': 'Error' } }, { '$count': 'errorCount' }]
+			// 	}
+			// }]);
 		})
 		.then((finalData) => {
 			logger.error(JSON.stringify(errors));
@@ -906,12 +935,12 @@ e.bulkCreate = (_req, _res) => {
 				updatedCount: (finalData[0].updatedCount).length > 0 ? finalData[0].updatedCount[0].updatedCount : 0,
 				errorCount: (finalData[0].errorCount).length > 0 ? finalData[0].errorCount[0].errorCount : 0,
 				status: 'Created',
-				'_metadata.lastUpdated':  new Date()
+				'_metadata.lastUpdated': new Date()
 			};
 			finalResult = result;
-			return mongoose.connection.db.collection('complex.fileTransfers').update({fileId: fileId }, {$set: result});
+			return mongoose.connection.db.collection('complex.fileTransfers').update({ fileId: fileId }, { $set: result });
 		})
-		.then(()=>{
+		.then(() => {
 			let socketData = JSON.parse(JSON.stringify(finalResult));
 			socketData.fileId = fileId;
 			socketData.userId = _req.headers[global.userHeader];
@@ -926,13 +955,13 @@ e.bulkCreate = (_req, _res) => {
 					message: err.message
 				});
 			}
-			let socketData = {status:'Error', message:err.message, '_metadata.lastUpdated':  new Date()};
+			let socketData = { status: 'Error', message: err.message, '_metadata.lastUpdated': new Date() };
 			socketData.fileId = fileId;
 			socketData.userId = _req.headers[global.userHeader];
 			socketData.fileName = fileName;
 			logger.debug('socketData', socketData);
-			return mongoose.connection.db.collection('complex.fileTransfers').update({fileId: fileId }, {$set: {status:'Error', message:err.message, '_metadata.lastUpdated':  new Date()}})
-				.then(()=>{
+			return mongoose.connection.db.collection('complex.fileTransfers').update({ fileId: fileId }, { $set: { status: 'Error', message: err.message, '_metadata.lastUpdated': new Date() } })
+				.then(() => {
 					return informGW(socketData);
 				});
 		});
