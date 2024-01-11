@@ -1044,7 +1044,7 @@ function genrateCode(config) {
 					code.push('\t} catch (e) {');
 					code.push(`\t\terrors['${path}'] = e.message ? e.message : e;`);
 					code.push('\t}');
-				} else if (def.type == 'Object' && def.properties && !def.properties.schemaFree && !def.properties.dateType) {
+				} else if (def.type == 'Object' && def.properties && !def.properties.schemaFree && !def.properties.dateType && !def.properties.fileType) {
 					parseSchemaForPrecision(def.definition, path);
 				} else if (def.type == 'Array') {
 					if (def.definition[0].type == 'Number') {
