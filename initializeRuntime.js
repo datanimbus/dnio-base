@@ -32,7 +32,13 @@ module.exports = async (app) => {
 	app.use(express.json({ limit: config.MaxJSONSize }));
 	app.use(express.urlencoded({ extended: true }));
 	app.use(cookieParser());
-	app.use(utils.logMiddleware.getLogMiddleware(logger));
+	app.use((req, res, next) => {
+		if (!(req.originalUrl.indexOf('/health/live') > -1 || req.originalUrl.indexOf('/health/ready') > -1)) {
+			logger.info(`[${req.get('TxnId')}] [${req.ip}] ${req.method} ${req.originalUrl}`);
+		}
+		next();
+	});
+	// app.use(utils.logMiddleware.getLogMiddleware(logger));
 	app.use(upload.single('file'));
 
 	let baseURL = `/${config.app}${config.serviceEndpoint}`;
