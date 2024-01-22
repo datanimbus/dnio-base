@@ -30,9 +30,17 @@ e.init = async () => {
 		let envFromSM = await httpClient.httpRequest(options);
 		envFromSM = envFromSM.body;
 
-		if (envFromSM['DNIO_DATABASE_CERT']) {
-			fs.writeFileSync(envFromSM['DNIO_DATABASE_CERT_NAME'], envFromSM['DNIO_DATABASE_CERT']);
-			delete envFromSM['DNIO_DATABASE_CERT'];
+		if (envFromSM['DB_AUTHOR_CERT']) {
+			fs.writeFileSync(envFromSM['DB_AUTHOR_CERT_NAME'], envFromSM['DB_AUTHOR_CERT']);
+			delete envFromSM['DB_AUTHOR_CERT'];
+		}
+		if (envFromSM['DB_APPCENTER_CERT']) {
+			fs.writeFileSync(envFromSM['DB_APPCENTER_CERT_NAME'], envFromSM['DB_APPCENTER_CERT']);
+			delete envFromSM['DB_APPCENTER_CERT'];
+		}
+		if (envFromSM['DB_LOGS_CERT']) {
+			fs.writeFileSync(envFromSM['DB_LOGS_CERT_NAME'], envFromSM['DB_LOGS_CERT']);
+			delete envFromSM['DB_LOGS_CERT'];
 		}
 		
 		fs.writeFileSync('envVars.json', JSON.stringify(envFromSM));
