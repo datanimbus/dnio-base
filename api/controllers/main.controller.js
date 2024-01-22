@@ -442,7 +442,9 @@ router.delete('/utils/bulkDelete', async (req, res) => {
 			.map((doc) => doc._id);
 		const docsNotRemoved = _.difference(_.uniq(ids), removedIds);
 		if (_.isEmpty(docsNotRemoved)) {
-			return res.status(200).json({});
+			return res.status(200).json({
+				message: `${removedIds.length} record(s) deleted successfully.`,
+			});
 		} else {
 			return res.status(400).json({
 				message: 'Could not delete document with id ' + docsNotRemoved,
