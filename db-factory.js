@@ -50,8 +50,14 @@ async function establishingAppCenterDBConnections() {
 async function establishAuthorAndLogsDBConnections() {
 	try {
 		let promises = [];
-		logger.debug(`Author DB :: ${config.mongoAuthorOptions.dbName}`);
-		const authorDB = mongoose.createConnection(config.mongoAuthorUrl, config.mongoAuthorOptions);
+		// logger.debug(`Author DB :: ${config.mongoAuthorOptions.dbName}`);
+		logger.debug(`Author Type :: ${config.dbAuthorType}`);
+		logger.debug(`Author DB :: ${config.dbAuthorOptions.dbName}`);
+		logger.debug(`Author Url :: ${config.dbAuthorUrl}`);
+		logger.debug(`Author Options :: ${JSON.stringify(config.dbAuthorOptions)}`);
+
+		// const authorDB = await mongoose.createConnection(config.mongoAuthorUrl, config.mongoAuthorOptions);
+		const authorDB = await mongoose.createConnection(config.dbAuthorUrl, config.dbAuthorOptions);
 		authorDB.on('connecting', () => { logger.info(` *** ${config.authorDB} CONNECTING *** `); });
 		authorDB.on('disconnected', () => { logger.error(` *** ${config.authorDB} LOST CONNECTION *** `); });
 		authorDB.on('reconnect', () => { logger.info(` *** ${config.authorDB} RECONNECTED *** `); });
@@ -65,9 +71,17 @@ async function establishAuthorAndLogsDBConnections() {
 		});
 		authorDB.on('reconnectFailed', () => { logger.error(` *** ${config.authorDB} FAILED TO RECONNECT *** `); });
 		global.authorDB = authorDB;
+		global.dbAuthorConnection = authorDB;
 
-		logger.debug(`Logs DB :: ${config.mongoLogsOptions.dbName}`);
-		const logsDB = mongoose.createConnection(config.mongoLogUrl, config.mongoLogsOptions);
+
+		// logger.debug(`Logs DB :: ${config.mongoLogsOptions.dbName}`);
+		logger.debug(`Logs Type :: ${config.dbLogsType}`);
+		logger.debug(`Logs DB :: ${config.dbLogsOptions.dbName}`);
+		logger.debug(`Logs Url :: ${config.dbLogsUrl}`);
+		logger.debug(`Logs Options :: ${JSON.stringify(config.dbLogsOptions)}`);
+
+		// const logsDB = mongoose.createConnection(config.mongoLogUrl, config.mongoLogsOptions);
+		const logsDB = await mongoose.createConnection(config.dbLogsUrl, config.dbLogsOptions);
 		logsDB.on('connecting', () => { logger.info(` *** ${config.logsDB} CONNECTING *** `); });
 		logsDB.on('disconnected', () => { logger.error(` *** ${config.logsDB} LOST CONNECTION *** `); });
 		logsDB.on('reconnect', () => { logger.info(` *** ${config.logsDB} RECONNECTED *** `); });
@@ -81,6 +95,8 @@ async function establishAuthorAndLogsDBConnections() {
 		});
 		logsDB.on('reconnectFailed', () => { logger.error(` *** ${config.logsDB} FAILED TO RECONNECT *** `); });
 		global.logsDB = logsDB;
+		global.dbLogsConnection = logsDB;
+
 
 		await Promise.all(promises);
 	} catch (err) {

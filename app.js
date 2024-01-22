@@ -8,36 +8,36 @@ const express = require('express');
 const log4js = require('log4js');
 const mongoose = require('mongoose');
 
-// mongoose.set('useFindAndModify', false);
-
 const initEnv = require('./init.env');
+
 
 const app = express();
 
-(async () => {
 
-	let LOGGER_NAME = initEnv.LOGGER_NAME;
-	global.loggerName = LOGGER_NAME;
-	const LOG_LEVEL = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
-	global.LOG_LEVEL = LOG_LEVEL;
+(async () => {
+	await initEnv.init();
+	initEnv.loadEnvVars();
+
+	let loggerName = initEnv.isK8sEnv() ? `[${process.env.HOSTNAME}] [${initEnv.serviceId}]` : `[${initEnv.serviceId}]`;
+	let logLevel = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'info';
 
 	log4js.configure({
 		appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
-		categories: { default: { appenders: ['out'], level: LOG_LEVEL } }
+		categories: { default: { appenders: ['out'], level: logLevel } }
 	});
 
-	let logger = log4js.getLogger(LOGGER_NAME);
+	let logger = log4js.getLogger(loggerName);
 	global.logger = logger;
+
 
 	logger.info(`Service ID : ${initEnv.serviceId}`);
 	logger.info(`Base image version : ${process.env.IMAGE_TAG}`);
 
-	await initEnv.init();
-	initEnv.loadEnvVars();
 
 	let timeOut = process.env.API_REQUEST_TIMEOUT || 120;
 	logger.debug(`API_REQUEST_TIMEOUT : ${timeOut}`);
 
+	
 	await require('./db-factory').init();
 
 	// REASSING LOGGER AS THE LOGGER NAME WAS UPDATED INSIDE DB-FACTORY

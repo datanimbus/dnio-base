@@ -45,6 +45,37 @@ e.parseBoolean = val => {
 };
 
 e.hookConnectionTimeout = parseInt(process.env.HOOK_CONNECTION_TIMEOUT) || 30;
+e.dbAuthorType = process.env.DB_AUTHOR_TYPE;
+e.dbAuthorUrl = process.env.DB_AUTHOR_URL || process.env.MONGO_AUTHOR_URL || 'mongodb://localhost:27017';
+e.dbAppcenterType = process.env.DB_APPCENTER_TYPE;
+e.dbAppcenterUrl = process.env.DB_APPCENTER_URL || process.env.MONGO_APPCENTER_URL || 'mongodb://localhost:27017';
+e.dbLogsType = process.env.DB_LOGS_TYPE;
+e.dbLogsUrl = process.env.DB_LOGS_URL || process.env.MONGO_LOGS_URL || 'mongodb://localhost:27017';
+e.dbAuthorOptions = {
+	useUnifiedTopology: true,
+	useNewUrlParser: true,
+	minPoolSize: process.env.DB_CONNECTION_MIN_POOL_SIZE || process.env.MONGO_CONNECTION_MIN_POOL_SIZE || 1,
+	maxPoolSize: process.env.DB_CONNECTION_MAX_POOL_SIZE || process.env.MONGO_CONNECTION_MAX_POOL_SIZE || 5,
+	maxIdleTimeMS: process.env.DB_CONNECTION_MAX_IDLE_TIME || process.env.MONGO_CONNECTION_MAX_IDLE_TIME || 60000,
+	dbName: process.env.DB_AUTHOR_DBNAME || process.env.MONGO_AUTHOR_DBNAME || 'datastackConfig',
+};
+e.dbAppcenterOptions = {
+	useUnifiedTopology: true,
+	useNewUrlParser: true,
+	minPoolSize: process.env.DB_CONNECTION_MIN_POOL_SIZE || process.env.MONGO_CONNECTION_MIN_POOL_SIZE || 1,
+	maxPoolSize: process.env.DB_CONNECTION_MAX_POOL_SIZE || process.env.MONGO_CONNECTION_MAX_POOL_SIZE || 5,
+	maxIdleTimeMS: process.env.DB_CONNECTION_MAX_IDLE_TIME || process.env.MONGO_CONNECTION_MAX_IDLE_TIME || 60000,
+	dbName: null
+};
+e.dbLogsOptions = {
+	useUnifiedTopology: true,
+	useNewUrlParser: true,
+	minPoolSize: process.env.DB_CONNECTION_MIN_POOL_SIZE || process.env.MONGO_CONNECTION_MIN_POOL_SIZE || 1,
+	maxPoolSize: process.env.DB_CONNECTION_MAX_POOL_SIZE || process.env.MONGO_CONNECTION_MAX_POOL_SIZE || 5,
+	maxIdleTimeMS: process.env.DB_CONNECTION_MAX_IDLE_TIME || process.env.MONGO_CONNECTION_MAX_IDLE_TIME || 60000,
+	dbName: process.env.DB_LOGS_DBNAME || process.env.MONGO_LOGS_DBNAME || 'datastackLogs'
+};
+
 e.mongoUrl = process.env.MONGO_APPCENTER_URL || 'mongodb://localhost:27017';
 e.authorDB = process.env.MONGO_AUTHOR_DBNAME || 'datastackConfig';
 e.mongoAuthorUrl = process.env.MONGO_AUTHOR_URL || 'mongodb://localhost:27017';
