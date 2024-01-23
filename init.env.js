@@ -1,3 +1,5 @@
+'use strict';
+
 const fs = require('fs');
 const path = require('path');
 
@@ -32,18 +34,26 @@ e.init = async () => {
 		envFromSM = envFromSM.body;
 
 		if (envFromSM['DB_AUTHOR_CERT']) {
+			let pathArr = envFromSM['DB_AUTHOR_CERT_NAME'].split('/');
+			pathArr = pathArr.splice(0, pathArr.length -1);
+			fs.mkdirSync(path.join(process.cwd(), '../../', pathArr.join('/')), { recursive: true });
 			fs.writeFileSync(path.join(process.cwd(), '../../', envFromSM['DB_AUTHOR_CERT_NAME']), envFromSM['DB_AUTHOR_CERT']);
 			delete envFromSM['DB_AUTHOR_CERT'];
 		}
 		if (envFromSM['DB_APPCENTER_CERT']) {
+			let pathArr = envFromSM['DB_APPCENTER_CERT_NAME'].split('/');
+			pathArr = pathArr.splice(0, pathArr.length -1);
+			fs.mkdirSync(path.join(process.cwd(), '../../', pathArr.join('/')), { recursive: true });
 			fs.writeFileSync(path.join(process.cwd(), '../../', envFromSM['DB_APPCENTER_CERT_NAME']), envFromSM['DB_APPCENTER_CERT']);
 			delete envFromSM['DB_APPCENTER_CERT'];
 		}
 		if (envFromSM['DB_LOGS_CERT']) {
+			let pathArr = envFromSM['DB_LOGS_CERT_NAME'].split('/');
+			pathArr = pathArr.splice(0, pathArr.length -1);
+			fs.mkdirSync(path.join(process.cwd(), '../../', pathArr.join('/')), { recursive: true });
 			fs.writeFileSync(path.join(process.cwd(), '../../', envFromSM['DB_LOGS_CERT_NAME']), envFromSM['DB_LOGS_CERT']);
 			delete envFromSM['DB_LOGS_CERT'];
 		}
-		
 		fs.writeFileSync('envVars.json', JSON.stringify(envFromSM));
 	} catch (err) {
 		console.log(err);
