@@ -234,7 +234,7 @@ async function init() {
 		}
 
 		if (dataStorageConnectorDetails?.type === 'MONGODB' && dataStorageConnectorDetails?.options.default) {
-			serviceDoc.connectors.data.values = { 'connectionString': config.mongoUrl, 'database': config.namespace + '-' + serviceDoc.app };
+			serviceDoc.connectors.data.values = { 'connectionString': config.dbAppcenterUrl || config.mongoUrl, 'database': config.namespace + '-' + serviceDoc.app };
 		} else {
 			serviceDoc.connectors.data.values = dataStorageConnectorDetails.values;
 		}
