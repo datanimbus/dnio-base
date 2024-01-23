@@ -20,15 +20,19 @@ global.trueBooleanValues = ['y', 'yes', 'true', '1'];
 global.falseBooleanValues = ['n', 'no', 'false', '0'];
 
 e.updateLogger = (additionalLoggerIdentifier) => {
-	let LOGGER_NAME = e.isK8sEnv() ? `[${e.appNamespace}] [${e.hostname}] [${e.serviceName} v.${e.serviceVersion}]` : `[${e.serviceName} v.${e.serviceVersion}]`;
-	if (additionalLoggerIdentifier) LOGGER_NAME += ` [${additionalLoggerIdentifier}]`;
-	global.loggerName = LOGGER_NAME;
-	log4js.configure({
-		appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
-		categories: { default: { appenders: ['out'], level: global.LOG_LEVEL } }
-	});
-	let logger = log4js.getLogger(LOGGER_NAME);
-	global.logger = logger;
+	try {
+		let LOGGER_NAME = e.isK8sEnv() ? `[${e.appNamespace}] [${e.hostname}] [${e.serviceName} v.${e.serviceVersion}]` : `[${e.serviceName} v.${e.serviceVersion}]`;
+		if (additionalLoggerIdentifier) LOGGER_NAME += ` [${additionalLoggerIdentifier}]`;
+		global.loggerName = LOGGER_NAME;
+		log4js.configure({
+			appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
+			categories: { default: { appenders: ['out'], level: global.LOG_LEVEL } }
+		});
+		let logger = log4js.getLogger(LOGGER_NAME);
+		global.logger = logger;
+	} catch (err) {
+		console.log('Error while updating logger :: ', err);
+	}
 };
 
 e.isK8sEnv = function () {

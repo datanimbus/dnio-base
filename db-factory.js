@@ -57,22 +57,21 @@ async function establishAuthorAndLogsDBConnections() {
 		logger.debug(`Author Options :: ${JSON.stringify(config.dbAuthorOptions)}`);
 
 		// const authorDB = await mongoose.createConnection(config.mongoAuthorUrl, config.mongoAuthorOptions);
-		const authorDB = await mongoose.createConnection(config.dbAuthorUrl, config.dbAuthorOptions);
-		authorDB.on('connecting', () => { logger.info(` *** ${config.authorDB} CONNECTING *** `); });
-		authorDB.on('disconnected', () => { logger.error(` *** ${config.authorDB} LOST CONNECTION *** `); });
-		authorDB.on('reconnect', () => { logger.info(` *** ${config.authorDB} RECONNECTED *** `); });
-		authorDB.on('connected', () => {
+		await mongoose.connect(config.dbAuthorUrl, config.dbAuthorOptions);
+		mongoose.connection.on('connecting', () => { logger.info(` *** ${config.authorDB} CONNECTING *** `); });
+		mongoose.connection.on('disconnected', () => { logger.error(` *** ${config.authorDB} LOST CONNECTION *** `); });
+		mongoose.connection.on('reconnect', () => { logger.info(` *** ${config.authorDB} RECONNECTED *** `); });
+		mongoose.connection.on('connected', () => {
 			logger.info(`Connected to author db : ${config.authorDB}`);
 			promises.push(Promise.resolve('Connected to AuthorDB'));
 		});
-		authorDB.on('error', () => {
+		mongoose.connection.on('error', () => {
 			logger.info(`Error connecting to author db : ${config.authorDB}`);
 			promises.push(Promise.resolve('Error connecting to AuthorDB'));
 		});
-		authorDB.on('reconnectFailed', () => { logger.error(` *** ${config.authorDB} FAILED TO RECONNECT *** `); });
-		global.authorDB = authorDB;
-		global.dbAuthorConnection = authorDB;
-
+		mongoose.connection.on('reconnectFailed', () => { logger.error(` *** ${config.authorDB} FAILED TO RECONNECT *** `); });
+		global.authorDB = mongoose.connections[0];
+		global.dbAuthorConnection = mongoose.connections[0];
 
 		// logger.debug(`Logs DB :: ${config.mongoLogsOptions.dbName}`);
 		logger.debug(`Logs Type :: ${config.dbLogsType}`);
@@ -195,7 +194,7 @@ async function initConfigVariables(serviceDoc, reinitLogger) {
 
 	config.connectors.data.type = serviceDoc?.connectors?.data?.type || 'MONGODB';
 	if (config?.connectors?.data?.type === 'MONGODB') {
-		config.connectors.data.values = serviceDoc?.connectors?.data?.values || { connectionString: config.mongoUrl, database: config.serviceDB };
+		config.connectors.data.values = serviceDoc?.connectors?.data?.values || { connectionString: config.dbAppcenterUrl || config.mongoUrl, database: config.serviceDB };
 	}
 
 	config.connectors.file.type = serviceDoc?.connectors?.file?.type || 'GRIDFS';

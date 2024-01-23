@@ -27,6 +27,8 @@ const app = express();
 	});
 
 	let logger = log4js.getLogger(loggerName);
+	
+	global.LOG_LEVEL = logLevel;
 	global.logger = logger;
 
 
