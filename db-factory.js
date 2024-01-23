@@ -159,6 +159,7 @@ async function initConfigVariables(serviceDoc, reinitLogger) {
 	config.serviceCollection = serviceDoc.collectionName;
 
 	config.mongoAppCenterOptions.dbName = config.serviceDB;
+	config.dbAppcenterOptions.dbName = config.serviceDB;
 
 	serviceDoc.idDetails = serviceDoc['definition'].find(attr => attr.key == '_id');
 	serviceDoc.idDetails.counter = parseInt(serviceDoc.idDetails.counter);
