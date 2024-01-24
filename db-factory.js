@@ -24,10 +24,10 @@ async function setIsTransactionAllowed() {
 
 async function establishingAppCenterDBConnections() {
 	try {
-		if (config.connectors.data.type === 'MONGODB') {
-			logger.info(`Appcenter DB Name :: ${config.connectors.data.values.database || config.dbAppcenterOptions.dbName || config.mongoAppCenterOptions.dbName}`);
-			logger.info(`Appcenter DB URL :: ${config.connectors.data.values.connectionString || config.dbAppcenterUrl ||config.mongoUrl}`);
-			await mongoose.connect(config.connectors.data.values.connectionString || config.dbAppcenterUrl || config.mongoUrl, config.dbAppcenterOptions || config.mongoAppCenterOptions);
+		if (config?.connectors?.data?.type === 'MONGODB' || config?.connectors?.data?.type === 'DOCUMENTDB') {
+			logger.info(`Appcenter DB Name :: ${config?.connectors?.data?.values?.database || config.dbAppcenterOptions.dbName || config.mongoAppCenterOptions.dbName}`);
+			logger.info(`Appcenter DB URL :: ${config?.connectors?.data?.values?.connectionString || config.dbAppcenterUrl ||config.mongoUrl}`);
+			await mongoose.connect(config?.connectors?.data?.values?.connectionString || config.dbAppcenterUrl || config.mongoUrl, config.dbAppcenterOptions || config.mongoAppCenterOptions);
 			logger.info(`Connected to appcenter db : ${config.serviceDB}`);
 			mongoose.connection.on('connecting', () => { logger.info(` *** ${config.serviceDB} CONNECTING *** `); });
 			mongoose.connection.on('disconnected', () => { logger.error(` *** ${config.serviceDB} LOST CONNECTION *** `); });
@@ -36,9 +36,9 @@ async function establishingAppCenterDBConnections() {
 			mongoose.connection.on('reconnectFailed', () => { logger.error(` *** ${config.serviceDB} FAILED TO RECONNECT *** `); });
 			mongoose.connection.on('error', () => { logger.error(` *** ${config.serviceDB} FAILED TO CONNECT *** `); });
 
-			global.gfsBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}` });
-			global.gfsBucketExport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.exportedFile` });
-			global.gfsBucketImport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.fileImport` });
+			// global.gfsBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}` });
+			// global.gfsBucketExport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.exportedFile` });
+			// global.gfsBucketImport = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: `${config.serviceCollection}.fileImport` });
 
 			await setIsTransactionAllowed();
 		}
@@ -234,7 +234,7 @@ async function init() {
 			serviceDoc.connectors.data.type = dataStorageConnectorDetails.type;
 		}
 
-		if (dataStorageConnectorDetails?.type === 'MONGODB' && dataStorageConnectorDetails?.options.default) {
+		if ((dataStorageConnectorDetails?.type === 'MONGODB' || dataStorageConnectorDetails?.type === 'DOCUMENTDB') && dataStorageConnectorDetails?.options.default) {
 			serviceDoc.connectors.data.values = { 'connectionString': config.dbAppcenterUrl || config.mongoUrl, 'database': config.namespace + '-' + serviceDoc.app };
 		} else {
 			serviceDoc.connectors.data.values = dataStorageConnectorDetails.values;
@@ -283,7 +283,7 @@ async function init() {
 		// GENERATE THE CODE
 		require('./codeGen').init(serviceDoc);
 		// CONNECT TO APPCENTER DB
-		if (serviceDoc?.connectors?.data?.type !== 'MONGODB') {
+		if (serviceDoc?.connectors?.data?.type !== 'MONGODB' && serviceDoc?.connectors?.data?.type !== 'DOCUMENTDB') {
 			logger.info('Skipped Mongoose Model Init');
 		} else {
 			await establishingAppCenterDBConnections();

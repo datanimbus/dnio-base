@@ -2,7 +2,7 @@ const serviceDoc = require('../../service.json');
 
 const router = require('express').Router();
 
-if (serviceDoc && serviceDoc.connectors && serviceDoc.connectors.data && serviceDoc.connectors.data.type !== 'MONGODB') {
+if (serviceDoc?.connectors?.data?.type !== 'MONGODB' && serviceDoc?.connectors?.data?.type !== 'DOCUMENTDB') {
 	router.use('/', require('./main.controller.sql'));
 } else {
 	router.use('/', require('./main.controller'));
